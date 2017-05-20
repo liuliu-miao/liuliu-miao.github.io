@@ -1,5 +1,11 @@
 {
   
+  "2017-05-20-test": {
+    "title": "测试页面",
+    "url": " /2017/05/20/test/",
+    "category": "other"
+  },
+  
   "2017-04-09-a-difficult-decision": {
     "title": "我做了一个有点艰难的决定",
     "url": " /2017/04/09/a-difficult-decision/",
@@ -90,6 +96,12 @@
     "title": "我做了一个有点艰难的决定",
     "url": "/2017/04/09/a-difficult-decision/",
     "category": "[&quot;Blog&quot;]"
+  },
+  
+  "2017-05-20-test": {
+    "title": "测试页面",
+    "url": "/2017/05/20/test/",
+    "category": "[&quot;other&quot;]"
   },
   
   "wiki-android-studio": {
