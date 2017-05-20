@@ -5,8 +5,8 @@ baseurl:
 url:
 date_format: "ordinal"
 title: code busy
-subtitle: "打码改变人生"
-description: "马壮的个人博客"
+subtitle: "coding改变人生"
+description: "code busy的个人博客"
 keywords: code busy, liushan, code_busy
 favicon: /html_title.png
 timezone: Asia/Shanghai
