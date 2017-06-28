@@ -10,8 +10,11 @@ keywords: github.io,jekyll,搭建博客
 
 ### 环境准备
 > macos10.12(Linux类似)
+
 > rvm
+ 
 > ruby 2.3.0
+ 
 > jekyll 3.2.1
 
 本文基于macOs的,Linux系统类似
