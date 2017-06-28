@@ -1,13 +1,14 @@
+---
 layout: post
 title: github.io+jekyll搭建博客
 categories: Blog
 description: 参考教程搭建博客
 keywords: github.io,jekyll,搭建博客
+---
 
+## gitHub.io+jekyll搭建静态博客
 
-##gitHub.io+jekyll搭建静态博客
-
-###环境准备
+### 环境准备
 > macos10.12(Linux类似)
 > rvm
 > ruby 2.3.0
@@ -17,7 +18,7 @@ keywords: github.io,jekyll,搭建博客
 
 - - -
 
-###一.安装rvm
+### 一.安装rvm
 因为国内网络原因,rvm安装需要翻墙才能访问.至于翻墙,自行想办法了.
 install rvm 参考地址:[https://rvm.io/rvm/install](https://rvm.io/rvm/install)进行安装
 中间可能需要等待有点长时间,时间视网络情况,你懂的;
@@ -29,7 +30,7 @@ rvm 1.29.2 (latest) by Michal Papis, Piotr Kuczynski, Wayne E. Seguin [https://r
 
 ```
 ---
-###二.安装ruby
+### 二.安装ruby
 如果你成功安装rvm了.安装ruby就轻松了.参考
 [https://ruby-china.org/wiki/install_ruby_guide](https://ruby-china.org/wiki/install_ruby_guide)
 ,soeasy
@@ -42,7 +43,7 @@ gem install bundler
 
 ```
 ---
-###三.安装jekyll
+### 三.安装jekyll
 克隆jekyll模板
 git clone https://github.com/mzlogin/mzlogin.github.io.git 到本地目录,
 进入刚刚克隆的目录
@@ -66,7 +67,7 @@ jekyll -H 0.0.0.0 -P 4444
 
 ---
 
-###参考
+### 参考
 本搭建教程参考
 [https://mritd.me/2016/10/09/jekyll-create-a-static-blog/](https://mritd.me/2016/10/09/jekyll-create-a-static-blog/)
 

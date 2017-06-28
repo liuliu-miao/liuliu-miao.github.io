@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <title>测试页面 &mdash; code busy</title>
+    <title>github.io+jekyll搭建博客 &mdash; code busy</title>
     <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
     <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
     <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
@@ -21,28 +21,28 @@
     
 
     
-    <link rel="canonical" href="http://0.0.0.0:8088/2017/05/20/test/">
+    <link rel="canonical" href="http://0.0.0.0:4446/2017/06/28/buildBlog-github-jekyll/">
     <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
     <link rel="shortcut icon" href="/html_title.png">
     
-    <meta property="og:title" content="测试页面">
+    <meta property="og:title" content="github.io+jekyll搭建博客">
       
-    <meta name="keywords" content="测试,test">
-    <meta name="og:keywords" content="测试,test">
+    <meta name="keywords" content="github.io,jekyll,搭建博客">
+    <meta name="og:keywords" content="github.io,jekyll,搭建博客">
       
-    <meta name="description" content="测试页面  测试…">
-    <meta name="og:description" content="测试页面  测试…">
+    <meta name="description" content="gitHub.io+jekyll搭建静态博客">
+    <meta name="og:description" content="gitHub.io+jekyll搭建静态博客">
       
     
     
         
     
-    <meta property="og:url" content="http://0.0.0.0:8088/2017/05/20/test/">
+    <meta property="og:url" content="http://0.0.0.0:4446/2017/06/28/buildBlog-github-jekyll/">
     <meta property="og:site_name" content="code busy">
     <meta property="og:type" content="article">
     <meta property="og:locale" content="zh_CN" />
     
-    <meta property="article:published_time" content="2017-05-20">
+    <meta property="article:published_time" content="2017-06-28">
     
     <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
     <script src="/assets/js/jquery-ui.js"></script>
@@ -83,22 +83,22 @@
     </header>
     <!-- / header -->
 
-    <section class="collection-head small geopattern" data-pattern-id="测试页面">
+    <section class="collection-head small geopattern" data-pattern-id="github.io+jekyl">
 <div class="container">
   <div class="columns">
     <div class="column three-fourths">
       <div class="collection-title">
-        <h1 class="collection-header">测试页面</h1>
+        <h1 class="collection-header">github.io+jekyll搭建博客</h1>
         <div class="collection-info">
           
           <span class="meta-info">
-            <span class="octicon octicon-calendar"></span> 2017/05/20
+            <span class="octicon octicon-calendar"></span> 2017/06/28
           </span>
           
           
           <span class="meta-info">
             <span class="octicon octicon-file-directory"></span>
-            <a href="/categories/#other" title="other">other</a>
+            <a href="/categories/#Blog" title="Blog">Blog</a>
           </span>
           
         </div>
@@ -112,16 +112,71 @@
 <div class="columns">
   <div class="column three-fourths" >
     <article class="article-content markdown-body">
-    <h2 id="测试页面">测试页面</h2>
+    <h2 id="githubiojekyll搭建静态博客">gitHub.io+jekyll搭建静态博客</h2>
+
+<h3 id="环境准备">环境准备</h3>
 <blockquote>
-  <p>测试…</p>
+  <p>macos10.12(Linux类似)
+rvm
+ruby 2.3.0
+jekyll 3.2.1</p>
 </blockquote>
 
-<hr />
-
-<p>时间: 2017年05月20日</p>
+<p>本文基于macOs的,Linux系统类似</p>
 
 <hr />
+
+<h3 id="一安装rvm">一.安装rvm</h3>
+<p>因为国内网络原因,rvm安装需要翻墙才能访问.至于翻墙,自行想办法了.
+install rvm 参考地址:<a href="https://rvm.io/rvm/install">https://rvm.io/rvm/install</a>进行安装
+中间可能需要等待有点长时间,时间视网络情况,你懂的;
+安装成功输入 rvm -v 查看</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>rvm -v
+rvm 1.29.2 <span class="o">(</span>latest<span class="o">)</span> by Michal Papis, Piotr Kuczynski, Wayne E. Seguin <span class="o">[</span>https://rvm.io/]
+
+</code></pre>
+</div>
+<hr />
+<h3 id="二安装ruby">二.安装ruby</h3>
+<p>如果你成功安装rvm了.安装ruby就轻松了.参考
+<a href="https://ruby-china.org/wiki/install_ruby_guide">https://ruby-china.org/wiki/install_ruby_guide</a>
+,soeasy</p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>rvm install 2.3.0
+<span class="c"># 设置默认使用的 ruby 版本</span>
+rvm use 2.3.0 --default
+<span class="c"># 安装 bundler</span>
+gem install bundler
+
+</code></pre>
+</div>
+<hr />
+<h3 id="三安装jekyll">三.安装jekyll</h3>
+<p>克隆jekyll模板
+git clone https://github.com/mzlogin/mzlogin.github.io.git 到本地目录,
+进入刚刚克隆的目录</p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="c"># 进入主题目录</span>
+<span class="nb">cd </span>mzlogin.github.io
+<span class="c"># 安装 jekyll 等</span>
+bundle install
+<span class="c"># 启动</span>
+jekyll -H 0.0.0.0 -P 4444
+
+</code></pre>
+</div>
+<p>打开浏览器可看到,删除作者自己写的_posts中的内容,替换成自己的博客markdown文件,根据博客主题作者提示改配置和文件,替换为自己的即可;</p>
+
+<hr />
+
+<h3 id="四推送到自己github上">四.推送到自己gitHub上</h3>
+<p>首先在 Github 上创建一个自己用户名的github.io，如: 用户名.github.io，之后讲刚刚修改的主题目录下的 .git 删除 ,git init 初始化,设置 git remote set-url 指向自己的github.io,最后推送到github上完成；Github 本身也是使用 jekyll 进行生成，所以会自动识别并生成博客；最后访问 http://用户名.github.io 即可.</p>
+
+<hr />
+
+<h3 id="参考">参考</h3>
+<p>本搭建教程参考
+<a href="https://mritd.me/2016/10/09/jekyll-create-a-static-blog/">https://mritd.me/2016/10/09/jekyll-create-a-static-blog/</a></p>
+
 
     
 

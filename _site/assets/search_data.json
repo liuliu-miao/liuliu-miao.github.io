@@ -1,26 +1,8 @@
 {
   
-  "2017-05-20-test": {
-    "title": "测试页面",
-    "url": " /2017/05/20/test/",
-    "category": "other"
-  },
-  
-  "2017-04-09-a-difficult-decision": {
-    "title": "我做了一个有点艰难的决定",
-    "url": " /2017/04/09/a-difficult-decision/",
-    "category": "Blog"
-  },
-  
-  "2017-02-19-the-kite-runner": {
-    "title": "读书：追风筝的人",
-    "url": " /2017/02/19/the-kite-runner/",
-    "category": "Blog"
-  },
-  
-  "2017-01-01-my-2016": {
-    "title": "我的 2016 盘点",
-    "url": " /2017/01/01/my-2016/",
+  "2017-06-28-buildblog-github-jekyll": {
+    "title": "github.io+jekyll搭建博客",
+    "url": " /2017/06/28/buildBlog-github-jekyll/",
     "category": "Blog"
   },
   
@@ -80,28 +62,10 @@
   
 
   
-  "2017-01-01-my-2016": {
-    "title": "我的 2016 盘点",
-    "url": "/2017/01/01/my-2016/",
+  "2017-06-28-buildblog-github-jekyll": {
+    "title": "github.io+jekyll搭建博客",
+    "url": "/2017/06/28/buildBlog-github-jekyll/",
     "category": "[&quot;Blog&quot;]"
-  },
-  
-  "2017-02-19-the-kite-runner": {
-    "title": "读书：追风筝的人",
-    "url": "/2017/02/19/the-kite-runner/",
-    "category": "[&quot;Blog&quot;]"
-  },
-  
-  "2017-04-09-a-difficult-decision": {
-    "title": "我做了一个有点艰难的决定",
-    "url": "/2017/04/09/a-difficult-decision/",
-    "category": "[&quot;Blog&quot;]"
-  },
-  
-  "2017-05-20-test": {
-    "title": "测试页面",
-    "url": "/2017/05/20/test/",
-    "category": "[&quot;other&quot;]"
   },
   
   "wiki-android-studio": {
