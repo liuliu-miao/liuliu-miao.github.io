@@ -1,0 +1,48 @@
+---
+layout: post
+title: linux下恢复删除的文件
+categories: linux
+description: linux下恢复删除的文件
+keywords: linux,恢复文件
+---
+
+## Linux(Ubuntu)修复删除的文件
+
+本人基于Ubuntu server 16.04 环境下,其他linux系统类似.
+作为一个初学者,难免有不小心删除文件的误操作,google了下,成功恢复了.
+
+### 查看自己的文件系统和分区
+``` sh
+hadoop@ubuntu-ser1:~/devapp$ df -T /home
+Filesystem                        Type 1K-blocks    Used Available Use% Mounted on
+/dev/mapper/ubuntu--ser1--vg-root ext4  18982780 3766336  14229104  21% /
+
+## /dev/mapper/ubuntu--ser1--vg-root 就是当前系统所在分区  ext4是文件系统类型
+
+```
+
+### 安装恢复文件所需的软件extundelete
+
+``` sh
+sudo apt install extundelete -y
+
+```
+
+### 恢复文件
+跳转到一个目录,最好是不需要的目录,因为一会恢复的文件会恢复到这个目录;例如,我跳到了我刚刚删除文件的那个目录
+
+``` sh
+ cd ~/devapp/
+
+```
+然后执行
+
+``` sh
+sudo extundelete /dev/mapper/ubuntu--ser1--vg-root --restore-all
+## /dev/mapper/ubuntu--ser1--vg-root 这个是文件所在的分区,就是刚刚 df -T /home,home目录所在的分区地址,参数--restore-all 是恢复所有最近删除的文件
+
+``` 
+
+完成后,即可在当前目录下产生一个 RECOVERED_FILES文件夹,里面放着这个分区近期删除的文件,至此恢复完成.
+
+参考博客[http://nphard.me/2015/09/30/linux-ubuntu-rm-hui-fu/](http://nphard.me/2015/09/30/linux-ubuntu-rm-hui-fu/)

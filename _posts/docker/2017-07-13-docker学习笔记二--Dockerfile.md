@@ -1,6 +1,6 @@
 ---
 layout: post
-title: docker学习笔记(一)
+title: docker学习笔记(二)Dockerfile
 categories: docker
 description: docker的安装,helloworld,以及常用命令
 keywords: docker install,docker helloworld
