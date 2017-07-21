@@ -1,4 +1,372 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://0.0.0.0:4446/feed.xml" rel="self" type="application/atom+xml" /><link href="http://0.0.0.0:4446/" rel="alternate" type="text/html" /><updated>2017-06-28T15:25:56+08:00</updated><id>http://0.0.0.0:4446/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">github.io+jekyll搭建博客</title><link href="http://0.0.0.0:4446/2017/06/28/buildBlog-github-jekyll/" rel="alternate" type="text/html" title="github.io+jekyll搭建博客" /><published>2017-06-28T00:00:00+08:00</published><updated>2017-06-28T00:00:00+08:00</updated><id>http://0.0.0.0:4446/2017/06/28/buildBlog-github-jekyll</id><content type="html" xml:base="http://0.0.0.0:4446/2017/06/28/buildBlog-github-jekyll/">&lt;h2 id=&quot;githubiojekyll搭建静态博客&quot;&gt;gitHub.io+jekyll搭建静态博客&lt;/h2&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://0.0.0.0:4445/feed.xml" rel="self" type="application/atom+xml" /><link href="http://0.0.0.0:4445/" rel="alternate" type="text/html" /><updated>2017-07-21T13:50:45+08:00</updated><id>http://0.0.0.0:4445/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">linux下恢复删除的文件</title><link href="http://0.0.0.0:4445/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6/" rel="alternate" type="text/html" title="linux下恢复删除的文件" /><published>2017-07-18T00:00:00+08:00</published><updated>2017-07-18T00:00:00+08:00</updated><id>http://0.0.0.0:4445/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6</id><content type="html" xml:base="http://0.0.0.0:4445/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6/">&lt;h2 id=&quot;linuxubuntu修复删除的文件&quot;&gt;Linux(Ubuntu)修复删除的文件&lt;/h2&gt;
+
+&lt;p&gt;本人基于Ubuntu server 16.04 环境下,其他linux系统类似.
+作为一个初学者,难免有不小心删除文件的误操作,google了下,成功恢复了.&lt;/p&gt;
+
+&lt;h3 id=&quot;查看自己的文件系统和分区&quot;&gt;查看自己的文件系统和分区&lt;/h3&gt;
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;gp&quot;&gt;hadoop@ubuntu-ser1:~/devapp$ &lt;/span&gt;df -T /home
+Filesystem                        Type 1K-blocks    Used Available Use% Mounted on
+/dev/mapper/ubuntu--ser1--vg-root ext4  18982780 3766336  14229104  21% /
+
+&lt;span class=&quot;c&quot;&gt;## /dev/mapper/ubuntu--ser1--vg-root 就是当前系统所在分区  ext4是文件系统类型&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;安装恢复文件所需的软件extundelete&quot;&gt;安装恢复文件所需的软件extundelete&lt;/h3&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo apt install extundelete -y
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;恢复文件&quot;&gt;恢复文件&lt;/h3&gt;
+&lt;p&gt;跳转到一个目录,最好是不需要的目录,因为一会恢复的文件会恢复到这个目录;例如,我跳到了我刚刚删除文件的那个目录&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; ~/devapp/
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;p&gt;然后执行&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo extundelete /dev/mapper/ubuntu--ser1--vg-root --restore-all
+&lt;span class=&quot;c&quot;&gt;## /dev/mapper/ubuntu--ser1--vg-root 这个是文件所在的分区,就是刚刚 df -T /home,home目录所在的分区地址,参数--restore-all 是恢复所有最近删除的文件&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;完成后,即可在当前目录下产生一个 RECOVERED_FILES文件夹,里面放着这个分区近期删除的文件,至此恢复完成.&lt;/p&gt;
+
+&lt;p&gt;参考博客&lt;a href=&quot;http://nphard.me/2015/09/30/linux-ubuntu-rm-hui-fu/&quot;&gt;http://nphard.me/2015/09/30/linux-ubuntu-rm-hui-fu/&lt;/a&gt;&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">Linux(Ubuntu)修复删除的文件</summary></entry><entry><title type="html">docker学习笔记(二)Dockerfile</title><link href="http://0.0.0.0:4445/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C-Dockerfile/" rel="alternate" type="text/html" title="docker学习笔记(二)Dockerfile" /><published>2017-07-13T00:00:00+08:00</published><updated>2017-07-13T00:00:00+08:00</updated><id>http://0.0.0.0:4445/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C--Dockerfile</id><content type="html" xml:base="http://0.0.0.0:4445/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C-Dockerfile/">&lt;h2 id=&quot;docker学习笔记二dockerfile&quot;&gt;docker学习笔记二–Dockerfile&lt;/h2&gt;
+&lt;hr /&gt;
+&lt;p&gt;参考自&lt;a href=&quot;https://docs.docker.com/engine/reference/builder/#usage&quot;&gt;官方文档-Dockerfile&lt;/a&gt;部分&lt;/p&gt;
+
+&lt;h3 id=&quot;一dockerfile中常用的指令简介&quot;&gt;(一)Dockerfile中常用的指令简介&lt;/h3&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;FROM &lt;span class=&quot;c&quot;&gt;#来源于某个基础镜像&lt;/span&gt;
+FROM ubuntu 16.04
+
+
+LABEL
+ARG SPRING_PROFILE_ACTIVE &lt;span class=&quot;c&quot;&gt;#获取外部参数 SPRING_PROFILE_ACTIVE为外部参数的名称&lt;/span&gt;
+RUN  &lt;span class=&quot;c&quot;&gt;#运行镜像中系统级的命令&lt;/span&gt;
+RUN apt-get uppdate &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; apt-get install -y 
+
+RUN apt-get update &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; apt-get install -y &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    aufs-tools &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    automake &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    build-essential &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    curl &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    dpkg-sig &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    libcap-dev &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    libsqlite3-dev &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    mercurial &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    reprepro &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    ruby1.9.1 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    ruby1.9.1-dev &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+    &lt;span class=&quot;nv&quot;&gt;s3cmd&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1.1.&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+ &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; rm -rf /var/lib/apt/lists/&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+
+RUN &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;/bin/bash&quot;&lt;/span&gt;, &lt;span class=&quot;s2&quot;&gt;&quot;-c&quot;&lt;/span&gt;, &lt;span class=&quot;s2&quot;&gt;&quot;set -o pipefail &amp;amp;&amp;amp; wget -O - https://some.site | wc -l &amp;gt; /number&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+
+CMD  &lt;span class=&quot;c&quot;&gt;#运行非系统级别的命令&lt;/span&gt;
+CMD &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;perl&quot;&lt;/span&gt;, &lt;span class=&quot;s2&quot;&gt;&quot;-de0&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+ENV  &lt;span class=&quot;c&quot;&gt;#设置系统参数&lt;/span&gt;
+ADD or COPY 
+
+COPY /home/userName/xxx.jar  /images/  &lt;span class=&quot;c&quot;&gt;#讲系统中的内容copy到镜像中的指定目录&lt;/span&gt;
+ENV profile &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SPRING_PROFILE_ACTIVE&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;c&quot;&gt;#设置参数  ${SPRING_PROFILE_ACTIVE}为外部传入参数&lt;/span&gt;
+CMD &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;bash,-c,java -jar /xxx.jar --spring.profiles.active&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;profile&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+
+&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;/home/userName/xxx.jar为当前系统目录下的内容&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 目标地址为镜像目录 /images/
+ 
+EXPOSE  &lt;span class=&quot;c&quot;&gt;# 不常用,后续补充该字段&lt;/span&gt;
+ENTRYPOINT
+VOLUME
+USER
+WORKDIR
+ONBUILD
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;h3 id=&quot;二一些简单的dockerfile示例&quot;&gt;(二)一些简单的Dockerfile示例&lt;/h3&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;以下为一个简介版本的Dockerfile
+``` bash
+FROM openjdk:8
+ARG SPRING_PROFILE_ACTIVE&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;ENV SPRING_PROFILE_ACTIVE ${SPRING_PROFILE_ACTIVE}&lt;/p&gt;
+
+&lt;p&gt;COPY demo-www-1.0-SNAPSHOT.jar  /temp/&lt;/p&gt;
+
+&lt;p&gt;CMD [bash,-c,java -jar   /temp/demo-www-1.0-SNAPSHOT.jar –spring.profiles.active=${SPRING_PROFILE_ACTIVE}]&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;gt; 项目中使用的镜像
+``` bash 
+# 基于一个简介版本的可运行jdk环境的docker镜像
+FROM reg.longdai.com/base/openjdk:8u131-jdk-alpine
+
+# 作者信息
+MAINTAINER mritd &amp;lt;mritd@mritd.me&amp;gt;
+
+# 获取参数
+ARG SPRING_PROFILE_ACTIVE
+ARG PROJECT_BUILD_FINALNAME
+
+# 设置时区,项目参数,项目名称
+ENV TZ 'Asia/Shanghai'
+ENV SPRING_PROFILE_ACTIVE ${SPRING_PROFILE_ACTIVE}
+ENV PROJECT_BUILD_FINALNAME ${PROJECT_BUILD_FINALNAME}
+
+# 运行命令设置和安装 搭建项目所需要环境
+RUN apk upgrade --update \
+    &amp;amp;&amp;amp; apk add tzdata bash \
+    &amp;amp;&amp;amp; ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    &amp;amp;&amp;amp; echo &quot;Asia/Shanghai&quot; &amp;gt; /etc/timezone \
+    &amp;amp;&amp;amp; rm -rf /var/cache/apk/*
+
+# copy 项目中可运行的jar包到镜像中
+COPY target/${PROJECT_BUILD_FINALNAME}.jar /${PROJECT_BUILD_FINALNAME}.jar
+
+# 执行启动命令,项目使用spring-boot框架搭建,所以直接使用此命令就好
+CMD [&quot;bash&quot;,&quot;-c&quot;,&quot;java -jar /${PROJECT_BUILD_FINALNAME}.jar --spring.profiles.active=${SPRING_PROFILE_ACTIVE}&quot;]
+
+# 更复杂的Dockerfile待更新
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;三build-dcokerfile&quot;&gt;(三)build Dcokerfile&lt;/h3&gt;
+&lt;p&gt;写完Dockerfile后,使用docker build 命令build自己的镜像&lt;/p&gt;
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;docker build /path/to/a/Dockerfile  -t testDocker:1.2 .
+
+docker -H https://githu.com/xxx/xxx.git  build -t image_name:1.12 --build-arg &lt;span class=&quot;nv&quot;&gt;SPRING_PROFILE_ACTIVE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;dohko   &lt;span class=&quot;nv&quot;&gt;PROJECT_BUILD_FINALNAME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;longdai-p2p-core longdai-core
+
+&lt;span class=&quot;c&quot;&gt;# 为镜像指定tag&lt;/span&gt;
+docker -H &lt;span class=&quot;nv&quot;&gt;$DOHKO_BUILD_HOST_19&lt;/span&gt; tag &lt;span class=&quot;nv&quot;&gt;$IMAGE_NAME&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$LATEST_IMAGE_NAME&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;# 将镜像push到指定仓库&lt;/span&gt;
+docker -H &lt;span class=&quot;nv&quot;&gt;$DOHKO_BUILD_HOST_19&lt;/span&gt; push &lt;span class=&quot;nv&quot;&gt;$IMAGE_NAME&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;# 删除本地的docker镜像&lt;/span&gt;
+docker -H &lt;span class=&quot;nv&quot;&gt;$DOHKO_BUILD_HOST_19&lt;/span&gt;  rmi &lt;span class=&quot;nv&quot;&gt;$IMAGE_NAME&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;# 指定build的文件来源地址&lt;/span&gt;
+-H https://githu.com/xxx/xxx.git 
+&lt;span class=&quot;c&quot;&gt;# build后的镜像名称为: image_name:1.12 &lt;/span&gt;
+build -t image_name:1.12 
+&lt;span class=&quot;c&quot;&gt;# build 时带入的参数&lt;/span&gt;
+--build-arg &lt;span class=&quot;nv&quot;&gt;SPRING_PROFILE_ACTIVE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;dohko   &lt;span class=&quot;nv&quot;&gt;PROJECT_BUILD_FINALNAME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;longdai-p2p-core
+&lt;span class=&quot;c&quot;&gt;# build的文件中的目录&lt;/span&gt;
+longdai-core
+
+
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;p&gt;更多详细的命令参考&lt;a href=&quot;https://docs.docker.com/engine/reference/builder/&quot;&gt;官方文档Dockerfile reference&lt;/a&gt;&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">docker学习笔记二–Dockerfile 参考自官方文档-Dockerfile部分</summary></entry><entry><title type="html">docker学习笔记(一)</title><link href="http://0.0.0.0:4445/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/" rel="alternate" type="text/html" title="docker学习笔记(一)" /><published>2017-07-07T00:00:00+08:00</published><updated>2017-07-07T00:00:00+08:00</updated><id>http://0.0.0.0:4445/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)</id><content type="html" xml:base="http://0.0.0.0:4445/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/">&lt;h2 id=&quot;docker学习笔记一&quot;&gt;docker学习笔记(一)&lt;/h2&gt;
+
+&lt;h3 id=&quot;安装docker&quot;&gt;安装docker&lt;/h3&gt;
+&lt;p&gt;google一下,dokcer安装到本地即可.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;ubuntu,及其 参考地址 &lt;a href=&quot;https://docs.docker.com/engine/installation/&quot;&gt;官网安装地址&lt;/a&gt;,进行安装.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;macOs 需要下载安装包进行安装,或者使用 brew install docker 进行安装.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;安装完成后,允许docker info 查看安装信息,如果是生产环境使用,需要单独配置其他信息(如nfs&lt;文件存储相关信息&gt;),具体信息可访问docker官网进行配置&lt;/文件存储相关信息&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    
+➜  ~ docker info
+		Containers: 15
+		 Running: 2
+		 Paused: 0
+		 Stopped: 13
+		Images: 17
+		Server Version: 17.03.1-ce
+		Storage Driver: overlay2
+		 Backing Filesystem: extfs
+		 Supports d_type: &lt;span class=&quot;nb&quot;&gt;true
+		 &lt;/span&gt;Native Overlay Diff: &lt;span class=&quot;nb&quot;&gt;true
+		&lt;/span&gt;Logging Driver: json-file
+		Cgroup Driver: cgroupfs
+		Plugins:
+		 Volume: &lt;span class=&quot;nb&quot;&gt;local
+		 &lt;/span&gt;Network: bridge host ipvlan macvlan null overlay
+		Swarm: inactive
+		Runtimes: runc
+		Default Runtime: runc
+		Init Binary: docker-init
+		containerd version: 4ab9917febca54791c5f071a9d1f404867857fcc
+		runc version: 54296cf40ad8143b62dbcaa1d90e520a2136ddfe
+		init version: 949e6fa
+		Security Options:
+		 seccomp
+		  Profile: default
+		Kernel Version: 4.9.27-moby
+		Operating System: Alpine Linux v3.5
+		OSType: linux
+		Architecture: x86_64
+		CPUs: 2
+		Total Memory: 1.952 GiB
+		Name: moby
+		ID: XAOC:ARKJ:IDEE:6Z57:KARG:V7GA:CQ2A:L3R3:4Y6L:VTDU:KACG:AGJ5
+		Docker Root Dir: /var/lib/docker
+		Debug Mode &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;client&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;: &lt;span class=&quot;nb&quot;&gt;false
+		&lt;/span&gt;Debug Mode &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;server&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;: &lt;span class=&quot;nb&quot;&gt;true
+		 &lt;/span&gt;File Descriptors: 29
+		 Goroutines: 36
+		 System Time: 2017-07-07T08:41:25.128911087Z
+		 EventsListeners: 1
+		No Proxy: &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;.local, 169.254/16
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;允许 docker version
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;➜  ~ docker version
+		 Client:
+		  Version:      17.03.1-ce
+		  API version:  1.27
+		  Go version:   go1.7.5
+		  Git commit:   c6d412e
+		  Built:        Tue Mar 28 00:40:02 2017
+		  OS/Arch:      darwin/amd64
+		 
+		 Server:
+		  Version:      17.03.1-ce
+		  API version:  1.27 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;minimum version 1.12&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+		  Go version:   go1.7.5
+		  Git commit:   c6d412e
+		  Built:        Fri Mar 24 00:00:50 2017
+		  OS/Arch:      linux/amd64
+		  Experimental: &lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;		
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;运行hello-world&quot;&gt;运行hello world&lt;/h3&gt;
+
+&lt;p&gt;docker run hello-world&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;
+➜  ~ docker run hello-world
+Unable to find image &lt;span class=&quot;s1&quot;&gt;'hello-world:latest'&lt;/span&gt; locally
+latest: Pulling from library/hello-world
+b04784fba78d: Pull &lt;span class=&quot;nb&quot;&gt;complete
+&lt;/span&gt;Digest: sha256:f3b3b28a45160805bb16542c9531888519430e9e6d6ffc09d72261b0d26ff74f
+Status: Downloaded newer image &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the hello-world image from the Docker Hub.
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://cloud.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/engine/userguide/
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;如果是linux生产关键要设置docker存储驱动,一般情况编辑 /usr/lib/systemd/system/docker.service,以下为示例:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Unit]
+ &lt;span class=&quot;c&quot;&gt;# 描述&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;Description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Docker Application Container Engine
+ &lt;span class=&quot;nv&quot;&gt;Documentation&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;https://docs.docker.com
+ &lt;span class=&quot;c&quot;&gt;# 先决条件&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;After&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;network.target
+
+ &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Service]
+ &lt;span class=&quot;nv&quot;&gt;Type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;notify
+ &lt;span class=&quot;c&quot;&gt;# the default is not to use systemd for cgroups because the delegate issues still&lt;/span&gt;
+ &lt;span class=&quot;c&quot;&gt;# exists and systemd currently does not support the cgroup feature set required&lt;/span&gt;
+ &lt;span class=&quot;c&quot;&gt;# for containers run by docker 通过docker 启动那些containers&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;ExecStart&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/usr/bin/dockerd  -H tcp://172.16.0.22:2375 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+                             -H unix:///var/run/docker.sock
+                             --insecure-registry registry.gozap.com &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;&lt;span class=&quot;c&quot;&gt;#仓库&lt;/span&gt;
+                             --storage-driver&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;overlay2 &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;&lt;span class=&quot;c&quot;&gt;# 存储驱动&lt;/span&gt;
+                             --graph&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/data/docker &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;&lt;span class=&quot;c&quot;&gt;#docker 相关数据存储地址&lt;/span&gt;
+                             --log-driver json-file &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;&lt;span class=&quot;c&quot;&gt;#日志驱动 &lt;/span&gt;
+                             --log-opt max-size&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;50m &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+                             --log-opt max-file&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;3 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+                             --log-opt &lt;span class=&quot;nv&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;dohko22
+ &lt;span class=&quot;nv&quot;&gt;ExecReload&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/bin/kill -s HUP &lt;span class=&quot;nv&quot;&gt;$MAINPID&lt;/span&gt;
+ &lt;span class=&quot;c&quot;&gt;# Having non-zero Limit*s causes performance problems due to accounting overhead&lt;/span&gt;
+ &lt;span class=&quot;c&quot;&gt;# in the kernel. We recommend using cgroups to do container-local accounting.&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;LimitNOFILE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;infinity
+ &lt;span class=&quot;nv&quot;&gt;LimitNPROC&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;infinity
+ &lt;span class=&quot;nv&quot;&gt;LimitCORE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;infinity
+ &lt;span class=&quot;c&quot;&gt;# Uncomment TasksMax if your systemd version supports it.&lt;/span&gt;
+ &lt;span class=&quot;c&quot;&gt;# Only systemd 226 and above support this version.&lt;/span&gt;
+ &lt;span class=&quot;c&quot;&gt;#TasksMax=infinity&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;TimeoutStartSec&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0
+ &lt;span class=&quot;c&quot;&gt;# set delegate yes so that systemd does not reset the cgroups of docker containers&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;Delegate&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;yes
+ &lt;span class=&quot;c&quot;&gt;# kill only the docker process, not all processes in the cgroup&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;KillMode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;process
+
+ &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Install]
+ &lt;span class=&quot;nv&quot;&gt;WantedBy&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;multi-user.target
+	
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;For Docker CE
+Linux distribution  		Supported storage drivers
+Docker CE on Ubuntu			aufs, devicemapper, overlay2 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Ubuntu 14.04.4 or later, 16.04 or later&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;, overlay, zfs
+Docker CE on Debian			aufs, devicemapper, overlay2 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Debian Stretch&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;, overlay
+Docker CE on CentOS			devicemapper
+Docker CE on Fedora			devicemapper, overlay2 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Fedora 26 or later, experimental&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;, overlay &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;experimental&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+Supported backing filesystems
+Storage driver			Supported backing filesystems
+overlay, overlay2		ext4, xfs
+aufs					ext4, xfs
+devicemapper			direct-lvm
+btrfs					btrfs
+zfs						zfs
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;附录1&quot;&gt;附录1&lt;/h3&gt;
+&lt;p&gt;docker 一些常用命令&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;docker build -t friendlyname .  &lt;span class=&quot;c&quot;&gt;# Create image using this directory's Dockerfile&lt;/span&gt;
+docker run -p 4000:80 friendlyname  &lt;span class=&quot;c&quot;&gt;# Run friendlyname mapping port 4000 to 80&lt;/span&gt;
+docker run -d -p 4000:80 friendlyname         &lt;span class=&quot;c&quot;&gt;# Same thing, but in detached mode&lt;/span&gt;
+docker ps                                 &lt;span class=&quot;c&quot;&gt;# See a list of all running containers&lt;/span&gt;
+docker stop &amp;lt;&lt;span class=&quot;nb&quot;&gt;hash&lt;/span&gt;&amp;gt;                     &lt;span class=&quot;c&quot;&gt;# Gracefully stop the specified container&lt;/span&gt;
+docker ps -a           &lt;span class=&quot;c&quot;&gt;# See a list of all containers, even the ones not running&lt;/span&gt;
+docker &lt;span class=&quot;nb&quot;&gt;kill&lt;/span&gt; &amp;lt;&lt;span class=&quot;nb&quot;&gt;hash&lt;/span&gt;&amp;gt;                   &lt;span class=&quot;c&quot;&gt;# Force shutdown of the specified container&lt;/span&gt;
+docker rm &amp;lt;&lt;span class=&quot;nb&quot;&gt;hash&lt;/span&gt;&amp;gt;              &lt;span class=&quot;c&quot;&gt;# Remove the specified container from this machine&lt;/span&gt;
+docker rm &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;docker ps -a -q&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;           &lt;span class=&quot;c&quot;&gt;# Remove all containers from this machine&lt;/span&gt;
+docker images -a                               &lt;span class=&quot;c&quot;&gt;# Show all images on this machine&lt;/span&gt;
+docker rmi &amp;lt;imagename&amp;gt;            &lt;span class=&quot;c&quot;&gt;# Remove the specified image from this machine&lt;/span&gt;
+docker rmi &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;docker images -q&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;             &lt;span class=&quot;c&quot;&gt;# Remove all images from this machine&lt;/span&gt;
+docker login             &lt;span class=&quot;c&quot;&gt;# Log in this CLI session using your Docker credentials&lt;/span&gt;
+docker tag &amp;lt;image&amp;gt; username/repository:tag  &lt;span class=&quot;c&quot;&gt;# Tag &amp;lt;image&amp;gt; for upload to registry&lt;/span&gt;
+docker push username/repository:tag            &lt;span class=&quot;c&quot;&gt;# Upload tagged image to registry&lt;/span&gt;
+docker run username/repository:tag                   &lt;span class=&quot;c&quot;&gt;# Run image from a registry&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;ul&gt;
+  &lt;li&gt;本文参考&lt;a href=&quot;https://docs.docker.com/hackathon/&quot;&gt;docker官方文档&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">docker学习笔记(一)</summary></entry><entry><title type="html">github.io+jekyll搭建博客</title><link href="http://0.0.0.0:4445/2017/06/28/buildBlog-github-jekyll/" rel="alternate" type="text/html" title="github.io+jekyll搭建博客" /><published>2017-06-28T00:00:00+08:00</published><updated>2017-06-28T00:00:00+08:00</updated><id>http://0.0.0.0:4445/2017/06/28/buildBlog-github-jekyll</id><content type="html" xml:base="http://0.0.0.0:4445/2017/06/28/buildBlog-github-jekyll/">&lt;h2 id=&quot;githubiojekyll搭建静态博客&quot;&gt;gitHub.io+jekyll搭建静态博客&lt;/h2&gt;
 
 &lt;h3 id=&quot;环境准备&quot;&gt;环境准备&lt;/h3&gt;
 &lt;blockquote&gt;

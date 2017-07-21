@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>docker学习笔记(一) &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://0.0.0.0:4445/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="/bolg_html_title.png">
+    
+    <meta property="og:title" content="docker学习笔记(一)">
+      
+    <meta name="keywords" content="docker install,docker helloworld">
+    <meta name="og:keywords" content="docker install,docker helloworld">
+      
+    <meta name="description" content="docker学习笔记(一)">
+    <meta name="og:description" content="docker学习笔记(一)">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://0.0.0.0:4445/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2017-07-07">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="docker学习笔记(一)">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">docker学习笔记(一)</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2017/07/07
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#docker" title="docker">docker</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h2 id="docker学习笔记一">docker学习笔记(一)</h2>
+
+<h3 id="安装docker">安装docker</h3>
+<p>google一下,dokcer安装到本地即可.</p>
+<blockquote>
+  <p>ubuntu,及其 参考地址 <a href="https://docs.docker.com/engine/installation/">官网安装地址</a>,进行安装.</p>
+</blockquote>
+
+<blockquote>
+  <p>macOs 需要下载安装包进行安装,或者使用 brew install docker 进行安装.</p>
+</blockquote>
+
+<p>安装完成后,允许docker info 查看安装信息,如果是生产环境使用,需要单独配置其他信息(如nfs<文件存储相关信息>),具体信息可访问docker官网进行配置</文件存储相关信息></p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>    
+➜  ~ docker info
+		Containers: 15
+		 Running: 2
+		 Paused: 0
+		 Stopped: 13
+		Images: 17
+		Server Version: 17.03.1-ce
+		Storage Driver: overlay2
+		 Backing Filesystem: extfs
+		 Supports d_type: <span class="nb">true
+		 </span>Native Overlay Diff: <span class="nb">true
+		</span>Logging Driver: json-file
+		Cgroup Driver: cgroupfs
+		Plugins:
+		 Volume: <span class="nb">local
+		 </span>Network: bridge host ipvlan macvlan null overlay
+		Swarm: inactive
+		Runtimes: runc
+		Default Runtime: runc
+		Init Binary: docker-init
+		containerd version: 4ab9917febca54791c5f071a9d1f404867857fcc
+		runc version: 54296cf40ad8143b62dbcaa1d90e520a2136ddfe
+		init version: 949e6fa
+		Security Options:
+		 seccomp
+		  Profile: default
+		Kernel Version: 4.9.27-moby
+		Operating System: Alpine Linux v3.5
+		OSType: linux
+		Architecture: x86_64
+		CPUs: 2
+		Total Memory: 1.952 GiB
+		Name: moby
+		ID: XAOC:ARKJ:IDEE:6Z57:KARG:V7GA:CQ2A:L3R3:4Y6L:VTDU:KACG:AGJ5
+		Docker Root Dir: /var/lib/docker
+		Debug Mode <span class="o">(</span>client<span class="o">)</span>: <span class="nb">false
+		</span>Debug Mode <span class="o">(</span>server<span class="o">)</span>: <span class="nb">true
+		 </span>File Descriptors: 29
+		 Goroutines: 36
+		 System Time: 2017-07-07T08:41:25.128911087Z
+		 EventsListeners: 1
+		No Proxy: <span class="k">*</span>.local, 169.254/16
+
+</code></pre>
+</div>
+<div class="highlighter-rouge"><pre class="highlight"><code>允许 docker version
+</code></pre>
+</div>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>➜  ~ docker version
+		 Client:
+		  Version:      17.03.1-ce
+		  API version:  1.27
+		  Go version:   go1.7.5
+		  Git commit:   c6d412e
+		  Built:        Tue Mar 28 00:40:02 2017
+		  OS/Arch:      darwin/amd64
+		 
+		 Server:
+		  Version:      17.03.1-ce
+		  API version:  1.27 <span class="o">(</span>minimum version 1.12<span class="o">)</span>
+		  Go version:   go1.7.5
+		  Git commit:   c6d412e
+		  Built:        Fri Mar 24 00:00:50 2017
+		  OS/Arch:      linux/amd64
+		  Experimental: <span class="nb">true</span>		
+</code></pre>
+</div>
+
+<h3 id="运行hello-world">运行hello world</h3>
+
+<p>docker run hello-world</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>
+➜  ~ docker run hello-world
+Unable to find image <span class="s1">'hello-world:latest'</span> locally
+latest: Pulling from library/hello-world
+b04784fba78d: Pull <span class="nb">complete
+</span>Digest: sha256:f3b3b28a45160805bb16542c9531888519430e9e6d6ffc09d72261b0d26ff74f
+Status: Downloaded newer image <span class="k">for </span>hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the hello-world image from the Docker Hub.
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ <span class="nv">$ </span>docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://cloud.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/engine/userguide/
+
+</code></pre>
+</div>
+
+<p>如果是linux生产关键要设置docker存储驱动,一般情况编辑 /usr/lib/systemd/system/docker.service,以下为示例:</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code> <span class="o">[</span>Unit]
+ <span class="c"># 描述</span>
+ <span class="nv">Description</span><span class="o">=</span>Docker Application Container Engine
+ <span class="nv">Documentation</span><span class="o">=</span>https://docs.docker.com
+ <span class="c"># 先决条件</span>
+ <span class="nv">After</span><span class="o">=</span>network.target
+
+ <span class="o">[</span>Service]
+ <span class="nv">Type</span><span class="o">=</span>notify
+ <span class="c"># the default is not to use systemd for cgroups because the delegate issues still</span>
+ <span class="c"># exists and systemd currently does not support the cgroup feature set required</span>
+ <span class="c"># for containers run by docker 通过docker 启动那些containers</span>
+ <span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/dockerd  -H tcp://172.16.0.22:2375 <span class="se">\</span>
+                             -H unix:///var/run/docker.sock
+                             --insecure-registry registry.gozap.com <span class="se">\ </span><span class="c">#仓库</span>
+                             --storage-driver<span class="o">=</span>overlay2 <span class="se">\ </span><span class="c"># 存储驱动</span>
+                             --graph<span class="o">=</span>/data/docker <span class="se">\ </span><span class="c">#docker 相关数据存储地址</span>
+                             --log-driver json-file <span class="se">\ </span><span class="c">#日志驱动 </span>
+                             --log-opt max-size<span class="o">=</span>50m <span class="se">\</span>
+                             --log-opt max-file<span class="o">=</span>3 <span class="se">\</span>
+                             --log-opt <span class="nv">labels</span><span class="o">=</span>dohko22
+ <span class="nv">ExecReload</span><span class="o">=</span>/bin/kill -s HUP <span class="nv">$MAINPID</span>
+ <span class="c"># Having non-zero Limit*s causes performance problems due to accounting overhead</span>
+ <span class="c"># in the kernel. We recommend using cgroups to do container-local accounting.</span>
+ <span class="nv">LimitNOFILE</span><span class="o">=</span>infinity
+ <span class="nv">LimitNPROC</span><span class="o">=</span>infinity
+ <span class="nv">LimitCORE</span><span class="o">=</span>infinity
+ <span class="c"># Uncomment TasksMax if your systemd version supports it.</span>
+ <span class="c"># Only systemd 226 and above support this version.</span>
+ <span class="c">#TasksMax=infinity</span>
+ <span class="nv">TimeoutStartSec</span><span class="o">=</span>0
+ <span class="c"># set delegate yes so that systemd does not reset the cgroups of docker containers</span>
+ <span class="nv">Delegate</span><span class="o">=</span>yes
+ <span class="c"># kill only the docker process, not all processes in the cgroup</span>
+ <span class="nv">KillMode</span><span class="o">=</span>process
+
+ <span class="o">[</span>Install]
+ <span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+	
+</code></pre>
+</div>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>For Docker CE
+Linux distribution  		Supported storage drivers
+Docker CE on Ubuntu			aufs, devicemapper, overlay2 <span class="o">(</span>Ubuntu 14.04.4 or later, 16.04 or later<span class="o">)</span>, overlay, zfs
+Docker CE on Debian			aufs, devicemapper, overlay2 <span class="o">(</span>Debian Stretch<span class="o">)</span>, overlay
+Docker CE on CentOS			devicemapper
+Docker CE on Fedora			devicemapper, overlay2 <span class="o">(</span>Fedora 26 or later, experimental<span class="o">)</span>, overlay <span class="o">(</span>experimental<span class="o">)</span>
+
+Supported backing filesystems
+Storage driver			Supported backing filesystems
+overlay, overlay2		ext4, xfs
+aufs					ext4, xfs
+devicemapper			direct-lvm
+btrfs					btrfs
+zfs						zfs
+
+</code></pre>
+</div>
+
+<h3 id="附录1">附录1</h3>
+<p>docker 一些常用命令</p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>docker build -t friendlyname .  <span class="c"># Create image using this directory's Dockerfile</span>
+docker run -p 4000:80 friendlyname  <span class="c"># Run friendlyname mapping port 4000 to 80</span>
+docker run -d -p 4000:80 friendlyname         <span class="c"># Same thing, but in detached mode</span>
+docker ps                                 <span class="c"># See a list of all running containers</span>
+docker stop &lt;<span class="nb">hash</span>&gt;                     <span class="c"># Gracefully stop the specified container</span>
+docker ps -a           <span class="c"># See a list of all containers, even the ones not running</span>
+docker <span class="nb">kill</span> &lt;<span class="nb">hash</span>&gt;                   <span class="c"># Force shutdown of the specified container</span>
+docker rm &lt;<span class="nb">hash</span>&gt;              <span class="c"># Remove the specified container from this machine</span>
+docker rm <span class="k">$(</span>docker ps -a -q<span class="k">)</span>           <span class="c"># Remove all containers from this machine</span>
+docker images -a                               <span class="c"># Show all images on this machine</span>
+docker rmi &lt;imagename&gt;            <span class="c"># Remove the specified image from this machine</span>
+docker rmi <span class="k">$(</span>docker images -q<span class="k">)</span>             <span class="c"># Remove all images from this machine</span>
+docker login             <span class="c"># Log in this CLI session using your Docker credentials</span>
+docker tag &lt;image&gt; username/repository:tag  <span class="c"># Tag &lt;image&gt; for upload to registry</span>
+docker push username/repository:tag            <span class="c"># Upload tagged image to registry</span>
+docker run username/repository:tag                   <span class="c"># Run image from a registry</span>
+</code></pre>
+</div>
+<ul>
+  <li>本文参考<a href="https://docs.docker.com/hackathon/">docker官方文档</a></li>
+</ul>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+      
+  
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="liushan">liushan</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="http://github.com/liushan150/liushan150.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+</body>
+</html>
