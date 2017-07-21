@@ -5,10 +5,10 @@ baseurl:
 url:
 date_format: "ordinal"
 title: code busy
-subtitle: "coding改变人生"
+subtitle: "coding change life"
 description: "code busy的个人博客"
 keywords: code busy, liushan, code_busy
-favicon: /html_title.png
+favicon: /bolg_html_title.png
 timezone: Asia/Shanghai
 encoding: "utf-8"
 side_bar_repo_limit: 5
