@@ -8,21 +8,27 @@ menu: 关于
 permalink: /about/
 ---
 
-我是liushan,一个code世界的小小小鸟
+### -
+> **主人很懒，不想留言 
 
-## 联系
+### 工作状况
+> **Java Web Developer一枚，目前就职龙贷，主要负责，后端开发，对接安卓和iOS客户端，以及管理系统的开发；
+> **对前端有一定基础，管理后台开发前端自己写，热爱开发，对新技术有好奇心
 
-{% for website in site.data.social %}
-* {{ website.sitename }}：[@{{ website.name }}]({{ website.url }})
-{% endfor %}
+### 职业技能
 
-## Skill Keywords
+> **SSH/SSM(Mybatis)(Strtus2,Spring MVC),Spring Boot,Quartz,Shiro**
+> **Mysql,Oracle,Redis**
+> **Html,js,JQuery,AngularJs**
+> **Other:Linux,Docker,K8s(了解，掌握使用)，Hadoop（了解，能编写简单的列子）
 
-{% for category in site.data.skills %}
-### {{ category.name }}
-<div class="btn-inline">
-{% for keyword in category.keywords %}
-<button class="btn btn-outline" type="button">{{ keyword }}</button>
-{% endfor %}
-</div>
-{% endfor %}
+
+### 学习计划
+> **Golang,Python学习中**
+> **bash shell学习中**
+> **准备学习JVM**
+> **k8s后续深入学习**
+> **Hadoop后续深入学习**
+
+
+
