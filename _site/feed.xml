@@ -1,4 +1,340 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-09T15:49:16+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">本地jekyll-server启动证书错误问题</title><link href="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="本地jekyll-server启动证书错误问题" /><published>2018-04-09T00:00:00+08:00</published><updated>2018-04-09T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/">&lt;hr /&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-09T17:17:24+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">hadoop完全分布式环境搭建</title><link href="http://localhost:4000/2018/04/09/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80/" rel="alternate" type="text/html" title="hadoop完全分布式环境搭建" /><published>2018-04-09T00:00:00+08:00</published><updated>2018-04-09T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/09/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80</id><content type="html" xml:base="http://localhost:4000/2018/04/09/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80/">&lt;h2 id=&quot;准备工作&quot;&gt;准备工作:&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;三台或三台以上机器(本文以三台虚拟机为例)
+    &lt;blockquote&gt;
+
+      &lt;p&gt;centOS 6.8&lt;/p&gt;
+
+      &lt;p&gt;VMware Fusion 10.1(maxos的虚拟机版本),window下推荐VMware 12或14稳定版&lt;/p&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;每台机器安装jdk,hadoop,并配置相应的环境变量
+    &lt;blockquote&gt;
+
+      &lt;p&gt;jdk 1.8&lt;/p&gt;
+
+      &lt;p&gt;hadoop 2.7.2&lt;/p&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;安装规划&quot;&gt;安装规划&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;系统中新建个非root用户, 并且 将此用户修改用户root权限&lt;/li&gt;
+  &lt;li&gt;所需安装文件全部存于/opt/software目录中&lt;/li&gt;
+  &lt;li&gt;所有软件安装到  /opt/module目录下&lt;/li&gt;
+  &lt;li&gt;修改/opt目录的拥有者  chgroup hadoop hdaoop&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;机器设置&quot;&gt;机器设置&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;配置三台机器的ip为静态ip,并能够互相ping通,且能ping通外网&lt;/li&gt;
+  &lt;li&gt;以下已一台机器为例&lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;新建用户&quot;&gt;新建用户&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;新建nginx用户并增加到nginx工作组,-g后跟组名 组和用户名都为hadoop,也可更改为其他用户名
+useradd -g hadoop hadoop  (后续文章都以hadoop用户登录系统做操作)&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;1、建用户：
+adduser 用户名                           //新建用户
+passwd 用户名                           //给用户设置密码
+2、建工作组
+groupadd 组名                         //新建工作组
+3、新建用户同时增加工作组
+useradd -g nginx nginx               //新建nginx用户并增加到nginx工作组,-g后跟组名
+注：：-g 所属组 -d 家目录 -s 所用的SHELL
+4、给已有的用户增加工作组
+usermod -G groupname username
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;设置静态ip&quot;&gt;设置静态ip&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;vim /etc/sysconfig/network-scripts/ifcfg-eth0&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;nv&quot;&gt;DEVICE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;eth0
+  &lt;span class=&quot;nv&quot;&gt;TYPE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Ethernet
+  &lt;span class=&quot;nv&quot;&gt;UUID&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;c4fcd4b8-9338-4489-bee5-6797d077a036
+  &lt;span class=&quot;nv&quot;&gt;NM_CONTROLLED&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;yes
+  &lt;span class=&quot;c&quot;&gt;# 设置静态ip地址&lt;/span&gt;
+  &lt;span class=&quot;nv&quot;&gt;IPADDR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;192.168.1.102
+  &lt;span class=&quot;c&quot;&gt;# 网关&lt;/span&gt;
+  &lt;span class=&quot;nv&quot;&gt;GATEWAY&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;192.168.1.2
+  &lt;span class=&quot;nv&quot;&gt;NETMASK&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;255.255.255.0
+  &lt;span class=&quot;c&quot;&gt;# 系统启动时启用&lt;/span&gt;
+  &lt;span class=&quot;nv&quot;&gt;ONBOOT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;yes
+  &lt;span class=&quot;c&quot;&gt;# 设置为静态ip&lt;/span&gt;
+  &lt;span class=&quot;nv&quot;&gt;BOOTPROTO&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;static
+  &lt;span class=&quot;c&quot;&gt;# dns&lt;/span&gt;
+  &lt;span class=&quot;nv&quot;&gt;DNS1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;114.114.114.114
+  &lt;span class=&quot;nv&quot;&gt;PREFIX&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;24
+  &lt;span class=&quot;nv&quot;&gt;DEFROUTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;yes
+  &lt;span class=&quot;nv&quot;&gt;IPV4_FAILURE_FATAL&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;yes
+  &lt;span class=&quot;c&quot;&gt;# 禁用ipv6&lt;/span&gt;
+  &lt;span class=&quot;nv&quot;&gt;IPV6INIT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;no
+  &lt;span class=&quot;nv&quot;&gt;NAME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;System eth0&quot;&lt;/span&gt;
+  &lt;span class=&quot;c&quot;&gt;# mac地址 对应 /etc/udev/rules.d/70-persistent-net.rules 中的 ATTR{address}的值&lt;/span&gt;
+  &lt;span class=&quot;c&quot;&gt;# SUBSYSTEM==&quot;net&quot;, ACTION==&quot;add&quot;, DRIVERS==&quot;?*&quot;, ATTR{address}==&quot;00:0c:29:d8:7f:e3&quot;, ATTR{type}==&quot;1&quot;, KERNEL==&quot;eth*&quot;, NAME=&quot;eth0&quot;&lt;/span&gt;
+  &lt;span class=&quot;nv&quot;&gt;HWADDR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;00:0c:29:d8:7f:e3
+  &lt;span class=&quot;nv&quot;&gt;LAST_CONNECT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1520522957
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;修改hostname&quot;&gt;修改hostname&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;vim /etc/sysconfig/network&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;NETWORKING&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;yes
+&lt;span class=&quot;nv&quot;&gt;HOSTNAME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;hadoop102
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;重启&quot;&gt;重启&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;sudo reboot -h now&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo reboot -h now 
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;安装jdk-和-hadoop&quot;&gt;安装jdk 和 hadoop&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;下载jdk 和 hadoop压缩包存于 /opt/software目录中&lt;/li&gt;
+  &lt;li&gt;将jdk压缩包,hadoop压缩包解到  /opt/module
+    &lt;blockquote&gt;
+      &lt;p&gt;tar -zxvf&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# 解压命令&lt;/span&gt;
+tar -zxvf /opt/software/jdk-8u144-linux-x64.tar.gz -C /opt/module
+tar -zxvf /opt/software/hadoop-2.7.2.tar.gz -C /opt/module
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;配置JAVA_HOME和PATH ,编辑/etc/profile文件,最后一行添加如下
+    &lt;blockquote&gt;
+      &lt;p&gt;sudo vim /etc/profile&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;JAVA_HOME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/opt/module/jdk1.8.0_144
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;:&lt;span class=&quot;nv&quot;&gt;$JAVA_HOME&lt;/span&gt;/bin
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;HADOOP_HOME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/opt/module/hadoop-2.7.2
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;:&lt;span class=&quot;nv&quot;&gt;$HADOOP_HOME&lt;/span&gt;/bin
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;:&lt;span class=&quot;nv&quot;&gt;$HADOOP_HOME&lt;/span&gt;/sbin
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;检验是否安装成功
+    &lt;blockquote&gt;
+      &lt;p&gt;java -version&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;java version &lt;span class=&quot;s2&quot;&gt;&quot;1.8.0_144&quot;&lt;/span&gt;
+Java&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;TM&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; SE Runtime Environment &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;build 1.8.0_144-b01&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Java HotSpot&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;TM&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 64-Bit Server VM &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;build 25.144-b01, mixed mode&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+      &lt;p&gt;hadoop version&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Hadoop 2.7.2
+Subversion Unknown -r Unknown
+Compiled by root on 2017-05-22T10:49Z
+Compiled with protoc 2.5.0
+From &lt;span class=&quot;nb&quot;&gt;source &lt;/span&gt;with checksum d0fda26633fa762bff87ec759ebe689c
+This &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;was run using /opt/module/hadoop-2.7.2/share/hadoop/common/hadoop-common-2.7.2.jar
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;配置-hadoop&quot;&gt;配置 hadoop&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;进入到 /opt/module/hadoop-2.7.2/etc/hadoop 目录下&lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;编辑hadoop-envsh&quot;&gt;编辑hadoop-env.sh&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;vim hadoop-env.sh 配置JAVA_HOME&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;JAVA_HOME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/opt/module/jdk1.8.0_144
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;编辑hdfs-sitexml&quot;&gt;编辑hdfs-site.xml&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;vim hdfs-site.xml&lt;/p&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+          # hdfs文件系统中的文件副本数量 为3(一般情况,完全分布式都是3分以上基数份)
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.replication&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;3&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+          # 第二名称辅助节点地址和端口
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.namenode.secondary.http-address&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;hadoop104:50090&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+          # 节点检测频率,用户namenode 检测datanode是否存活 120s
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.namenode.checkpoint.period&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;120&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+          # namenode存name相关数据地址
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.namenode.name.dir&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;/opt/module/hadoop-2.7.2/data/tmp/dfs/name&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+
+          #多namenode的name目录,其中 name1 和name2的数据不会重复
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.namenode.name.dir&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;file:///${hadoop.tmp.dir}/dfs/name1,file:///${hadoop.tmp.dir}/dfs/name2&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+          # 指定 dfs 相关的机器地址,用户上下线新的机器
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.hosts&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;/opt/module/hadoop-2.7.2/etc/hadoop/dfs.hosts&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+          # 指定退役的节点
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.hosts.exclude&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;/opt/module/hadoop-2.7.2/etc/hadoop/dfs.hosts.exclude&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;编辑-core-sitexml&quot;&gt;编辑 core-site.xml&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;vim core-site.xml&lt;/p&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+      # dfs 的名称节点
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;fs.defaultFS&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;hdfs://hadoop102:9000&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+      # dfs 系统存取数据的目录
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;hadoop.tmp.dir&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;/opt/module/hadoop-2.7.2/data/tmp&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;fs.trash.interval&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;1&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;hadoop.http.staticuser.user&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;hadoop&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;配置yarn-编辑maperd-sitexml&quot;&gt;配置yarn ,编辑maperd-site.xml&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;vim maperd-site.xml&lt;/p&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;c&quot;&gt;&amp;lt;!-- 指定mr运行在yarn上 --&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;mapreduce.framework.name&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;yarn&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+
+          &lt;span class=&quot;c&quot;&gt;&amp;lt;!--配置历史服务器 --&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;mapreduce.jobhistory.address&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;hadoop101:10020&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;mapreduce.jobhistory.webapp.address&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;hadoop101:19888&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;配置集群地址&quot;&gt;配置集群地址&lt;/h5&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;vim slaves&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;hadoop102
+hadoop103
+hadoop104
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;修改其他机器的静态ip和hostname&quot;&gt;修改其他机器的静态ip和hostname&lt;/h5&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;分发文件&quot;&gt;分发文件&lt;/h5&gt;
+  &lt;/li&gt;
+  &lt;li&gt;将/opt/moudle/目录下所有文件分发到其他机器
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;c&quot;&gt;# 可自定义脚本执行&lt;/span&gt;
+  rsync -rvl /opt/moudle hadoop@hadoop102:/opt/moudle
+  rsync -rvl /opt/moudle hadoop@hadoop103:/opt/moudle
+  rsync -rvl /opt/moudle hadoop@hadoop104:/opt/moudle
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;将/etc/profile文件分发到其他机器
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; rsync -rvl /etc/profile hadoop@hadoop102:/etc
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;自定义脚本分发文件
+    &lt;blockquote&gt;
+      &lt;p&gt;新建自定义脚本文件 touch /usr/bin/xsync&lt;/p&gt;
+      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo chmod +x /usr/bin/xsync
+vim /usr/bin/xsync
+&lt;/code&gt;&lt;/pre&gt;
+      &lt;/div&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+ &lt;span class=&quot;c&quot;&gt;# 获取输入参数个数&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;pcount&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$#&lt;/span&gt;
+ &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;pcount&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;==&lt;/span&gt;0&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt;;&lt;span class=&quot;k&quot;&gt;then
+ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo &lt;/span&gt;no args;
+ &lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;;
+ &lt;span class=&quot;k&quot;&gt;fi&lt;/span&gt;
+
+ &lt;span class=&quot;c&quot;&gt;# 获取文件名&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;p1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$1&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;fname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;basename &lt;span class=&quot;nv&quot;&gt;$p1&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;
+ &lt;span class=&quot;nb&quot;&gt;echo &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;fname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$fname&lt;/span&gt;
+
+ &lt;span class=&quot;c&quot;&gt;# 获取上机目录到绝对路径&lt;/span&gt;
+
+ &lt;span class=&quot;nv&quot;&gt;pdir&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; -P &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;dirname &lt;span class=&quot;nv&quot;&gt;$p1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;; &lt;span class=&quot;nb&quot;&gt;pwd&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;
+
+ &lt;span class=&quot;nb&quot;&gt;echo &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;pdir&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$pdir&lt;/span&gt;
+
+ &lt;span class=&quot;c&quot;&gt;# 获取当前用户名&lt;/span&gt;
+ &lt;span class=&quot;nv&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;whoami&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;
+
+ &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;103;host&amp;lt;109;host++&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt;;&lt;span class=&quot;k&quot;&gt;do
+         &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; --------------------hadoop&lt;span class=&quot;nv&quot;&gt;$host&lt;/span&gt;-----------------
+         rsync -rvl &lt;span class=&quot;nv&quot;&gt;$pdir&lt;/span&gt;/&lt;span class=&quot;nv&quot;&gt;$fname&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$user&lt;/span&gt;@hadoop&lt;span class=&quot;nv&quot;&gt;$host&lt;/span&gt;:&lt;span class=&quot;nv&quot;&gt;$pdir&lt;/span&gt;
+ &lt;span class=&quot;k&quot;&gt;done
+
+ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;success&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">准备工作: 三台或三台以上机器(本文以三台虚拟机为例) centOS 6.8 VMware Fusion 10.1(maxos的虚拟机版本),window下推荐VMware 12或14稳定版 每台机器安装jdk,hadoop,并配置相应的环境变量 jdk 1.8 hadoop 2.7.2</summary></entry><entry><title type="html">本地jekyll-server启动证书错误问题</title><link href="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="本地jekyll-server启动证书错误问题" /><published>2018-04-09T00:00:00+08:00</published><updated>2018-04-09T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/">&lt;hr /&gt;
 
 &lt;h3 id=&quot;问题描述&quot;&gt;问题描述:&lt;/h3&gt;
 &lt;blockquote&gt;
