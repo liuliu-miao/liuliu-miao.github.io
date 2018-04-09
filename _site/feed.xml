@@ -1,4 +1,34 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://0.0.0.0:4445/feed.xml" rel="self" type="application/atom+xml" /><link href="http://0.0.0.0:4445/" rel="alternate" type="text/html" /><updated>2017-07-21T13:54:34+08:00</updated><id>http://0.0.0.0:4445/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">linux下恢复删除的文件</title><link href="http://0.0.0.0:4445/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6/" rel="alternate" type="text/html" title="linux下恢复删除的文件" /><published>2017-07-18T00:00:00+08:00</published><updated>2017-07-18T00:00:00+08:00</updated><id>http://0.0.0.0:4445/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6</id><content type="html" xml:base="http://0.0.0.0:4445/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6/">&lt;h2 id=&quot;linuxubuntu修复删除的文件&quot;&gt;Linux(Ubuntu)修复删除的文件&lt;/h2&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-09T15:49:16+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">本地jekyll-server启动证书错误问题</title><link href="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="本地jekyll-server启动证书错误问题" /><published>2018-04-09T00:00:00+08:00</published><updated>2018-04-09T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/">&lt;hr /&gt;
+
+&lt;h3 id=&quot;问题描述&quot;&gt;问题描述:&lt;/h3&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;本地启动jekyll server 博客时显示如下错误:&lt;/p&gt;
+  &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Liquid Exception: SSL_connect &lt;span class=&quot;nv&quot;&gt;returned&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1 &lt;span class=&quot;nv&quot;&gt;errno&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0 &lt;span class=&quot;nv&quot;&gt;state&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;error: certificate verify failed &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; /_layouts/page.html
+jekyll 3.6.2 | Error:  SSL_connect &lt;span class=&quot;nv&quot;&gt;returned&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1 &lt;span class=&quot;nv&quot;&gt;errno&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0 &lt;span class=&quot;nv&quot;&gt;state&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;error: certificate verify failed    
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;解决方案&quot;&gt;解决方案:&lt;/h3&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;1.下载一个证书 名称为: cacert.pem&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;2.将证书路径设置到系统变量中&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;window下 可使用命令 set SSL_CERT_FILE=d:/XmacZone/down/cacert.pem&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;linux 或macos 编制.brash 或.zshrc&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;最后一行添加 export  SSL_CERT_FILE=/Users/XmacZone/down/cacert.pem   ;执行命令 source ~/.zshrc 即可.&lt;/p&gt;
+&lt;/blockquote&gt;</content><author><name>liushan</name></author><summary type="html"></summary></entry><entry><title type="html">linux下恢复删除的文件</title><link href="http://localhost:4000/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6/" rel="alternate" type="text/html" title="linux下恢复删除的文件" /><published>2017-07-18T00:00:00+08:00</published><updated>2017-07-18T00:00:00+08:00</updated><id>http://localhost:4000/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6</id><content type="html" xml:base="http://localhost:4000/2017/07/18/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6/">&lt;h2 id=&quot;linuxubuntu修复删除的文件&quot;&gt;Linux(Ubuntu)修复删除的文件&lt;/h2&gt;
 
 &lt;p&gt;本人基于Ubuntu server 16.04 环境下,其他linux系统类似.
 作为一个初学者,难免有不小心删除文件的误操作,google了下,成功恢复了.&lt;/p&gt;
@@ -37,7 +67,7 @@ Filesystem                        Type 1K-blocks    Used Available Use% Mounted 
 
 &lt;p&gt;完成后,即可在当前目录下产生一个 RECOVERED_FILES文件夹,里面放着这个分区近期删除的文件,至此恢复完成.&lt;/p&gt;
 
-&lt;p&gt;参考博客&lt;a href=&quot;http://nphard.me/2015/09/30/linux-ubuntu-rm-hui-fu/&quot;&gt;http://nphard.me/2015/09/30/linux-ubuntu-rm-hui-fu/&lt;/a&gt;&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">Linux(Ubuntu)修复删除的文件</summary></entry><entry><title type="html">docker学习笔记(二)Dockerfile</title><link href="http://0.0.0.0:4445/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C-Dockerfile/" rel="alternate" type="text/html" title="docker学习笔记(二)Dockerfile" /><published>2017-07-13T00:00:00+08:00</published><updated>2017-07-13T00:00:00+08:00</updated><id>http://0.0.0.0:4445/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C--Dockerfile</id><content type="html" xml:base="http://0.0.0.0:4445/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C-Dockerfile/">&lt;h2 id=&quot;docker学习笔记二dockerfile&quot;&gt;docker学习笔记二–Dockerfile&lt;/h2&gt;
+&lt;p&gt;参考博客&lt;a href=&quot;http://nphard.me/2015/09/30/linux-ubuntu-rm-hui-fu/&quot;&gt;http://nphard.me/2015/09/30/linux-ubuntu-rm-hui-fu/&lt;/a&gt;&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">Linux(Ubuntu)修复删除的文件</summary></entry><entry><title type="html">docker学习笔记(二)Dockerfile</title><link href="http://localhost:4000/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C-Dockerfile/" rel="alternate" type="text/html" title="docker学习笔记(二)Dockerfile" /><published>2017-07-13T00:00:00+08:00</published><updated>2017-07-13T00:00:00+08:00</updated><id>http://localhost:4000/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C--Dockerfile</id><content type="html" xml:base="http://localhost:4000/2017/07/13/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C-Dockerfile/">&lt;h2 id=&quot;docker学习笔记二dockerfile&quot;&gt;docker学习笔记二–Dockerfile&lt;/h2&gt;
 &lt;hr /&gt;
 &lt;p&gt;参考自&lt;a href=&quot;https://docs.docker.com/engine/reference/builder/#usage&quot;&gt;官方文档-Dockerfile&lt;/a&gt;部分&lt;/p&gt;
 
@@ -163,7 +193,7 @@ longdai-core
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
-&lt;p&gt;更多详细的命令参考&lt;a href=&quot;https://docs.docker.com/engine/reference/builder/&quot;&gt;官方文档Dockerfile reference&lt;/a&gt;&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">docker学习笔记二–Dockerfile 参考自官方文档-Dockerfile部分</summary></entry><entry><title type="html">docker学习笔记(一)</title><link href="http://0.0.0.0:4445/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/" rel="alternate" type="text/html" title="docker学习笔记(一)" /><published>2017-07-07T00:00:00+08:00</published><updated>2017-07-07T00:00:00+08:00</updated><id>http://0.0.0.0:4445/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)</id><content type="html" xml:base="http://0.0.0.0:4445/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/">&lt;h2 id=&quot;docker学习笔记一&quot;&gt;docker学习笔记(一)&lt;/h2&gt;
+&lt;p&gt;更多详细的命令参考&lt;a href=&quot;https://docs.docker.com/engine/reference/builder/&quot;&gt;官方文档Dockerfile reference&lt;/a&gt;&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">docker学习笔记二–Dockerfile 参考自官方文档-Dockerfile部分</summary></entry><entry><title type="html">docker学习笔记(一)</title><link href="http://localhost:4000/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/" rel="alternate" type="text/html" title="docker学习笔记(一)" /><published>2017-07-07T00:00:00+08:00</published><updated>2017-07-07T00:00:00+08:00</updated><id>http://localhost:4000/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)</id><content type="html" xml:base="http://localhost:4000/2017/07/07/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/">&lt;h2 id=&quot;docker学习笔记一&quot;&gt;docker学习笔记(一)&lt;/h2&gt;
 
 &lt;h3 id=&quot;安装docker&quot;&gt;安装docker&lt;/h3&gt;
 &lt;p&gt;google一下,dokcer安装到本地即可.&lt;/p&gt;
@@ -366,7 +396,7 @@ docker run username/repository:tag                   &lt;span class=&quot;c&quot
 &lt;/div&gt;
 &lt;ul&gt;
   &lt;li&gt;本文参考&lt;a href=&quot;https://docs.docker.com/hackathon/&quot;&gt;docker官方文档&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">docker学习笔记(一)</summary></entry><entry><title type="html">github.io+jekyll搭建博客</title><link href="http://0.0.0.0:4445/2017/06/28/buildBlog-github-jekyll/" rel="alternate" type="text/html" title="github.io+jekyll搭建博客" /><published>2017-06-28T00:00:00+08:00</published><updated>2017-06-28T00:00:00+08:00</updated><id>http://0.0.0.0:4445/2017/06/28/buildBlog-github-jekyll</id><content type="html" xml:base="http://0.0.0.0:4445/2017/06/28/buildBlog-github-jekyll/">&lt;h2 id=&quot;githubiojekyll搭建静态博客&quot;&gt;gitHub.io+jekyll搭建静态博客&lt;/h2&gt;
+&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">docker学习笔记(一)</summary></entry><entry><title type="html">github.io+jekyll搭建博客</title><link href="http://localhost:4000/2017/06/28/buildBlog-github-jekyll/" rel="alternate" type="text/html" title="github.io+jekyll搭建博客" /><published>2017-06-28T00:00:00+08:00</published><updated>2017-06-28T00:00:00+08:00</updated><id>http://localhost:4000/2017/06/28/buildBlog-github-jekyll</id><content type="html" xml:base="http://localhost:4000/2017/06/28/buildBlog-github-jekyll/">&lt;h2 id=&quot;githubiojekyll搭建静态博客&quot;&gt;gitHub.io+jekyll搭建静态博客&lt;/h2&gt;
 
 &lt;h3 id=&quot;环境准备&quot;&gt;环境准备&lt;/h3&gt;
 &lt;blockquote&gt;

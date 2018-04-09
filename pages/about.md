@@ -30,15 +30,14 @@ permalink: /about/
 
 ### 学习计划
 >
+> **Hadoop大数据及其相关模块正在学习实践中**
+>
 > **Golang,Python学习中**
 >
 > **bash shell学习中**
 >
-> **准备学习JVM**
->
 > **k8s后续深入学习**
->
-> **Hadoop后续深入学习**
+
 
 
 
