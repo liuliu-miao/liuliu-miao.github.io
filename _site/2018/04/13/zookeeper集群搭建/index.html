@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <title>IDA Pro &mdash; code busy</title>
+    <title>zookeeper集群搭建 &mdash; code busy</title>
     <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
     <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
     <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
@@ -21,23 +21,23 @@
     
 
     
-    <link rel="canonical" href="http://localhost:4000/wiki/ida-pro/">
+    <link rel="canonical" href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">
     <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
     <link rel="shortcut icon" href="/html_title.png">
     
-    <meta property="og:title" content="IDA Pro">
+    <meta property="og:title" content="zookeeper集群搭建">
       
-    <meta name="keywords" content="debug, IDA Pro">
-    <meta name="og:keywords" content="debug, IDA Pro">
+    <meta name="keywords" content="zookeeper集群搭建, zookeeper">
+    <meta name="og:keywords" content="zookeeper集群搭建, zookeeper">
       
-    <meta name="description" content="快捷键">
-    <meta name="og:description" content="快捷键">
+    <meta name="description" content="准备工作  jdk环境  zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载">
+    <meta name="og:description" content="准备工作  jdk环境  zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载">
       
     
     
         
     
-    <meta property="og:url" content="http://localhost:4000/wiki/ida-pro/">
+    <meta property="og:url" content="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">
     <meta property="og:site_name" content="code busy">
     <meta property="og:type" content="article">
     <meta property="og:locale" content="zh_CN" />
@@ -83,12 +83,30 @@
     </header>
     <!-- / header -->
 
-    <section class="collection-head small geopattern" data-pattern-id="IDA Pro">
+    <section class="collection-head small geopattern" data-pattern-id="zookeeper集群搭建">
 <div class="container">
   <div class="columns">
     <div class="column three-fourths">
       <div class="collection-title">
-        <h1 class="collection-header">IDA Pro</h1>
+        <h1 class="collection-header">zookeeper集群搭建</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2018/04/13
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Hadoop" title="Hadoop">Hadoop</a>
+          </span>
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Zookeeper" title="Zookeeper">Zookeeper</a>
+          </span>
+          
+        </div>
       </div>
     </div>
   </div>
@@ -99,46 +117,62 @@
 <div class="columns">
   <div class="column three-fourths" >
     <article class="article-content markdown-body">
-    <h3 id="快捷键">快捷键</h3>
+    <h2 id="准备工作">准备工作</h2>
+<ul>
+  <li>jdk环境</li>
+  <li>zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载</li>
+</ul>
 
-<p>C –&gt; Ctrl</p>
+<h2 id="步骤">步骤</h2>
+<p>1.将zookeeper-3.4.10解压到路径 /home/admin/module</p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>tar -zxvf zookeeper-3.4.10.tar.gz -C /home/admin/module/
+</code></pre>
+</div>
 
-<p>S –&gt; Shift</p>
+<p>2.进入到zookeeper-3.4.10目录修改配置</p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="nb">cd</span> /home/admin/module/zookeeper-3.4.10
+mkdir zkData
+<span class="nb">cd </span>conf
+mv zoo_sample.cfg zoo.cfg
+vim zoo.cfg
+<span class="nv">dataDir</span><span class="o">=</span>/home/admin/module/zookeeper-3.4.10/zkData
+保存退出
 
-<p>M –&gt; Alt</p>
+<span class="nb">cd</span> ../zkData
+<span class="nb">echo </span>2 &gt; myid
+<span class="c">## 最后一行下面增加</span>
+<span class="c">## 配置集群服务地址</span>
+server.2<span class="o">=</span>hd001:2888:3888
+server.3<span class="o">=</span>hd002:2888:3888
+server.4<span class="o">=</span>hd003:2888:3888
 
-<p>Cmd –&gt; Command</p>
+</code></pre>
+</div>
+<h5 id="配置参数解读">配置参数解读</h5>
+<p>Server.A=B:C:D。 <br />
+A是一个数字，表示这个是第几号服务器； <br />
+B是这个服务器的ip地址； <br />
+C是这个服务器与集群中的Leader服务器交换信息的端口； <br />
+D是万一集群中的Leader服务器挂了，需要一个端口来重新进行选举，选出一个新的 <br /></p>
 
-<table>
-  <thead>
-    <tr>
-      <th>功能</th>
-      <th>快捷键</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>搜索文本</td>
-      <td>M-t</td>
-    </tr>
-    <tr>
-      <td>返回上一个位置</td>
-      <td>Esc</td>
-    </tr>
-    <tr>
-      <td>前进到下一位置</td>
-      <td>C-Enter</td>
-    </tr>
-    <tr>
-      <td>显示伪 C 代码</td>
-      <td>F5</td>
-    </tr>
-    <tr>
-      <td>跳转到地址</td>
-      <td>g</td>
-    </tr>
-  </tbody>
-</table>
+<p>完成以上配置后,将此目录分发到其他机器节点</p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>rsync -rvl /home/admin/module/zookeeper-3.4.10 hd002:~/module/
+rsync -rvl /home/admin/module/zookeeper-3.4.10 hd003:~/module/
+</code></pre>
+</div>
+<h6 id="-注意"><font color="red"> 注意</font></h6>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="o">[</span>1]scp -r /home/admin/module/zookeeper-3.4.10 hd002:~/module/
+<span class="o">[</span>2]scp -r /home/admin/module/zookeeper-3.4.10/ hd002:~/module/
+<span class="o">[</span>1],[2]效果一样
+
+&lt;1&gt;/rsync -rvl /home/admin/module/zookeeper-3.4.10 hd002:~/module/
+&lt;2&gt;rsync -rvl /home/admin/module/zookeeper-3.4.10/ hd002:~/module/
+<span class="gp">&lt;1&gt;&lt;2&gt; </span>是不同的
+&lt;1&gt;中是将整个目录和目录下所有文件分发给hd002,会在hd002:~/module/下创建一个新的zookeeper-3.4.10目录并将文件同步过去
+&lt;2&gt;是将整个目录下所有文件分发给hd001,不会将目录本身分发出去
+
+</code></pre>
+</div>
 
     
 
@@ -157,9 +191,9 @@
           <div id="disqus_thread"></div>
           <script>
             var disqus_config = function () {
-              this.page.url = 'http://localhost:4000/wiki/ida-pro/';
-              this.page.identifier = '/wiki/ida-pro/';
-              this.page.title = 'IDA Pro';
+              this.page.url = 'http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/';
+              this.page.identifier = '/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/';
+              this.page.title = 'zookeeper集群搭建';
             };
             (function() { // DON'T EDIT BELOW THIS LINE
               var d = document, s = d.createElement('script');

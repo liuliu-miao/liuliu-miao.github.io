@@ -1,4 +1,67 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-12T14:53:36+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">macos装虚拟机NAT网络互ping问题</title><link href="http://localhost:4000/2018/04/12/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="macos装虚拟机NAT网络互ping问题" /><published>2018-04-12T00:00:00+08:00</published><updated>2018-04-12T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/12/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/12/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98/">&lt;h3 id=&quot;问题描述&quot;&gt;问题描述&lt;/h3&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-13T13:47:29+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">zookeeper集群相关问题</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="zookeeper集群相关问题" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/">&lt;h3 id=&quot;问题一&quot;&gt;问题一&lt;/h3&gt;
+&lt;h5 id=&quot;问题描述&quot;&gt;问题描述&lt;/h5&gt;
+&lt;p&gt;第N次启动zookeeper集群时,按照节点顺序启动时,无法正常启动&lt;/p&gt;
+
+&lt;h5 id=&quot;解决方案&quot;&gt;解决方案&lt;/h5&gt;
+&lt;p&gt;需要先启动上次的leader节点.再一次启动其他节点,可以正常启动&lt;/p&gt;
+
+&lt;h3 id=&quot;发现的问题&quot;&gt;发现的问题&lt;/h3&gt;
+&lt;p&gt;第一次启动集群时,无需关注启动节点的顺序.第N(N&amp;gt;1)次启动时,需要先启动上次的leader节点,后启动其他节点,才能启动集群&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">问题一 问题描述 第N次启动zookeeper集群时,按照节点顺序启动时,无法正常启动</summary></entry><entry><title type="html">zookeeper集群搭建</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="alternate" type="text/html" title="zookeeper集群搭建" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">&lt;h2 id=&quot;准备工作&quot;&gt;准备工作&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;jdk环境&lt;/li&gt;
+  &lt;li&gt;zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;步骤&quot;&gt;步骤&lt;/h2&gt;
+&lt;p&gt;1.将zookeeper-3.4.10解压到路径 /home/admin/module&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;tar -zxvf zookeeper-3.4.10.tar.gz -C /home/admin/module/
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;2.进入到zookeeper-3.4.10目录修改配置&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /home/admin/module/zookeeper-3.4.10
+mkdir zkData
+&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;conf
+mv zoo_sample.cfg zoo.cfg
+vim zoo.cfg
+&lt;span class=&quot;nv&quot;&gt;dataDir&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/admin/module/zookeeper-3.4.10/zkData
+保存退出
+
+&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; ../zkData
+&lt;span class=&quot;nb&quot;&gt;echo &lt;/span&gt;2 &amp;gt; myid
+&lt;span class=&quot;c&quot;&gt;## 最后一行下面增加&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;## 配置集群服务地址&lt;/span&gt;
+server.2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;hd001:2888:3888
+server.3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;hd002:2888:3888
+server.4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;hd003:2888:3888
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;h5 id=&quot;配置参数解读&quot;&gt;配置参数解读&lt;/h5&gt;
+&lt;p&gt;Server.A=B:C:D。 &lt;br /&gt;
+A是一个数字，表示这个是第几号服务器； &lt;br /&gt;
+B是这个服务器的ip地址； &lt;br /&gt;
+C是这个服务器与集群中的Leader服务器交换信息的端口； &lt;br /&gt;
+D是万一集群中的Leader服务器挂了，需要一个端口来重新进行选举，选出一个新的 &lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;完成以上配置后,将此目录分发到其他机器节点&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;rsync -rvl /home/admin/module/zookeeper-3.4.10 hd002:~/module/
+rsync -rvl /home/admin/module/zookeeper-3.4.10 hd003:~/module/
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;h6 id=&quot;-注意&quot;&gt;&lt;font color=&quot;red&quot;&gt; 注意&lt;/font&gt;&lt;/h6&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;1]scp -r /home/admin/module/zookeeper-3.4.10 hd002:~/module/
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2]scp -r /home/admin/module/zookeeper-3.4.10/ hd002:~/module/
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;1],[2]效果一样
+
+&amp;lt;1&amp;gt;/rsync -rvl /home/admin/module/zookeeper-3.4.10 hd002:~/module/
+&amp;lt;2&amp;gt;rsync -rvl /home/admin/module/zookeeper-3.4.10/ hd002:~/module/
+&lt;span class=&quot;gp&quot;&gt;&amp;lt;1&amp;gt;&amp;lt;2&amp;gt; &lt;/span&gt;是不同的
+&amp;lt;1&amp;gt;中是将整个目录和目录下所有文件分发给hd002,会在hd002:~/module/下创建一个新的zookeeper-3.4.10目录并将文件同步过去
+&amp;lt;2&amp;gt;是将整个目录下所有文件分发给hd001,不会将目录本身分发出去
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;</content><author><name>liushan</name></author><summary type="html">准备工作 jdk环境 zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载</summary></entry><entry><title type="html">macos装虚拟机NAT网络互ping问题</title><link href="http://localhost:4000/2018/04/12/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="macos装虚拟机NAT网络互ping问题" /><published>2018-04-12T00:00:00+08:00</published><updated>2018-04-12T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/12/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/12/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98/">&lt;h3 id=&quot;问题描述&quot;&gt;问题描述&lt;/h3&gt;
 &lt;ul&gt;
   &lt;li&gt;macOS系统装虚拟机,虚拟机与宿主机互ping不通&lt;/li&gt;
 &lt;/ul&gt;

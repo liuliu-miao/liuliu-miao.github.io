@@ -1,5 +1,17 @@
 {
   
+  "2018-04-13-zookeeper-e9-9b-86-e7-be-a4-e7-9b-b8-e5-85-b3-e9-97-ae-e9-a2-98": {
+    "title": "zookeeper集群相关问题",
+    "url": " /2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/",
+    "category": "Hadoop"
+  },
+  
+  "2018-04-13-zookeeper-e9-9b-86-e7-be-a4-e6-90-ad-e5-bb-ba": {
+    "title": "zookeeper集群搭建",
+    "url": " /2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/",
+    "category": "Hadoop"
+  },
+  
   "2018-04-12-macos-e8-a3-85-e8-99-9a-e6-8b-9f-e6-9c-banat-e7-bd-91-e7-bb-9c-e4-ba-92ping-e9-97-ae-e9-a2-98": {
     "title": "macos装虚拟机NAT网络互ping问题",
     "url": " /2018/04/12/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98/",
@@ -96,6 +108,8 @@
   
   
   
+  
+  
 
   
   "2017-06-28-buildblog-github-jekyll": {
@@ -138,6 +152,18 @@
     "title": "macos装虚拟机NAT网络互ping问题",
     "url": "/2018/04/12/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98/",
     "category": "[&quot;Linux&quot;]"
+  },
+  
+  "2018-04-13-zookeeper-e9-9b-86-e7-be-a4-e6-90-ad-e5-bb-ba": {
+    "title": "zookeeper集群搭建",
+    "url": "/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/",
+    "category": "[&quot;Hadoop&quot;, &quot;Zookeeper&quot;]"
+  },
+  
+  "2018-04-13-zookeeper-e9-9b-86-e7-be-a4-e7-9b-b8-e5-85-b3-e9-97-ae-e9-a2-98": {
+    "title": "zookeeper集群相关问题",
+    "url": "/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/",
+    "category": "[&quot;Hadoop&quot;, &quot;Zookeeper&quot;]"
   },
   
   "wiki-android-studio": {
