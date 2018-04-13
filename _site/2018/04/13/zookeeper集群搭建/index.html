@@ -30,8 +30,8 @@
     <meta name="keywords" content="zookeeper集群搭建, zookeeper">
     <meta name="og:keywords" content="zookeeper集群搭建, zookeeper">
       
-    <meta name="description" content="准备工作  jdk环境  zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载">
-    <meta name="og:description" content="准备工作  jdk环境  zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载">
+    <meta name="description" content="准备工作  jdk环境  zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到Zookeeper官网下载">
+    <meta name="og:description" content="准备工作  jdk环境  zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到Zookeeper官网下载">
       
     
     
@@ -120,16 +120,18 @@
     <h2 id="准备工作">准备工作</h2>
 <ul>
   <li>jdk环境</li>
-  <li>zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载</li>
+  <li>zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到<a href="http://zookeeper.apache.org/releases.html" target="_blank">Zookeeper官网</a>下载</li>
 </ul>
 
 <h2 id="步骤">步骤</h2>
-<p>1.将zookeeper-3.4.10解压到路径 /home/admin/module</p>
+<h4 id="1解压文件">1.解压文件</h4>
+<p>解压目标路径 /home/admin/module</p>
 <div class="language-bash highlighter-rouge"><pre class="highlight"><code>tar -zxvf zookeeper-3.4.10.tar.gz -C /home/admin/module/
 </code></pre>
 </div>
 
-<p>2.进入到zookeeper-3.4.10目录修改配置</p>
+<h4 id="2修改配置">2.修改配置</h4>
+<p>进入到zookeeper-3.4.10目录修改相关位置</p>
 <div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="nb">cd</span> /home/admin/module/zookeeper-3.4.10
 mkdir zkData
 <span class="nb">cd </span>conf
@@ -155,12 +157,17 @@ B是这个服务器的ip地址； <br />
 C是这个服务器与集群中的Leader服务器交换信息的端口； <br />
 D是万一集群中的Leader服务器挂了，需要一个端口来重新进行选举，选出一个新的 <br /></p>
 
+<h4 id="3分发文件">3.分发文件</h4>
 <p>完成以上配置后,将此目录分发到其他机器节点</p>
 <div class="language-bash highlighter-rouge"><pre class="highlight"><code>rsync -rvl /home/admin/module/zookeeper-3.4.10 hd002:~/module/
 rsync -rvl /home/admin/module/zookeeper-3.4.10 hd003:~/module/
 </code></pre>
 </div>
-<h6 id="-注意"><font color="red"> 注意</font></h6>
+<font color="red">分发完成后修改对应文件 zookeeper-3.4.10/zkData/myid 中对应的值 ,<br />
+其中 myid 文件中的值与 server.3=hd002:2888:3888,server.3中的3对应
+</font>
+
+<h5 id="-注意"><font color="red"> 注意</font></h5>
 <div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="o">[</span>1]scp -r /home/admin/module/zookeeper-3.4.10 hd002:~/module/
 <span class="o">[</span>2]scp -r /home/admin/module/zookeeper-3.4.10/ hd002:~/module/
 <span class="o">[</span>1],[2]效果一样
@@ -171,6 +178,39 @@ rsync -rvl /home/admin/module/zookeeper-3.4.10 hd003:~/module/
 &lt;1&gt;中是将整个目录和目录下所有文件分发给hd002,会在hd002:~/module/下创建一个新的zookeeper-3.4.10目录并将文件同步过去
 &lt;2&gt;是将整个目录下所有文件分发给hd001,不会将目录本身分发出去
 
+</code></pre>
+</div>
+
+<h4 id="4启动和查看命令">4.启动和查看命令</h4>
+<p>需要分别到每台服务进行启动</p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="c"># hd001</span>
+<span class="nb">cd</span> /home/admin/module/zookeeper-3.4.10
+bin/zkServer.sh start
+bin/zkServer.sh status
+<span class="c">#状态结果</span>
+<span class="o">[</span>admin@hd001 zookeeper-3.4.10]<span class="nv">$ </span>bin/zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /home/admin/module/zookeeper-3.4.10/bin/../conf/zoo.cfg
+Mode: follower
+
+<span class="c"># hd002</span>
+<span class="nb">cd</span> /home/admin/module/zookeeper-3.4.10
+bin/zkServer.sh start
+bin/zkServer.sh status
+<span class="c">#状态结果(因本地已经重启过很多次 .此台机器第一次按顺序启动将会被选举为 leader的)</span>
+<span class="o">[</span>admin@hd002 ~]<span class="nv">$ </span>./module/zookeeper-3.4.10/bin/zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /home/admin/module/zookeeper-3.4.10/bin/../conf/zoo.cfg
+Mode: follower
+<span class="c"># hd003</span>
+<span class="nb">cd</span> /home/admin/module/zookeeper-3.4.10
+bin/zkServer.sh start
+bin/zkServer.sh status
+<span class="c">#状态结果</span>
+<span class="o">[</span>admin@hd003 ~]<span class="nv">$ </span>./module/zookeeper-3.4.10/bin/zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /home/admin/module/zookeeper-3.4.10/bin/../conf/zoo.cfg
+Mode: leader
 </code></pre>
 </div>
 

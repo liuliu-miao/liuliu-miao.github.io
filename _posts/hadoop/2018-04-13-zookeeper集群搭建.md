@@ -8,15 +8,17 @@ keywords: zookeeper集群搭建, zookeeper
 
 ## 准备工作
 * jdk环境
-* zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到!(官网)[http://zookeeper.apache.org/releases.html]下载
+* zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到[Zookeeper官网](http://zookeeper.apache.org/releases.html){:target="_blank"}下载
 
 ## 步骤
-1.将zookeeper-3.4.10解压到路径 /home/admin/module
+#### 1.解压文件
+解压目标路径 /home/admin/module
 ``` bash 
 tar -zxvf zookeeper-3.4.10.tar.gz -C /home/admin/module/
 ```
 
-2.进入到zookeeper-3.4.10目录修改配置
+#### 2.修改配置
+进入到zookeeper-3.4.10目录修改相关位置
 ``` bash
 cd /home/admin/module/zookeeper-3.4.10
 mkdir zkData
@@ -42,12 +44,18 @@ B是这个服务器的ip地址； <br>
 C是这个服务器与集群中的Leader服务器交换信息的端口； <br>
 D是万一集群中的Leader服务器挂了，需要一个端口来重新进行选举，选出一个新的 <br>
 
+#### 3.分发文件
 完成以上配置后,将此目录分发到其他机器节点
 ``` bash
 rsync -rvl /home/admin/module/zookeeper-3.4.10 hd002:~/module/
 rsync -rvl /home/admin/module/zookeeper-3.4.10 hd003:~/module/
 ```
-###### <font color="red"> 注意</font> 
+<font color="red">分发完成后修改对应文件 zookeeper-3.4.10/zkData/myid 中对应的值 ,<br>
+其中 myid 文件中的值与 server.3=hd002:2888:3888,server.3中的3对应
+</font>
+
+
+##### <font color="red"> 注意</font> 
 ``` bash 
 [1]scp -r /home/admin/module/zookeeper-3.4.10 hd002:~/module/
 [2]scp -r /home/admin/module/zookeeper-3.4.10/ hd002:~/module/
@@ -59,4 +67,38 @@ rsync -rvl /home/admin/module/zookeeper-3.4.10 hd003:~/module/
 <1>中是将整个目录和目录下所有文件分发给hd002,会在hd002:~/module/下创建一个新的zookeeper-3.4.10目录并将文件同步过去
 <2>是将整个目录下所有文件分发给hd001,不会将目录本身分发出去
 
+```
+
+
+#### 4.启动和查看命令
+需要分别到每台服务进行启动
+``` bash
+# hd001
+cd /home/admin/module/zookeeper-3.4.10
+bin/zkServer.sh start
+bin/zkServer.sh status
+#状态结果
+[admin@hd001 zookeeper-3.4.10]$ bin/zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /home/admin/module/zookeeper-3.4.10/bin/../conf/zoo.cfg
+Mode: follower
+
+# hd002
+cd /home/admin/module/zookeeper-3.4.10
+bin/zkServer.sh start
+bin/zkServer.sh status
+#状态结果(因本地已经重启过很多次 .此台机器第一次按顺序启动将会被选举为 leader的)
+[admin@hd002 ~]$ ./module/zookeeper-3.4.10/bin/zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /home/admin/module/zookeeper-3.4.10/bin/../conf/zoo.cfg
+Mode: follower
+# hd003
+cd /home/admin/module/zookeeper-3.4.10
+bin/zkServer.sh start
+bin/zkServer.sh status
+#状态结果
+[admin@hd003 ~]$ ./module/zookeeper-3.4.10/bin/zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /home/admin/module/zookeeper-3.4.10/bin/../conf/zoo.cfg
+Mode: leader
 ```
