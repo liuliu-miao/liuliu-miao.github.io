@@ -9,7 +9,7 @@ permalink: /about/
 ---
 
 ### -
-> **主人很懒，不想留言**
+> **主人很懒,没有留言**
 
 ### 工作状况
 >
@@ -25,7 +25,7 @@ permalink: /about/
 >
 > **Html,js,JQuery,AngularJs**
 >
-> **Other:Linux,Docker,K8s(了解，掌握使用)，Hadoop（了解，能编写简单的列子）**
+> **Other:Linux,Docker,K8s(了解，掌握使用)，Hadoop（学习实践中,能搭建,编写相关代码）**
 
 
 ### 学习计划
