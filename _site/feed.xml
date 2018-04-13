@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-13T17:25:12+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">zookeeper集群相关问题</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="zookeeper集群相关问题" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/">&lt;h3 id=&quot;问题一&quot;&gt;问题一&lt;/h3&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-13T17:48:52+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">zookeeper集群相关问题</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="zookeeper集群相关问题" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/">&lt;h3 id=&quot;问题一&quot;&gt;问题一&lt;/h3&gt;
 &lt;h5 id=&quot;问题描述&quot;&gt;问题描述&lt;/h5&gt;
 &lt;p&gt;第N次启动zookeeper集群时,按照节点顺序启动时,无法正常启动&lt;/p&gt;
 
@@ -160,7 +160,38 @@ answer VNET_8_VIRTUAL_ADAPTER yes
   &lt;li&gt;系统中新建个非root用户, 并且 将此用户修改用户root权限&lt;/li&gt;
   &lt;li&gt;所需安装文件全部存于/opt/software目录中&lt;/li&gt;
   &lt;li&gt;所有软件安装到  /opt/module目录下&lt;/li&gt;
-  &lt;li&gt;修改/opt目录的拥有者  chgroup hadoop hdaoop&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;修改/opt目录的拥有者  chgroup hadoop hdaoop&lt;/p&gt;
+
+    &lt;table&gt;
+      &lt;tbody&gt;
+        &lt;tr&gt;
+          &lt;td&gt;主机&lt;/td&gt;
+          &lt;td&gt;hadoop101&lt;/td&gt;
+          &lt;td&gt;hadoop102&lt;/td&gt;
+          &lt;td&gt;hadoop103&lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;tr&gt;
+          &lt;td&gt;角色&lt;/td&gt;
+          &lt;td&gt;namenode&lt;/td&gt;
+          &lt;td&gt;datanode&lt;/td&gt;
+          &lt;td&gt;datanode&lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;tr&gt;
+          &lt;td&gt; &lt;/td&gt;
+          &lt;td&gt;datanode&lt;/td&gt;
+          &lt;td&gt;resourcemanager&lt;/td&gt;
+          &lt;td&gt;nodemanager&lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;tr&gt;
+          &lt;td&gt; &lt;/td&gt;
+          &lt;td&gt;nodemanager&lt;/td&gt;
+          &lt;td&gt;nodemanager&lt;/td&gt;
+          &lt;td&gt;secondaryNameNode&lt;/td&gt;
+        &lt;/tr&gt;
+      &lt;/tbody&gt;
+    &lt;/table&gt;
+  &lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;h2 id=&quot;机器设置&quot;&gt;机器设置&lt;/h2&gt;
@@ -168,7 +199,7 @@ answer VNET_8_VIRTUAL_ADAPTER yes
   &lt;li&gt;配置三台机器的ip为静态ip,并能够互相ping通,且能ping通外网&lt;/li&gt;
   &lt;li&gt;以下已一台机器为例&lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;新建用户&quot;&gt;新建用户&lt;/h5&gt;
+    &lt;h4 id=&quot;新建用户&quot;&gt;新建用户&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;新建nginx用户并增加到nginx工作组,-g后跟组名 组和用户名都为hadoop,也可更改为其他用户名
 useradd -g hadoop hadoop  (后续文章都以hadoop用户登录系统做操作)&lt;/p&gt;
@@ -187,7 +218,7 @@ usermod -G groupname username
     &lt;/blockquote&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;设置静态ip&quot;&gt;设置静态ip&lt;/h5&gt;
+    &lt;h4 id=&quot;设置静态ip&quot;&gt;设置静态ip&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;vim /etc/sysconfig/network-scripts/ifcfg-eth0&lt;/p&gt;
       &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;nv&quot;&gt;DEVICE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;eth0
@@ -220,7 +251,7 @@ usermod -G groupname username
     &lt;/blockquote&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;修改hostname&quot;&gt;修改hostname&lt;/h5&gt;
+    &lt;h4 id=&quot;修改hostname&quot;&gt;修改hostname&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;vim /etc/sysconfig/network&lt;/p&gt;
       &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;NETWORKING&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;yes
@@ -230,13 +261,17 @@ usermod -G groupname username
     &lt;/blockquote&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;重启&quot;&gt;重启&lt;/h5&gt;
+    &lt;h4 id=&quot;重启&quot;&gt;重启&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;sudo reboot -h now&lt;/p&gt;
       &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo reboot -h now 
 &lt;/code&gt;&lt;/pre&gt;
       &lt;/div&gt;
     &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h4 id=&quot;修改其他机器的静态ip和hostname&quot;&gt;修改其他机器的静态ip和hostname&lt;/h4&gt;
+    &lt;p&gt;此处忽略,可以参考第一台的设置&lt;/p&gt;
   &lt;/li&gt;
 &lt;/ul&gt;
 
@@ -290,7 +325,7 @@ This &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;was run using /opt/mo
 &lt;ul&gt;
   &lt;li&gt;进入到 /opt/module/hadoop-2.7.2/etc/hadoop 目录下&lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;编辑hadoop-envsh&quot;&gt;编辑hadoop-env.sh&lt;/h5&gt;
+    &lt;h4 id=&quot;编辑hadoop-envsh&quot;&gt;编辑hadoop-env.sh&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;vim hadoop-env.sh 配置JAVA_HOME&lt;/p&gt;
       &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;JAVA_HOME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/opt/module/jdk1.8.0_144
@@ -299,7 +334,7 @@ This &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;was run using /opt/mo
     &lt;/blockquote&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;编辑hdfs-sitexml&quot;&gt;编辑hdfs-site.xml&lt;/h5&gt;
+    &lt;h4 id=&quot;编辑hdfs-sitexml&quot;&gt;编辑hdfs-site.xml&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;vim hdfs-site.xml&lt;/p&gt;
     &lt;/blockquote&gt;
@@ -347,7 +382,7 @@ This &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;was run using /opt/mo
     &lt;/div&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;编辑-core-sitexml&quot;&gt;编辑 core-site.xml&lt;/h5&gt;
+    &lt;h4 id=&quot;编辑-core-sitexml&quot;&gt;编辑 core-site.xml&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;vim core-site.xml&lt;/p&gt;
     &lt;/blockquote&gt;
@@ -376,7 +411,40 @@ This &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;was run using /opt/mo
     &lt;/div&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;配置yarn-编辑maperd-sitexml&quot;&gt;配置yarn ,编辑maperd-site.xml&lt;/h5&gt;
+    &lt;h4 id=&quot;配置yarn-sitexml&quot;&gt;配置yarn-site.xml&lt;/h4&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;vim yarn-site.xml&lt;/p&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;c&quot;&gt;&amp;lt;!-- reducer获取数据的方式 --&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;yarn.nodemanager.aux-services&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;mapreduce_shuffle&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+
+          &lt;span class=&quot;c&quot;&gt;&amp;lt;!-- 指定YARN的ResourceManager的地址 --&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;yarn.resourcemanager.hostname&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;hd002&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;c&quot;&gt;&amp;lt;!-- 日志聚集功能使能 --&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;yarn.log-aggregation-enable&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;true&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;c&quot;&gt;&amp;lt;!-- 日志保留时间设置7天 --&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;yarn.log-aggregation.retain-seconds&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+                  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;604800&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+          &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h4 id=&quot;编辑maperd-sitexml&quot;&gt;编辑maperd-site.xml&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;vim maperd-site.xml&lt;/p&gt;
     &lt;/blockquote&gt;
@@ -402,7 +470,7 @@ This &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;was run using /opt/mo
     &lt;/div&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;配置集群地址&quot;&gt;配置集群地址&lt;/h5&gt;
+    &lt;h4 id=&quot;配置集群地址&quot;&gt;配置集群地址&lt;/h4&gt;
     &lt;blockquote&gt;
       &lt;p&gt;vim slaves&lt;/p&gt;
       &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;hadoop102
@@ -413,10 +481,7 @@ hadoop104
     &lt;/blockquote&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h5 id=&quot;修改其他机器的静态ip和hostname&quot;&gt;修改其他机器的静态ip和hostname&lt;/h5&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;h5 id=&quot;分发文件&quot;&gt;分发文件&lt;/h5&gt;
+    &lt;h4 id=&quot;分发文件&quot;&gt;分发文件&lt;/h4&gt;
   &lt;/li&gt;
   &lt;li&gt;将/opt/moudle/目录下所有文件分发到其他机器
     &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;c&quot;&gt;# 可自定义脚本执行&lt;/span&gt;
@@ -428,6 +493,50 @@ hadoop104
   &lt;/li&gt;
   &lt;li&gt;将/etc/profile文件分发到其他机器
     &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; rsync -rvl /etc/profile hadoop@hadoop102:/etc
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h4 id=&quot;启动查看结果&quot;&gt;启动查看结果&lt;/h4&gt;
+    &lt;blockquote&gt;
+      &lt;p&gt;hadoop101上 启动 dfs&lt;/p&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;      sbin/start-dfs.sh
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+
+    &lt;blockquote&gt;
+      &lt;p&gt;hadoop102上 启动 yarn&lt;/p&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;      sbin/start-yarn.sh
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+
+    &lt;blockquote&gt;
+      &lt;p&gt;查看结果&lt;/p&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  hadoop101&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;jps
+  36577 SecondaryNameNode
+  38209 Jps
+  35314 DataNode
+  35604 NodeManager
+  35160 NameNode
+
+  hadoop102&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;jps
+  37283 NodeManager
+  36981 ResourceManager
+  36829 DataNode
+  41519 Jps
+
+  hadoop103&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;jps
+  36577 SecondaryNameNode
+  36678 NodeManager
+  36438 DataNode
+  41403 Jps
+
 &lt;/code&gt;&lt;/pre&gt;
     &lt;/div&gt;
   &lt;/li&gt;

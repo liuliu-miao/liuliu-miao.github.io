@@ -137,7 +137,38 @@
   <li>系统中新建个非root用户, 并且 将此用户修改用户root权限</li>
   <li>所需安装文件全部存于/opt/software目录中</li>
   <li>所有软件安装到  /opt/module目录下</li>
-  <li>修改/opt目录的拥有者  chgroup hadoop hdaoop</li>
+  <li>
+    <p>修改/opt目录的拥有者  chgroup hadoop hdaoop</p>
+
+    <table>
+      <tbody>
+        <tr>
+          <td>主机</td>
+          <td>hadoop101</td>
+          <td>hadoop102</td>
+          <td>hadoop103</td>
+        </tr>
+        <tr>
+          <td>角色</td>
+          <td>namenode</td>
+          <td>datanode</td>
+          <td>datanode</td>
+        </tr>
+        <tr>
+          <td> </td>
+          <td>datanode</td>
+          <td>resourcemanager</td>
+          <td>nodemanager</td>
+        </tr>
+        <tr>
+          <td> </td>
+          <td>nodemanager</td>
+          <td>nodemanager</td>
+          <td>secondaryNameNode</td>
+        </tr>
+      </tbody>
+    </table>
+  </li>
 </ul>
 
 <h2 id="机器设置">机器设置</h2>
@@ -145,7 +176,7 @@
   <li>配置三台机器的ip为静态ip,并能够互相ping通,且能ping通外网</li>
   <li>以下已一台机器为例</li>
   <li>
-    <h5 id="新建用户">新建用户</h5>
+    <h4 id="新建用户">新建用户</h4>
     <blockquote>
       <p>新建nginx用户并增加到nginx工作组,-g后跟组名 组和用户名都为hadoop,也可更改为其他用户名
 useradd -g hadoop hadoop  (后续文章都以hadoop用户登录系统做操作)</p>
@@ -164,7 +195,7 @@ usermod -G groupname username
     </blockquote>
   </li>
   <li>
-    <h5 id="设置静态ip">设置静态ip</h5>
+    <h4 id="设置静态ip">设置静态ip</h4>
     <blockquote>
       <p>vim /etc/sysconfig/network-scripts/ifcfg-eth0</p>
       <div class="language-bash highlighter-rouge"><pre class="highlight"><code>  <span class="nv">DEVICE</span><span class="o">=</span>eth0
@@ -197,7 +228,7 @@ usermod -G groupname username
     </blockquote>
   </li>
   <li>
-    <h5 id="修改hostname">修改hostname</h5>
+    <h4 id="修改hostname">修改hostname</h4>
     <blockquote>
       <p>vim /etc/sysconfig/network</p>
       <div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="nv">NETWORKING</span><span class="o">=</span>yes
@@ -207,13 +238,17 @@ usermod -G groupname username
     </blockquote>
   </li>
   <li>
-    <h5 id="重启">重启</h5>
+    <h4 id="重启">重启</h4>
     <blockquote>
       <p>sudo reboot -h now</p>
       <div class="language-bash highlighter-rouge"><pre class="highlight"><code>sudo reboot -h now 
 </code></pre>
       </div>
     </blockquote>
+  </li>
+  <li>
+    <h4 id="修改其他机器的静态ip和hostname">修改其他机器的静态ip和hostname</h4>
+    <p>此处忽略,可以参考第一台的设置</p>
   </li>
 </ul>
 
@@ -267,7 +302,7 @@ This <span class="nb">command </span>was run using /opt/module/hadoop-2.7.2/shar
 <ul>
   <li>进入到 /opt/module/hadoop-2.7.2/etc/hadoop 目录下</li>
   <li>
-    <h5 id="编辑hadoop-envsh">编辑hadoop-env.sh</h5>
+    <h4 id="编辑hadoop-envsh">编辑hadoop-env.sh</h4>
     <blockquote>
       <p>vim hadoop-env.sh 配置JAVA_HOME</p>
       <div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="nb">export </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/opt/module/jdk1.8.0_144
@@ -276,7 +311,7 @@ This <span class="nb">command </span>was run using /opt/module/hadoop-2.7.2/shar
     </blockquote>
   </li>
   <li>
-    <h5 id="编辑hdfs-sitexml">编辑hdfs-site.xml</h5>
+    <h4 id="编辑hdfs-sitexml">编辑hdfs-site.xml</h4>
     <blockquote>
       <p>vim hdfs-site.xml</p>
     </blockquote>
@@ -324,7 +359,7 @@ This <span class="nb">command </span>was run using /opt/module/hadoop-2.7.2/shar
     </div>
   </li>
   <li>
-    <h5 id="编辑-core-sitexml">编辑 core-site.xml</h5>
+    <h4 id="编辑-core-sitexml">编辑 core-site.xml</h4>
     <blockquote>
       <p>vim core-site.xml</p>
     </blockquote>
@@ -353,7 +388,40 @@ This <span class="nb">command </span>was run using /opt/module/hadoop-2.7.2/shar
     </div>
   </li>
   <li>
-    <h5 id="配置yarn-编辑maperd-sitexml">配置yarn ,编辑maperd-site.xml</h5>
+    <h4 id="配置yarn-sitexml">配置yarn-site.xml</h4>
+    <blockquote>
+      <p>vim yarn-site.xml</p>
+    </blockquote>
+
+    <div class="language-xml highlighter-rouge"><pre class="highlight"><code>  <span class="nt">&lt;configuration&gt;</span>
+  <span class="c">&lt;!-- reducer获取数据的方式 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>yarn.nodemanager.aux-services<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>mapreduce_shuffle<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+
+          <span class="c">&lt;!-- 指定YARN的ResourceManager的地址 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>yarn.resourcemanager.hostname<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>hd002<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          <span class="c">&lt;!-- 日志聚集功能使能 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>yarn.log-aggregation-enable<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>true<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          <span class="c">&lt;!-- 日志保留时间设置7天 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>yarn.log-aggregation.retain-seconds<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>604800<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+
+  <span class="nt">&lt;/configuration&gt;</span>
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h4 id="编辑maperd-sitexml">编辑maperd-site.xml</h4>
     <blockquote>
       <p>vim maperd-site.xml</p>
     </blockquote>
@@ -379,7 +447,7 @@ This <span class="nb">command </span>was run using /opt/module/hadoop-2.7.2/shar
     </div>
   </li>
   <li>
-    <h5 id="配置集群地址">配置集群地址</h5>
+    <h4 id="配置集群地址">配置集群地址</h4>
     <blockquote>
       <p>vim slaves</p>
       <div class="language-bash highlighter-rouge"><pre class="highlight"><code>hadoop102
@@ -390,10 +458,7 @@ hadoop104
     </blockquote>
   </li>
   <li>
-    <h5 id="修改其他机器的静态ip和hostname">修改其他机器的静态ip和hostname</h5>
-  </li>
-  <li>
-    <h5 id="分发文件">分发文件</h5>
+    <h4 id="分发文件">分发文件</h4>
   </li>
   <li>将/opt/moudle/目录下所有文件分发到其他机器
     <div class="language-bash highlighter-rouge"><pre class="highlight"><code>  <span class="c"># 可自定义脚本执行</span>
@@ -405,6 +470,50 @@ hadoop104
   </li>
   <li>将/etc/profile文件分发到其他机器
     <div class="language-bash highlighter-rouge"><pre class="highlight"><code> rsync -rvl /etc/profile hadoop@hadoop102:/etc
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h4 id="启动查看结果">启动查看结果</h4>
+    <blockquote>
+      <p>hadoop101上 启动 dfs</p>
+    </blockquote>
+
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>      sbin/start-dfs.sh
+</code></pre>
+    </div>
+
+    <blockquote>
+      <p>hadoop102上 启动 yarn</p>
+    </blockquote>
+
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>      sbin/start-yarn.sh
+</code></pre>
+    </div>
+
+    <blockquote>
+      <p>查看结果</p>
+    </blockquote>
+
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>  hadoop101<span class="nv">$ </span>jps
+  36577 SecondaryNameNode
+  38209 Jps
+  35314 DataNode
+  35604 NodeManager
+  35160 NameNode
+
+  hadoop102<span class="nv">$ </span>jps
+  37283 NodeManager
+  36981 ResourceManager
+  36829 DataNode
+  41519 Jps
+
+  hadoop103<span class="nv">$ </span>jps
+  36577 SecondaryNameNode
+  36678 NodeManager
+  36438 DataNode
+  41403 Jps
+
 </code></pre>
     </div>
   </li>
