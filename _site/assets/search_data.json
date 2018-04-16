@@ -1,5 +1,11 @@
 {
   
+  "2018-04-16-hadoop-ha-e9-ab-98-e5-8f-af-e7-94-a8-e9-9b-86-e7-be-a4-e6-90-ad-e5-bb-ba": {
+    "title": "hadoop-HA(高可用)集群搭建",
+    "url": " /2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/",
+    "category": "Hadoop"
+  },
+  
   "2018-04-13-zookeeper-e9-9b-86-e7-be-a4-e7-9b-b8-e5-85-b3-e9-97-ae-e9-a2-98": {
     "title": "zookeeper集群相关问题",
     "url": " /2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/",
@@ -163,6 +169,12 @@
   "2018-04-13-zookeeper-e9-9b-86-e7-be-a4-e7-9b-b8-e5-85-b3-e9-97-ae-e9-a2-98": {
     "title": "zookeeper集群相关问题",
     "url": "/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/",
+    "category": "[&quot;Hadoop&quot;, &quot;Zookeeper&quot;]"
+  },
+  
+  "2018-04-16-hadoop-ha-e9-ab-98-e5-8f-af-e7-94-a8-e9-9b-86-e7-be-a4-e6-90-ad-e5-bb-ba": {
+    "title": "hadoop-HA(高可用)集群搭建",
+    "url": "/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/",
     "category": "[&quot;Hadoop&quot;, &quot;Zookeeper&quot;]"
   },
   

@@ -1,4 +1,611 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-13T17:48:52+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">zookeeper集群相关问题</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="zookeeper集群相关问题" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/">&lt;h3 id=&quot;问题一&quot;&gt;问题一&lt;/h3&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-16T15:22:38+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">hadoop-HA(高可用)集群搭建</title><link href="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="alternate" type="text/html" title="hadoop-HA(高可用)集群搭建" /><published>2018-04-16T00:00:00+08:00</published><updated>2018-04-16T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA</id><content type="html" xml:base="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">&lt;h4 id=&quot;准备工作&quot;&gt;准备工作&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;静态IP&lt;br /&gt;&lt;/li&gt;
+  &lt;li&gt;映射主机名与ip&lt;br /&gt;&lt;/li&gt;
+  &lt;li&gt;jdk环境&lt;br /&gt;&lt;/li&gt;
+  &lt;li&gt;防火墙关闭&lt;br /&gt;&lt;/li&gt;
+  &lt;li&gt;ssh免密&lt;br /&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;高可用原理介绍&quot;&gt;高可用原理介绍&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;为何使用ha&quot;&gt;为何使用HA&lt;br /&gt;&lt;/h5&gt;
+    &lt;p&gt;因为在非HA集群模式下namenode是单节点工作,故存在namenode的单节点故障.&lt;br /&gt;
+为防止故障发生,需要使用多个namenode节点.&lt;br /&gt;
+其中,hadoop2.x版本只能支持2个namenode节点 ,hadoop3.x可以支持更多个&lt;br /&gt;
+本文以hadoop2.7.2版本为基础
+&lt;br /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;ha实现原理&quot;&gt;HA实现原理&lt;/h5&gt;
+    &lt;p&gt;两个namenode的数据是一致的.&lt;br /&gt;
+两个namenode通过hadoop中的journalnode集群服务来同步两个namenode的元数据&lt;br /&gt;
+两个namenode工作时,其中一台处于active状态,另外一台处于standy状态,否则会出现(split-brain)脑裂,集群无法工作.&lt;br /&gt;
+在故障自动转移中, 通过 zookeeper 中的ZKFC(zookeeper failover controller,zookeeper 故障转移控制)进程来控制namenode节点的工作状态切换&lt;br /&gt;
+其中ZKFC会在两个namenode节点只监听namenode的状态信息,不会对元数据进行操作,&lt;br /&gt;
+当处于active的namenode宕机或死掉,zookeeper会通过ZKFC通知另外一台namenode启用(active)&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;namenode的高可用配置&quot;&gt;namenode的高可用配置&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;1解压或复制原来hadoop集群相关文件&quot;&gt;1.解压或复制原来hadoop集群相关文件&lt;br /&gt;&lt;/h5&gt;
+
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  tar -zxf hadoop-2.7.2.tar.gz -C ~/module/HA/
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;2配置hadoop相关文件&quot;&gt;2.配置hadoop相关文件&lt;/h5&gt;
+
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  cd /home/admin/module/HA/hadoop-2.7.2/etc/hadoop    
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h6 id=&quot;编辑core-sitexml此时为非自动故障转移&quot;&gt;编辑core-site.xml(此时为非自动故障转移)&lt;/h6&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &amp;lt;configuration&amp;gt;
+    &amp;lt;!-- 把两个NameNode）的地址组装成一个集群haCluster(haCluster为集群名称,后续需要跟此保持一致) --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;fs.defaultFS&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;hdfs://haCluster&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- # dfs 系统存取数据的目录 --&amp;gt;
+    &amp;lt;property&amp;gt;
+        &amp;lt;name&amp;gt;hadoop.tmp.dir&amp;lt;/name&amp;gt;
+        &amp;lt;value&amp;gt;/home/admin/module/HA/hadoop-2.7.2/data/tmp&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+    &amp;lt;!-- journalnode 数据存储目录 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.journalnode.edit.dir&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;/home/admin/module/HA/hadoop-2.7.2/jn/haCluster&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+    &amp;lt;!-- zookeeper通信客户端地址  --&amp;gt;
+    &amp;lt;!-- &amp;lt;property&amp;gt;
+        &amp;lt;name&amp;gt;ha.zookeeper.quorum&amp;lt;/name&amp;gt;
+        &amp;lt;value&amp;gt;hd001:2181,hd002:2181,hd003:2181&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;  --&amp;gt;
+
+  &amp;lt;/configuration&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h6 id=&quot;编辑hdfs-sitexml&quot;&gt;编辑hdfs-site.xml&lt;/h6&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &amp;lt;configuration&amp;gt;
+    &amp;lt;!-- 完全分布式集群名称 haCluster 此处的haCluster与core-site.xmlvs中的集群名称需要一致,此xml种的haCluster都是集群对应的名称 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.nameservices&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;haCluster&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- 集群中NameNode节点都有哪些 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.ha.namenodes.haCluster&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;nn1,nn2&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- nn1的RPC通信地址 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.namenode.rpc-address.haCluster.nn1&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;hd002:9000&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+     &amp;lt;!-- nn2的RPC通信地址 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.namenode.rpc-address.haCluster.nn2&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;hd003:9000&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- nn1的http通信地址 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.namenode.http-address.haCluster.nn1&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;hd002:50070&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- nn2的http通信地址 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.namenode.http-address.haCluster.nn2&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;hd003:50070&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- 指定NameNode元数据在JournalNode上的存放位置 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.namenode.shared.edits.dir&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;qjournal://hd001:8485;hd002:8485;hd003:8485/haCluster&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+   &amp;lt;!-- 配置隔离机制，即同一时刻只能有一台服务器对外响应 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.ha.fencing.methods&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;sshfence&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- 使用隔离机制时需要ssh无秘钥登录--&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.ha.fencing.ssh.private-key-files&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;/home/admin/.ssh/id_rsa&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- 声明journalnode服务器存储目录--&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.journalnode.edits.dir&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;/home/admin/module/HA/hadoop-2.7.2/jn&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- 关闭权限检查--&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.permissions.enable&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;false&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- 访问代理类：client，mycluster，active配置失败自动切换实现方式--&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.client.failover.proxy.provider.haCluster&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- # hdfs文件系统中的文件副本数量 为1(一般情况,完全分布式都是3分以上基数份) --&amp;gt;
+    &amp;lt;property&amp;gt;
+            &amp;lt;name&amp;gt;dfs.replication&amp;lt;/name&amp;gt;
+            &amp;lt;value&amp;gt;1&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- # hdfs文件系统中的文件副本数量 为1(一般情况,完全分布式都是3分以上基数份) --&amp;gt;
+    &amp;lt;property&amp;gt;
+            &amp;lt;name&amp;gt;dfs.replication&amp;lt;/name&amp;gt;
+            &amp;lt;value&amp;gt;1&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+
+    &amp;lt;!-- # 节点检测频率,用户namenode 检测datanode是否存活 120s --&amp;gt;
+    &amp;lt;property&amp;gt;
+            &amp;lt;name&amp;gt;dfs.namenode.checkpoint.period&amp;lt;/name&amp;gt;
+            &amp;lt;value&amp;gt;120&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+    &amp;lt;!-- 启用web查看hdfs系统 --&amp;gt;
+    &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.webhdfs.enabled&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;true&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+    &amp;lt;!-- 启用自动故障转移 --&amp;gt;
+    &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;dfs.ha.automatic-failover.enabled&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;true&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+    &amp;lt;!-- # 指定 dfs 相关的机器地址,用户上下线新的机器 --&amp;gt;
+    &amp;lt;!-- &amp;lt;property&amp;gt;
+            &amp;lt;name&amp;gt;dfs.hosts&amp;lt;/name&amp;gt;
+            &amp;lt;value&amp;gt;/opt/module/hadoop-2.7.2/etc/hadoop/dfs.hosts&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt;
+    # 指定退役的节点
+    &amp;lt;property&amp;gt;
+            &amp;lt;name&amp;gt;dfs.hosts.exclude&amp;lt;/name&amp;gt;
+            &amp;lt;value&amp;gt;/opt/module/hadoop-2.7.2/etc/hadoop/dfs.hosts.exclude&amp;lt;/value&amp;gt;
+    &amp;lt;/property&amp;gt; --&amp;gt;
+  &amp;lt;/configuration&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h6 id=&quot;编辑mapred-sitexml&quot;&gt;编辑mapred-site.xml&lt;/h6&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &amp;lt;configuration&amp;gt;
+      &amp;lt;!-- 指定mr运行在yarn上 --&amp;gt;
+        &amp;lt;property&amp;gt;
+                &amp;lt;name&amp;gt;mapreduce.framework.name&amp;lt;/name&amp;gt;
+                &amp;lt;value&amp;gt;yarn&amp;lt;/value&amp;gt;
+        &amp;lt;/property&amp;gt;
+
+        &amp;lt;!--配置历史服务器 --&amp;gt;
+        &amp;lt;property&amp;gt;
+                &amp;lt;name&amp;gt;mapreduce.jobhistory.address&amp;lt;/name&amp;gt;
+                &amp;lt;value&amp;gt;hd001:10020&amp;lt;/value&amp;gt;
+        &amp;lt;/property&amp;gt;
+        &amp;lt;property&amp;gt;
+                &amp;lt;name&amp;gt;mapreduce.jobhistory.webapp.address&amp;lt;/name&amp;gt;
+                &amp;lt;value&amp;gt;hd001:19888&amp;lt;/value&amp;gt;
+        &amp;lt;/property&amp;gt;
+
+  &amp;lt;/configuration&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+    &lt;p&gt;将hadoop目录分发至集群每台机器&lt;/p&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  scp -r /home/admin/module/HA/hadoop-2.7.2 hd002:~/module/HA/
+  scp -r /home/admin/module/HA/hadoop-2.7.2 hd003:~/module/HA/
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+    &lt;p&gt;至此 namenode高可用搭建完成,但是不是自动故障转移,切换namenode的active状态需要手动&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h6 id=&quot;编辑yarn-sitexml此处为非自动故障转移的配置&quot;&gt;编辑yarn-site.xml(此处为非自动故障转移的配置)&lt;/h6&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    &amp;lt;!-- 指定YARN的ResourceManager的地址 --&amp;gt;
+    &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;yarn.resourcemanager.hostname&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;hd002&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+      &amp;lt;!-- 日志聚集功能使能 --&amp;gt;
+      &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;yarn.log-aggregation-enable&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;true&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+      &amp;lt;!-- 日志保留时间设置7天 7*24*60*60 --&amp;gt;
+      &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;yarn.log-aggregation.retain-seconds&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;604800&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;!-- 日志储存地址 --&amp;gt;
+      &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;yarn.log.server.url&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;http://hd001:19888/jobhistory/logs&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h6 id=&quot;编辑-slaves&quot;&gt;编辑 slaves&lt;/h6&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  hd001
+  hd002
+  hd003
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;namenode高可用测试&quot;&gt;namenode高可用测试&lt;/h5&gt;
+    &lt;ul&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;首先启动集群journalnode集群服务&quot;&gt;首先启动集群journalnode集群服务&lt;/h6&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  #需要启动每个节点的 journalnode 
+  $ cd /home/admin/module/HA/hadoop-2.7.2
+  $ sbin/hadoop-daemon.sh start journalnode
+  $ jps
+      7684 Jps
+      7609 JournalNode
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;格式化namenode&quot;&gt;格式化namenode&lt;/h6&gt;
+        &lt;font color=&quot;red&quot;&gt;注意: 为了使journalnode服务记录namenode初始信息,在格式化namenode前,需要先将journalnode集群服务启动,否则会失败&lt;/font&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  $ bin/hdfs namenode -format
+  #  Storage directory /home/admin/module/HA/hadoop-2.7.2/data/tmp/dfs/name has been successfully formatted.
+  #  出现这句话时,表示format成功
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;启动nn1的namenode&quot;&gt;启动nn1的namenode&lt;/h6&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  sbin/hadoop-daemon.sh start namenode
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;nn2同步nn1-的元数据信息&quot;&gt;nn2同步nn1 的元数据信息&lt;/h6&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  bin/hdfs namenode -bootstrapStandby
+
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;启动nn2的namenode&quot;&gt;启动nn2的namenode&lt;/h6&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  sbin/hadoop-daemon.sh start namenode
+
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;启动各个节点的datanode&quot;&gt;启动各个节点的datanode&lt;/h6&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  # 每隔节点都需要启动 hd001 hd002 hd003
+  $ sbin/hadoop-daemon.sh start datanode 
+
+  $ sh ~/jpsutil.sh
+  =========== admin@hd001 ============
+  11010 DataNode
+  11400 Jps
+  10286 JournalNode
+  =========== admin@hd002 ============
+  9744 Jps
+  9473 DataNode
+  9317 NameNode
+  8959 JournalNode
+  =========== admin@hd003 ============
+  8881 DataNode
+  8388 JournalNode
+  9161 Jps
+  8746 NameNode
+
+  #hd002,hd003中的namenode启动成功
+  # 此时 访问 http://hd002:50070/  和 http://hd003:50070/  均发现两个节点处于 standy状态
+  # 访问http://hd002:50070/explorer.html#/ 文件目录会提示时: 
+  Operation category READ is not supported in state standby
+  因为没有active的name造成的
+
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;手动激活nn1中的namenode到active&quot;&gt;手动激活nn1中的namenode到active&lt;/h6&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  bin/hdfs haadmin -transitionToActive nn1
+  #此时再访问 http://hd002:50070/dfshealth.html#tab-overview 显示节点处于active
+  访问 http://hd002:50070/explorer.html#/ 可以正常访问
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;手动激活nn2中的namenode到active&quot;&gt;手动激活nn2中的namenode到active&lt;/h6&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  bin/hdfs haadmin -transitionToActive nn2
+  Automatic failover is enabled for NameNode at hd002/192.168.1.21:9000
+  Refusing to manually manage HA state, since it may cause
+  a split-brain scenario or other incorrect state.
+  If you are very sure you know what you are doing, please
+  specify the --forcemanual flag.
+
+  如果使用
+  bin/hdfs haadmin -transitionToActive nn2  --forcemanual
+  会提示 nn1已经处于active 不会被切换,切换失败
+  18/04/16 18:56:57 WARN ha.HAAdmin: Proceeding with manual HA state management even though
+  automatic failover is enabled for NameNode at hd002/192.168.1.21:9000
+  transitionToActive: Node nn1 is already active
+  Usage: haadmin [-transitionToActive [--forceactive] &amp;lt;serviceId&amp;gt;]
+    
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h6 id=&quot;手动激活nn1中的namenode到standby&quot;&gt;手动激活nn1中的namenode到standby&lt;/h6&gt;
+        &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  bin/dfs haadmin -transitionToStandby nn1
+  # 切换完后后,再切换nn2到active可成功切换
+&lt;/code&gt;&lt;/pre&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;ha的自动故障转移&quot;&gt;HA的自动故障转移&lt;/h4&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    以上测试了手动故障转移的方式,下面配置自动故障转移&amp;lt;br&amp;gt;
+    HA的自动故障转移依赖于zookeeper
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;配置zookeeper&quot;&gt;配置zookeeper&lt;/h5&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  tar -zxvf zookeeper-3.4.10.tar.gz ~/module/HA/
+  cd ~/module/HA/zookeeper-3.4.10/
+  mkdir zkData
+  cd zkData
+  echo 1 &amp;gt; myid
+  cd ../conf/
+  mv zoo_simple.cfg zoo.cfg
+  vim zoo.cfg
+  # 修改dataDir 
+  dataDir=/home/admin/module/HA/zookeeper-3.4.10/zkData
+  #末尾增加
+  server.1=hd001:2888:3888
+  server.2=hd002:2888:3888
+  server.3=hd003:2888:3888
+
+  #保存退出
+  #将 zookeeper分发到各个节点,修改zkData下myid文件中的值,于主机名称对应
+  scp -r ~/module/HA/zookeeper-3.4.10  hd002:~/module/HA/
+  scp -r ~/module/HA/zookeeper-3.4.10  hd003:~/module/HA/
+
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+    &lt;p&gt;至此,zookeeper配置完成&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;zookeeper启动测试&quot;&gt;zookeeper启动测试&lt;/h5&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  #每台节点启动zookeeper服务
+  cd /home/admin/module/HA/zookeeper-3.4.10/
+  bin/zkServer.sh start
+  #查看进程
+  [admin@hd001 zookeeper-3.4.10]$ sh ~/jpsutil.sh
+  =========== admin@hd001 ============
+  14452 Jps
+  14390 QuorumPeerMain
+  13033 DataNode
+  10286 JournalNode
+  =========== admin@hd002 ============
+  11785 DataNode
+  13291 Jps
+  11164 NameNode
+  13230 QuorumPeerMain
+  8959 JournalNode
+  =========== admin@hd003 ============
+  12817 QuorumPeerMain
+  8388 JournalNode
+  10892 NameNode
+  12879 Jps
+  #在其中一台启动zkCli.sh连接服务
+  ls /
+
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;hdfs-sitexml增加配置&quot;&gt;hdfs-site.xml增加配置&lt;/h5&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;dfs.ha.automatic-failover.enabled&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;true&amp;lt;/value&amp;gt;
+  &amp;lt;/property&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;core-site增加配置&quot;&gt;core-site增加配置&lt;/h5&gt;
+    &lt;p&gt;在 core-site.xml 增加&lt;/p&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;      &amp;lt;!-- zookeeper通信客户端地址  --&amp;gt;
+      &amp;lt;property&amp;gt;
+      &amp;lt;name&amp;gt;ha.zookeeper.quorum&amp;lt;/name&amp;gt;
+      &amp;lt;value&amp;gt;hd001:2181,hd002:2181,hd003:2181&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+    &lt;p&gt;故障自动转移完成&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h5 id=&quot;故障自动转移测试&quot;&gt;故障自动转移测试&lt;/h5&gt;
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  - 先停掉节点&amp;lt;br&amp;gt;
+  sbin/stop-dfs.sh 
+
+  - 初始化HA在Zookeeper中状态：&amp;lt;br&amp;gt;
+  bin/hdfs zkfc -formatZK
+
+  - 启动journalnode&amp;lt;br&amp;gt;
+  sbin/hadoop-daemon.sh start journalnode
+
+  - 启动dfs&amp;lt;br&amp;gt;
+  sbin/start-dfs.sh &amp;lt;br&amp;gt;
+  查看hd002:50070和hd003:50070,其中一台处于active
+    
+  - kill active namenode &amp;lt;br&amp;gt;
+  sbin/hadoop-daemon.sh stop namenode &amp;lt;br&amp;gt;
+  查看hd002:50070和hd003:50070,刚刚处于standby的namoenode自动切换为active了.
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;配置yarn-resourcemanager高可用&quot;&gt;配置yarn-resourcemanager高可用&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;编辑yarn-site.xml
+    &lt;blockquote&gt;
+      &lt;p&gt;可参考 &lt;a href=&quot;http://hadoop.apache.org/docs/r2.7.5/hadoop-yarn/hadoop-yarn-site/ResourceManagerHA.html&quot; target=&quot;_blank&quot;&gt;Resourcemanager-HA官方文档&lt;/a&gt;&lt;/p&gt;
+    &lt;/blockquote&gt;
+
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &amp;lt;configuration&amp;gt;
+      &amp;lt;!-- reducer获取数据的方式 --&amp;gt;
+      &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;yarn.nodemanager.aux-services&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;mapreduce_shuffle&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;!--启用resourcemanager ha--&amp;gt;
+      &amp;lt;property&amp;gt;
+          &amp;lt;name&amp;gt;yarn.resourcemanager.ha.enabled&amp;lt;/name&amp;gt;
+          &amp;lt;value&amp;gt;true&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;!--声明两台resourcemanager的地址--&amp;gt;
+      &amp;lt;property&amp;gt;
+          &amp;lt;name&amp;gt;yarn.resourcemanager.cluster-id&amp;lt;/name&amp;gt;
+          &amp;lt;value&amp;gt;cluster-yarn1&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;property&amp;gt;
+          &amp;lt;name&amp;gt;yarn.resourcemanager.ha.rm-ids&amp;lt;/name&amp;gt;
+          &amp;lt;value&amp;gt;rm1,rm2&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;property&amp;gt;
+          &amp;lt;name&amp;gt;yarn.resourcemanager.hostname.rm1&amp;lt;/name&amp;gt;
+          &amp;lt;value&amp;gt;hd001&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;property&amp;gt;
+          &amp;lt;name&amp;gt;yarn.resourcemanager.hostname.rm2&amp;lt;/name&amp;gt;
+          &amp;lt;value&amp;gt;hd002&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;!--指定zookeeper集群的地址--&amp;gt;
+      &amp;lt;property&amp;gt;
+          &amp;lt;name&amp;gt;yarn.resourcemanager.zk-address&amp;lt;/name&amp;gt;
+          &amp;lt;value&amp;gt;hd001:2181,hd001:2181,hd001:2181&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;!--启用自动恢复--&amp;gt;
+      &amp;lt;property&amp;gt;
+          &amp;lt;name&amp;gt;yarn.resourcemanager.recovery.enabled&amp;lt;/name&amp;gt;
+          &amp;lt;value&amp;gt;true&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;!--指定resourcemanager的状态信息存储在zookeeper集群--&amp;gt;
+      &amp;lt;property&amp;gt;
+          &amp;lt;name&amp;gt;yarn.resourcemanager.store.class&amp;lt;/name&amp;gt;
+          &amp;lt;value&amp;gt;org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+      &amp;lt;!-- 日志聚集功能使能 --&amp;gt;
+      &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;yarn.log-aggregation-enable&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;true&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+      &amp;lt;!-- 日志保留时间设置7天 --&amp;gt;
+      &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;yarn.log-aggregation.retain-seconds&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;604800&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+
+      &amp;lt;property&amp;gt;
+              &amp;lt;name&amp;gt;yarn.log.server.url&amp;lt;/name&amp;gt;
+              &amp;lt;value&amp;gt;http://hd001:19888/jobhistory/logs&amp;lt;/value&amp;gt;
+      &amp;lt;/property&amp;gt;
+  &amp;lt;/configuration&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+    &lt;p&gt;配置完成,分发文件&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;rm1启动yarn集群
+  sbin/start-yarn.sh&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;rm2启动resourcemanager
+  sbin/yarn-daemon.sh start resourcemanager &lt;br /&gt;
+      &lt;font color=&quot;red&quot;&gt;注意:&lt;br /&gt;
+          1.rm2的resourcemanager不会同yarn集群一起启动,需要单独启动;&lt;br /&gt;
+          2.yarn的resourcemanager的HA,不会经过ZKFC控制,是通过yarn集群自己进行自动切换的&lt;/font&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;查看集群进程
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  sh ~/jpsutil.sh
+  [admin@hd001 hadoop-2.7.2]$ sh ~/jpsutil.sh
+  =========== admin@hd001 ============
+  27937 ResourceManager
+  24390 QuorumPeerMain
+  27160 JournalNode
+  27513 NodeManager
+  28026 Jps
+  26894 DataNode
+  =========== admin@hd002 ============
+  27505 ResourceManager
+  27271 DFSZKFailoverController
+  28232 Jps
+  27659 NodeManager
+  22556 QuorumPeerMain
+  27116 JournalNode
+  26988 DataNode
+  26861 NameNode
+  =========== admin@hd003 ============
+  25202 JournalNode
+  25074 DataNode
+  24968 NameNode
+  25595 NodeManager
+  22092 QuorumPeerMain
+  26044 Jps
+  25357 DFSZKFailoverController
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+    &lt;p&gt;可访问 rm1 和 rm2, hd002:8088  hd003:8088&lt;br /&gt;
+本文中 rm2 hd002处于activ中, 当访问hd001:8088时,会自动重定向到 hd002:8088/cluster&lt;br /&gt;
+当将 rm2 停止 后,rm1处于active中&lt;br /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h4 id=&quot;附件-jpsutilsh&quot;&gt;附件 jpsutil.sh&lt;/h4&gt;
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;      &lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;i &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;admin@hd001 admin@hd002 admin@hd003
+      &lt;span class=&quot;k&quot;&gt;do
+              &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;=========== &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$i&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; ============&quot;&lt;/span&gt;
+              ssh &lt;span class=&quot;nv&quot;&gt;$i&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'jps'&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;done&lt;/span&gt; 
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h4 id=&quot;hadoop-ha官方文档地址&quot;&gt;hadoop-HA&lt;a href=&quot;http://hadoop.apache.org/docs/r2.7.5/hadoop-project-dist/hadoop-hdfs/HDFSHighAvailabilityWithQJM.html&quot; target=&quot;_blank&quot;&gt;官方文档地址&lt;/a&gt;&lt;/h4&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">准备工作 静态IP 映射主机名与ip jdk环境 防火墙关闭 ssh免密</summary></entry><entry><title type="html">zookeeper集群相关问题</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="zookeeper集群相关问题" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/">&lt;h3 id=&quot;问题一&quot;&gt;问题一&lt;/h3&gt;
 &lt;h5 id=&quot;问题描述&quot;&gt;问题描述&lt;/h5&gt;
 &lt;p&gt;第N次启动zookeeper集群时,按照节点顺序启动时,无法正常启动&lt;/p&gt;
 

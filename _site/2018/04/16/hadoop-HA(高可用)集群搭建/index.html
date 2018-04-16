@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>hadoop-HA(高可用)集群搭建 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="/html_title.png">
+    
+    <meta property="og:title" content="hadoop-HA(高可用)集群搭建">
+      
+    <meta name="keywords" content="hadoop-HA, hadoop高可用">
+    <meta name="og:keywords" content="hadoop-HA, hadoop高可用">
+      
+    <meta name="description" content="准备工作  静态IP  映射主机名与ip  jdk环境  防火墙关闭  ssh免密">
+    <meta name="og:description" content="准备工作  静态IP  映射主机名与ip  jdk环境  防火墙关闭  ssh免密">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2018-04-16">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="hadoop-HA(高可用)集">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">hadoop-HA(高可用)集群搭建</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2018/04/16
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Hadoop" title="Hadoop">Hadoop</a>
+          </span>
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Zookeeper" title="Zookeeper">Zookeeper</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h4 id="准备工作">准备工作</h4>
+<ul>
+  <li>静态IP<br /></li>
+  <li>映射主机名与ip<br /></li>
+  <li>jdk环境<br /></li>
+  <li>防火墙关闭<br /></li>
+  <li>ssh免密<br /></li>
+</ul>
+
+<h4 id="高可用原理介绍">高可用原理介绍</h4>
+<ul>
+  <li>
+    <h5 id="为何使用ha">为何使用HA<br /></h5>
+    <p>因为在非HA集群模式下namenode是单节点工作,故存在namenode的单节点故障.<br />
+为防止故障发生,需要使用多个namenode节点.<br />
+其中,hadoop2.x版本只能支持2个namenode节点 ,hadoop3.x可以支持更多个<br />
+本文以hadoop2.7.2版本为基础
+<br /></p>
+  </li>
+  <li>
+    <h5 id="ha实现原理">HA实现原理</h5>
+    <p>两个namenode的数据是一致的.<br />
+两个namenode通过hadoop中的journalnode集群服务来同步两个namenode的元数据<br />
+两个namenode工作时,其中一台处于active状态,另外一台处于standy状态,否则会出现(split-brain)脑裂,集群无法工作.<br />
+在故障自动转移中, 通过 zookeeper 中的ZKFC(zookeeper failover controller,zookeeper 故障转移控制)进程来控制namenode节点的工作状态切换<br />
+其中ZKFC会在两个namenode节点只监听namenode的状态信息,不会对元数据进行操作,<br />
+当处于active的namenode宕机或死掉,zookeeper会通过ZKFC通知另外一台namenode启用(active)</p>
+  </li>
+</ul>
+
+<h4 id="namenode的高可用配置">namenode的高可用配置</h4>
+<ul>
+  <li>
+    <h5 id="1解压或复制原来hadoop集群相关文件">1.解压或复制原来hadoop集群相关文件<br /></h5>
+
+    <div class="highlighter-rouge"><pre class="highlight"><code>  tar -zxf hadoop-2.7.2.tar.gz -C ~/module/HA/
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h5 id="2配置hadoop相关文件">2.配置hadoop相关文件</h5>
+
+    <div class="highlighter-rouge"><pre class="highlight"><code>  cd /home/admin/module/HA/hadoop-2.7.2/etc/hadoop    
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h6 id="编辑core-sitexml此时为非自动故障转移">编辑core-site.xml(此时为非自动故障转移)</h6>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  &lt;configuration&gt;
+    &lt;!-- 把两个NameNode）的地址组装成一个集群haCluster(haCluster为集群名称,后续需要跟此保持一致) --&gt;
+    &lt;property&gt;
+      &lt;name&gt;fs.defaultFS&lt;/name&gt;
+      &lt;value&gt;hdfs://haCluster&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- # dfs 系统存取数据的目录 --&gt;
+    &lt;property&gt;
+        &lt;name&gt;hadoop.tmp.dir&lt;/name&gt;
+        &lt;value&gt;/home/admin/module/HA/hadoop-2.7.2/data/tmp&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;!-- journalnode 数据存储目录 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.journalnode.edit.dir&lt;/name&gt;
+      &lt;value&gt;/home/admin/module/HA/hadoop-2.7.2/jn/haCluster&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;!-- zookeeper通信客户端地址  --&gt;
+    &lt;!-- &lt;property&gt;
+        &lt;name&gt;ha.zookeeper.quorum&lt;/name&gt;
+        &lt;value&gt;hd001:2181,hd002:2181,hd003:2181&lt;/value&gt;
+    &lt;/property&gt;  --&gt;
+
+  &lt;/configuration&gt;
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h6 id="编辑hdfs-sitexml">编辑hdfs-site.xml</h6>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  &lt;configuration&gt;
+    &lt;!-- 完全分布式集群名称 haCluster 此处的haCluster与core-site.xmlvs中的集群名称需要一致,此xml种的haCluster都是集群对应的名称 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.nameservices&lt;/name&gt;
+      &lt;value&gt;haCluster&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- 集群中NameNode节点都有哪些 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.ha.namenodes.haCluster&lt;/name&gt;
+      &lt;value&gt;nn1,nn2&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- nn1的RPC通信地址 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.namenode.rpc-address.haCluster.nn1&lt;/name&gt;
+      &lt;value&gt;hd002:9000&lt;/value&gt;
+    &lt;/property&gt;
+
+     &lt;!-- nn2的RPC通信地址 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.namenode.rpc-address.haCluster.nn2&lt;/name&gt;
+      &lt;value&gt;hd003:9000&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- nn1的http通信地址 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.namenode.http-address.haCluster.nn1&lt;/name&gt;
+      &lt;value&gt;hd002:50070&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- nn2的http通信地址 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.namenode.http-address.haCluster.nn2&lt;/name&gt;
+      &lt;value&gt;hd003:50070&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- 指定NameNode元数据在JournalNode上的存放位置 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.namenode.shared.edits.dir&lt;/name&gt;
+      &lt;value&gt;qjournal://hd001:8485;hd002:8485;hd003:8485/haCluster&lt;/value&gt;
+    &lt;/property&gt;
+   &lt;!-- 配置隔离机制，即同一时刻只能有一台服务器对外响应 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.ha.fencing.methods&lt;/name&gt;
+      &lt;value&gt;sshfence&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- 使用隔离机制时需要ssh无秘钥登录--&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.ha.fencing.ssh.private-key-files&lt;/name&gt;
+      &lt;value&gt;/home/admin/.ssh/id_rsa&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- 声明journalnode服务器存储目录--&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.journalnode.edits.dir&lt;/name&gt;
+      &lt;value&gt;/home/admin/module/HA/hadoop-2.7.2/jn&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- 关闭权限检查--&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.permissions.enable&lt;/name&gt;
+      &lt;value&gt;false&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- 访问代理类：client，mycluster，active配置失败自动切换实现方式--&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.client.failover.proxy.provider.haCluster&lt;/name&gt;
+      &lt;value&gt;org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- # hdfs文件系统中的文件副本数量 为1(一般情况,完全分布式都是3分以上基数份) --&gt;
+    &lt;property&gt;
+            &lt;name&gt;dfs.replication&lt;/name&gt;
+            &lt;value&gt;1&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- # hdfs文件系统中的文件副本数量 为1(一般情况,完全分布式都是3分以上基数份) --&gt;
+    &lt;property&gt;
+            &lt;name&gt;dfs.replication&lt;/name&gt;
+            &lt;value&gt;1&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;!-- # 节点检测频率,用户namenode 检测datanode是否存活 120s --&gt;
+    &lt;property&gt;
+            &lt;name&gt;dfs.namenode.checkpoint.period&lt;/name&gt;
+            &lt;value&gt;120&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;!-- 启用web查看hdfs系统 --&gt;
+    &lt;property&gt;
+      &lt;name&gt;dfs.webhdfs.enabled&lt;/name&gt;
+      &lt;value&gt;true&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;!-- 启用自动故障转移 --&gt;
+    &lt;property&gt;
+              &lt;name&gt;dfs.ha.automatic-failover.enabled&lt;/name&gt;
+              &lt;value&gt;true&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;!-- # 指定 dfs 相关的机器地址,用户上下线新的机器 --&gt;
+    &lt;!-- &lt;property&gt;
+            &lt;name&gt;dfs.hosts&lt;/name&gt;
+            &lt;value&gt;/opt/module/hadoop-2.7.2/etc/hadoop/dfs.hosts&lt;/value&gt;
+    &lt;/property&gt;
+    # 指定退役的节点
+    &lt;property&gt;
+            &lt;name&gt;dfs.hosts.exclude&lt;/name&gt;
+            &lt;value&gt;/opt/module/hadoop-2.7.2/etc/hadoop/dfs.hosts.exclude&lt;/value&gt;
+    &lt;/property&gt; --&gt;
+  &lt;/configuration&gt;
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h6 id="编辑mapred-sitexml">编辑mapred-site.xml</h6>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  &lt;configuration&gt;
+      &lt;!-- 指定mr运行在yarn上 --&gt;
+        &lt;property&gt;
+                &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+                &lt;value&gt;yarn&lt;/value&gt;
+        &lt;/property&gt;
+
+        &lt;!--配置历史服务器 --&gt;
+        &lt;property&gt;
+                &lt;name&gt;mapreduce.jobhistory.address&lt;/name&gt;
+                &lt;value&gt;hd001:10020&lt;/value&gt;
+        &lt;/property&gt;
+        &lt;property&gt;
+                &lt;name&gt;mapreduce.jobhistory.webapp.address&lt;/name&gt;
+                &lt;value&gt;hd001:19888&lt;/value&gt;
+        &lt;/property&gt;
+
+  &lt;/configuration&gt;
+</code></pre>
+    </div>
+    <p>将hadoop目录分发至集群每台机器</p>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  scp -r /home/admin/module/HA/hadoop-2.7.2 hd002:~/module/HA/
+  scp -r /home/admin/module/HA/hadoop-2.7.2 hd003:~/module/HA/
+</code></pre>
+    </div>
+    <p>至此 namenode高可用搭建完成,但是不是自动故障转移,切换namenode的active状态需要手动</p>
+  </li>
+  <li>
+    <h6 id="编辑yarn-sitexml此处为非自动故障转移的配置">编辑yarn-site.xml(此处为非自动故障转移的配置)</h6>
+    <div class="highlighter-rouge"><pre class="highlight"><code>    &lt;!-- 指定YARN的ResourceManager的地址 --&gt;
+    &lt;property&gt;
+              &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;
+              &lt;value&gt;hd002&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;!-- 日志聚集功能使能 --&gt;
+      &lt;property&gt;
+              &lt;name&gt;yarn.log-aggregation-enable&lt;/name&gt;
+              &lt;value&gt;true&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;!-- 日志保留时间设置7天 7*24*60*60 --&gt;
+      &lt;property&gt;
+              &lt;name&gt;yarn.log-aggregation.retain-seconds&lt;/name&gt;
+              &lt;value&gt;604800&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;!-- 日志储存地址 --&gt;
+      &lt;property&gt;
+              &lt;name&gt;yarn.log.server.url&lt;/name&gt;
+              &lt;value&gt;http://hd001:19888/jobhistory/logs&lt;/value&gt;
+      &lt;/property&gt;
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h6 id="编辑-slaves">编辑 slaves</h6>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  hd001
+  hd002
+  hd003
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h5 id="namenode高可用测试">namenode高可用测试</h5>
+    <ul>
+      <li>
+        <h6 id="首先启动集群journalnode集群服务">首先启动集群journalnode集群服务</h6>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  #需要启动每个节点的 journalnode 
+  $ cd /home/admin/module/HA/hadoop-2.7.2
+  $ sbin/hadoop-daemon.sh start journalnode
+  $ jps
+      7684 Jps
+      7609 JournalNode
+</code></pre>
+        </div>
+      </li>
+      <li>
+        <h6 id="格式化namenode">格式化namenode</h6>
+        <font color="red">注意: 为了使journalnode服务记录namenode初始信息,在格式化namenode前,需要先将journalnode集群服务启动,否则会失败</font>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  $ bin/hdfs namenode -format
+  #  Storage directory /home/admin/module/HA/hadoop-2.7.2/data/tmp/dfs/name has been successfully formatted.
+  #  出现这句话时,表示format成功
+</code></pre>
+        </div>
+      </li>
+      <li>
+        <h6 id="启动nn1的namenode">启动nn1的namenode</h6>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  sbin/hadoop-daemon.sh start namenode
+</code></pre>
+        </div>
+      </li>
+      <li>
+        <h6 id="nn2同步nn1-的元数据信息">nn2同步nn1 的元数据信息</h6>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  bin/hdfs namenode -bootstrapStandby
+
+</code></pre>
+        </div>
+      </li>
+      <li>
+        <h6 id="启动nn2的namenode">启动nn2的namenode</h6>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  sbin/hadoop-daemon.sh start namenode
+
+</code></pre>
+        </div>
+      </li>
+      <li>
+        <h6 id="启动各个节点的datanode">启动各个节点的datanode</h6>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  # 每隔节点都需要启动 hd001 hd002 hd003
+  $ sbin/hadoop-daemon.sh start datanode 
+
+  $ sh ~/jpsutil.sh
+  =========== admin@hd001 ============
+  11010 DataNode
+  11400 Jps
+  10286 JournalNode
+  =========== admin@hd002 ============
+  9744 Jps
+  9473 DataNode
+  9317 NameNode
+  8959 JournalNode
+  =========== admin@hd003 ============
+  8881 DataNode
+  8388 JournalNode
+  9161 Jps
+  8746 NameNode
+
+  #hd002,hd003中的namenode启动成功
+  # 此时 访问 http://hd002:50070/  和 http://hd003:50070/  均发现两个节点处于 standy状态
+  # 访问http://hd002:50070/explorer.html#/ 文件目录会提示时: 
+  Operation category READ is not supported in state standby
+  因为没有active的name造成的
+
+</code></pre>
+        </div>
+      </li>
+      <li>
+        <h6 id="手动激活nn1中的namenode到active">手动激活nn1中的namenode到active</h6>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  bin/hdfs haadmin -transitionToActive nn1
+  #此时再访问 http://hd002:50070/dfshealth.html#tab-overview 显示节点处于active
+  访问 http://hd002:50070/explorer.html#/ 可以正常访问
+</code></pre>
+        </div>
+      </li>
+      <li>
+        <h6 id="手动激活nn2中的namenode到active">手动激活nn2中的namenode到active</h6>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  bin/hdfs haadmin -transitionToActive nn2
+  Automatic failover is enabled for NameNode at hd002/192.168.1.21:9000
+  Refusing to manually manage HA state, since it may cause
+  a split-brain scenario or other incorrect state.
+  If you are very sure you know what you are doing, please
+  specify the --forcemanual flag.
+
+  如果使用
+  bin/hdfs haadmin -transitionToActive nn2  --forcemanual
+  会提示 nn1已经处于active 不会被切换,切换失败
+  18/04/16 18:56:57 WARN ha.HAAdmin: Proceeding with manual HA state management even though
+  automatic failover is enabled for NameNode at hd002/192.168.1.21:9000
+  transitionToActive: Node nn1 is already active
+  Usage: haadmin [-transitionToActive [--forceactive] &lt;serviceId&gt;]
+    
+</code></pre>
+        </div>
+      </li>
+      <li>
+        <h6 id="手动激活nn1中的namenode到standby">手动激活nn1中的namenode到standby</h6>
+        <div class="highlighter-rouge"><pre class="highlight"><code>  bin/dfs haadmin -transitionToStandby nn1
+  # 切换完后后,再切换nn2到active可成功切换
+</code></pre>
+        </div>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="ha的自动故障转移">HA的自动故障转移</h4>
+<div class="highlighter-rouge"><pre class="highlight"><code>    以上测试了手动故障转移的方式,下面配置自动故障转移&lt;br&gt;
+    HA的自动故障转移依赖于zookeeper
+</code></pre>
+</div>
+
+<ul>
+  <li>
+    <h5 id="配置zookeeper">配置zookeeper</h5>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  tar -zxvf zookeeper-3.4.10.tar.gz ~/module/HA/
+  cd ~/module/HA/zookeeper-3.4.10/
+  mkdir zkData
+  cd zkData
+  echo 1 &gt; myid
+  cd ../conf/
+  mv zoo_simple.cfg zoo.cfg
+  vim zoo.cfg
+  # 修改dataDir 
+  dataDir=/home/admin/module/HA/zookeeper-3.4.10/zkData
+  #末尾增加
+  server.1=hd001:2888:3888
+  server.2=hd002:2888:3888
+  server.3=hd003:2888:3888
+
+  #保存退出
+  #将 zookeeper分发到各个节点,修改zkData下myid文件中的值,于主机名称对应
+  scp -r ~/module/HA/zookeeper-3.4.10  hd002:~/module/HA/
+  scp -r ~/module/HA/zookeeper-3.4.10  hd003:~/module/HA/
+
+</code></pre>
+    </div>
+    <p>至此,zookeeper配置完成</p>
+  </li>
+  <li>
+    <h5 id="zookeeper启动测试">zookeeper启动测试</h5>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  #每台节点启动zookeeper服务
+  cd /home/admin/module/HA/zookeeper-3.4.10/
+  bin/zkServer.sh start
+  #查看进程
+  [admin@hd001 zookeeper-3.4.10]$ sh ~/jpsutil.sh
+  =========== admin@hd001 ============
+  14452 Jps
+  14390 QuorumPeerMain
+  13033 DataNode
+  10286 JournalNode
+  =========== admin@hd002 ============
+  11785 DataNode
+  13291 Jps
+  11164 NameNode
+  13230 QuorumPeerMain
+  8959 JournalNode
+  =========== admin@hd003 ============
+  12817 QuorumPeerMain
+  8388 JournalNode
+  10892 NameNode
+  12879 Jps
+  #在其中一台启动zkCli.sh连接服务
+  ls /
+
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h5 id="hdfs-sitexml增加配置">hdfs-site.xml增加配置</h5>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  &lt;property&gt;
+      &lt;name&gt;dfs.ha.automatic-failover.enabled&lt;/name&gt;
+      &lt;value&gt;true&lt;/value&gt;
+  &lt;/property&gt;
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h5 id="core-site增加配置">core-site增加配置</h5>
+    <p>在 core-site.xml 增加</p>
+    <div class="highlighter-rouge"><pre class="highlight"><code>      &lt;!-- zookeeper通信客户端地址  --&gt;
+      &lt;property&gt;
+      &lt;name&gt;ha.zookeeper.quorum&lt;/name&gt;
+      &lt;value&gt;hd001:2181,hd002:2181,hd003:2181&lt;/value&gt;
+      &lt;/property&gt;
+</code></pre>
+    </div>
+    <p>故障自动转移完成</p>
+  </li>
+  <li>
+    <h5 id="故障自动转移测试">故障自动转移测试</h5>
+    <div class="highlighter-rouge"><pre class="highlight"><code>  - 先停掉节点&lt;br&gt;
+  sbin/stop-dfs.sh 
+
+  - 初始化HA在Zookeeper中状态：&lt;br&gt;
+  bin/hdfs zkfc -formatZK
+
+  - 启动journalnode&lt;br&gt;
+  sbin/hadoop-daemon.sh start journalnode
+
+  - 启动dfs&lt;br&gt;
+  sbin/start-dfs.sh &lt;br&gt;
+  查看hd002:50070和hd003:50070,其中一台处于active
+    
+  - kill active namenode &lt;br&gt;
+  sbin/hadoop-daemon.sh stop namenode &lt;br&gt;
+  查看hd002:50070和hd003:50070,刚刚处于standby的namoenode自动切换为active了.
+</code></pre>
+    </div>
+  </li>
+</ul>
+
+<h4 id="配置yarn-resourcemanager高可用">配置yarn-resourcemanager高可用</h4>
+<ul>
+  <li>编辑yarn-site.xml
+    <blockquote>
+      <p>可参考 <a href="http://hadoop.apache.org/docs/r2.7.5/hadoop-yarn/hadoop-yarn-site/ResourceManagerHA.html" target="_blank">Resourcemanager-HA官方文档</a></p>
+    </blockquote>
+
+    <div class="highlighter-rouge"><pre class="highlight"><code>  &lt;configuration&gt;
+      &lt;!-- reducer获取数据的方式 --&gt;
+      &lt;property&gt;
+              &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+              &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;!--启用resourcemanager ha--&gt;
+      &lt;property&gt;
+          &lt;name&gt;yarn.resourcemanager.ha.enabled&lt;/name&gt;
+          &lt;value&gt;true&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;!--声明两台resourcemanager的地址--&gt;
+      &lt;property&gt;
+          &lt;name&gt;yarn.resourcemanager.cluster-id&lt;/name&gt;
+          &lt;value&gt;cluster-yarn1&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;property&gt;
+          &lt;name&gt;yarn.resourcemanager.ha.rm-ids&lt;/name&gt;
+          &lt;value&gt;rm1,rm2&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;property&gt;
+          &lt;name&gt;yarn.resourcemanager.hostname.rm1&lt;/name&gt;
+          &lt;value&gt;hd001&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;property&gt;
+          &lt;name&gt;yarn.resourcemanager.hostname.rm2&lt;/name&gt;
+          &lt;value&gt;hd002&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;!--指定zookeeper集群的地址--&gt;
+      &lt;property&gt;
+          &lt;name&gt;yarn.resourcemanager.zk-address&lt;/name&gt;
+          &lt;value&gt;hd001:2181,hd001:2181,hd001:2181&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;!--启用自动恢复--&gt;
+      &lt;property&gt;
+          &lt;name&gt;yarn.resourcemanager.recovery.enabled&lt;/name&gt;
+          &lt;value&gt;true&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;!--指定resourcemanager的状态信息存储在zookeeper集群--&gt;
+      &lt;property&gt;
+          &lt;name&gt;yarn.resourcemanager.store.class&lt;/name&gt;
+          &lt;value&gt;org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;!-- 日志聚集功能使能 --&gt;
+      &lt;property&gt;
+              &lt;name&gt;yarn.log-aggregation-enable&lt;/name&gt;
+              &lt;value&gt;true&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;!-- 日志保留时间设置7天 --&gt;
+      &lt;property&gt;
+              &lt;name&gt;yarn.log-aggregation.retain-seconds&lt;/name&gt;
+              &lt;value&gt;604800&lt;/value&gt;
+      &lt;/property&gt;
+
+      &lt;property&gt;
+              &lt;name&gt;yarn.log.server.url&lt;/name&gt;
+              &lt;value&gt;http://hd001:19888/jobhistory/logs&lt;/value&gt;
+      &lt;/property&gt;
+  &lt;/configuration&gt;
+</code></pre>
+    </div>
+    <p>配置完成,分发文件</p>
+  </li>
+  <li>
+    <p>rm1启动yarn集群
+  sbin/start-yarn.sh</p>
+  </li>
+  <li>
+    <p>rm2启动resourcemanager
+  sbin/yarn-daemon.sh start resourcemanager <br />
+      <font color="red">注意:<br />
+          1.rm2的resourcemanager不会同yarn集群一起启动,需要单独启动;<br />
+          2.yarn的resourcemanager的HA,不会经过ZKFC控制,是通过yarn集群自己进行自动切换的</font></p>
+  </li>
+  <li>查看集群进程
+    <div class="highlighter-rouge"><pre class="highlight"><code>  sh ~/jpsutil.sh
+  [admin@hd001 hadoop-2.7.2]$ sh ~/jpsutil.sh
+  =========== admin@hd001 ============
+  27937 ResourceManager
+  24390 QuorumPeerMain
+  27160 JournalNode
+  27513 NodeManager
+  28026 Jps
+  26894 DataNode
+  =========== admin@hd002 ============
+  27505 ResourceManager
+  27271 DFSZKFailoverController
+  28232 Jps
+  27659 NodeManager
+  22556 QuorumPeerMain
+  27116 JournalNode
+  26988 DataNode
+  26861 NameNode
+  =========== admin@hd003 ============
+  25202 JournalNode
+  25074 DataNode
+  24968 NameNode
+  25595 NodeManager
+  22092 QuorumPeerMain
+  26044 Jps
+  25357 DFSZKFailoverController
+</code></pre>
+    </div>
+    <p>可访问 rm1 和 rm2, hd002:8088  hd003:8088<br />
+本文中 rm2 hd002处于activ中, 当访问hd001:8088时,会自动重定向到 hd002:8088/cluster<br />
+当将 rm2 停止 后,rm1处于active中<br /></p>
+  </li>
+  <li>
+    <h4 id="附件-jpsutilsh">附件 jpsutil.sh</h4>
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>      <span class="c">#!/bin/bash</span>
+      <span class="k">for </span>i <span class="k">in </span>admin@hd001 admin@hd002 admin@hd003
+      <span class="k">do
+              </span><span class="nb">echo</span> <span class="s2">"=========== </span><span class="nv">$i</span><span class="s2"> ============"</span>
+              ssh <span class="nv">$i</span> <span class="s1">'jps'</span>
+      <span class="k">done</span> 
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <h4 id="hadoop-ha官方文档地址">hadoop-HA<a href="http://hadoop.apache.org/docs/r2.7.5/hadoop-project-dist/hadoop-hdfs/HDFSHighAvailabilityWithQJM.html" target="_blank">官方文档地址</a></h4>
+  </li>
+</ul>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/';
+              this.page.identifier = '/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/';
+              this.page.title = 'hadoop-HA(高可用)集群搭建';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="liushan">liushan</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="http://github.com/liushan150/liushan150.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+</body>
+</html>
