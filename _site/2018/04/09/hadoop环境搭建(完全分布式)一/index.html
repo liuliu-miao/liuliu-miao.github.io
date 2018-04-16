@@ -517,47 +517,65 @@ hadoop104
 </code></pre>
     </div>
   </li>
-  <li>自定义脚本分发文件
-    <blockquote>
-      <p>新建自定义脚本文件 touch /usr/bin/xsync</p>
-      <div class="language-bash highlighter-rouge"><pre class="highlight"><code>sudo chmod +x /usr/bin/xsync
-vim /usr/bin/xsync
-</code></pre>
-      </div>
-    </blockquote>
+</ul>
 
-    <div class="language-bash highlighter-rouge"><pre class="highlight"><code> <span class="c">#!/bin/bash</span>
- <span class="c"># 获取输入参数个数</span>
- <span class="nv">pcount</span><span class="o">=</span><span class="nv">$#</span>
- <span class="k">if</span><span class="o">((</span><span class="nv">pcount</span><span class="o">==</span>0<span class="o">))</span>;<span class="k">then
- </span><span class="nb">echo </span>no args;
- <span class="nb">exit</span>;
- <span class="k">fi</span>
-
- <span class="c"># 获取文件名</span>
- <span class="nv">p1</span><span class="o">=</span><span class="nv">$1</span>
- <span class="nv">fname</span><span class="o">=</span><span class="sb">`</span>basename <span class="nv">$p1</span><span class="sb">`</span>
- <span class="nb">echo </span><span class="nv">fname</span><span class="o">=</span><span class="nv">$fname</span>
-
- <span class="c"># 获取上机目录到绝对路径</span>
-
- <span class="nv">pdir</span><span class="o">=</span><span class="sb">`</span><span class="nb">cd</span> -P <span class="k">$(</span>dirname <span class="nv">$p1</span><span class="k">)</span>; <span class="nb">pwd</span><span class="sb">`</span>
-
- <span class="nb">echo </span><span class="nv">pdir</span><span class="o">=</span><span class="nv">$pdir</span>
-
- <span class="c"># 获取当前用户名</span>
- <span class="nv">user</span><span class="o">=</span><span class="sb">`</span>whoami<span class="sb">`</span>
-
- <span class="k">for</span><span class="o">((</span><span class="nv">host</span><span class="o">=</span>103;host&lt;109;host++<span class="o">))</span>;<span class="k">do
-         </span><span class="nb">echo</span> --------------------hadoop<span class="nv">$host</span>-----------------
-         rsync -rvl <span class="nv">$pdir</span>/<span class="nv">$fname</span> <span class="nv">$user</span>@hadoop<span class="nv">$host</span>:<span class="nv">$pdir</span>
- <span class="k">done
-
- </span><span class="nb">echo</span> <span class="s2">"success"</span>
-</code></pre>
-    </div>
+<h2 id="图解说明">图解说明</h2>
+<ul>
+  <li>
+    <h4 id="图解namenode工作机制">图解namenode工作机制</h4>
+    <p><img src="https://stone-upyun.b0.upaiyun.com/blog20180416172857.png!700x999" alt="" /></p>
+  </li>
+  <li>
+    <h4 id="图解datanode工作机制">图解datanode工作机制</h4>
+    <p><img src="https://stone-upyun.b0.upaiyun.com/blog20180416173056.png!700x999" alt="" /></p>
+  </li>
+  <li>
+    <h4 id="图解yarn架构">图解yarn架构</h4>
+    <p><img src="https://stone-upyun.b0.upaiyun.com/blog20180416173218.png!700x999" alt="" /></p>
   </li>
 </ul>
+
+<h3 id="自定义脚本分发文件">自定义脚本分发文件</h3>
+<blockquote>
+  <p>新建自定义脚本文件 touch /usr/bin/xsync</p>
+  <div class="language-bash highlighter-rouge"><pre class="highlight"><code>sudo chmod +x /usr/bin/xsync
+vim /usr/bin/xsync
+</code></pre>
+  </div>
+</blockquote>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>``` bash
+#!/bin/bash
+# 获取输入参数个数
+pcount=$#
+if((pcount==0));then
+echo no args;
+exit;
+fi
+
+# 获取文件名
+p1=$1
+fname=`basename $p1`
+echo fname=$fname
+
+# 获取上机目录到绝对路径
+
+pdir=`cd -P $(dirname $p1); pwd`
+
+echo pdir=$pdir
+
+# 获取当前用户名
+user=`whoami`
+
+for((host=103;host&lt;109;host++));do
+        echo --------------------hadoop$host-----------------
+        rsync -rvl $pdir/$fname $user@hadoop$host:$pdir
+done
+
+echo "success"
+```
+</code></pre>
+</div>
 
     
 

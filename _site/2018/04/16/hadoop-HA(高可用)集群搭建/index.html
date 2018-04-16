@@ -711,15 +711,24 @@
 当将 rm2 停止 后,rm1处于active中<br /></p>
   </li>
   <li>
-    <h4 id="附件-jpsutilsh">附件 jpsutil.sh</h4>
-    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>      <span class="c">#!/bin/bash</span>
-      <span class="k">for </span>i <span class="k">in </span>admin@hd001 admin@hd002 admin@hd003
-      <span class="k">do
-              </span><span class="nb">echo</span> <span class="s2">"=========== </span><span class="nv">$i</span><span class="s2"> ============"</span>
-              ssh <span class="nv">$i</span> <span class="s1">'jps'</span>
-      <span class="k">done</span> 
+    <h4 id="附件">附件</h4>
+    <ul>
+      <li>
+        <h5 id="图解hadoop-ha">图解hadoop-HA</h5>
+        <p><img src="https://stone-upyun.b0.upaiyun.com/blog20180416172754.png!700x999" alt="" /></p>
+      </li>
+      <li>
+        <h5 id="jpsutilsh">jpsutil.sh</h5>
+        <div class="language-bash highlighter-rouge"><pre class="highlight"><code>  <span class="c">#!/bin/bash</span>
+  <span class="k">for </span>i <span class="k">in </span>admin@hd001 admin@hd002 admin@hd003
+  <span class="k">do
+          </span><span class="nb">echo</span> <span class="s2">"=========== </span><span class="nv">$i</span><span class="s2"> ============"</span>
+          ssh <span class="nv">$i</span> <span class="s1">'jps'</span>
+  <span class="k">done</span> 
 </code></pre>
-    </div>
+        </div>
+      </li>
+    </ul>
   </li>
   <li>
     <h4 id="hadoop-ha官方文档地址">hadoop-HA<a href="http://hadoop.apache.org/docs/r2.7.5/hadoop-project-dist/hadoop-hdfs/HDFSHighAvailabilityWithQJM.html" target="_blank">官方文档地址</a></h4>

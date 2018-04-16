@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-16T15:22:38+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">hadoop-HA(高可用)集群搭建</title><link href="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="alternate" type="text/html" title="hadoop-HA(高可用)集群搭建" /><published>2018-04-16T00:00:00+08:00</published><updated>2018-04-16T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA</id><content type="html" xml:base="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">&lt;h4 id=&quot;准备工作&quot;&gt;准备工作&lt;/h4&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-16T17:32:38+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">hadoop-HA(高可用)集群搭建</title><link href="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="alternate" type="text/html" title="hadoop-HA(高可用)集群搭建" /><published>2018-04-16T00:00:00+08:00</published><updated>2018-04-16T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA</id><content type="html" xml:base="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">&lt;h4 id=&quot;准备工作&quot;&gt;准备工作&lt;/h4&gt;
 &lt;ul&gt;
   &lt;li&gt;静态IP&lt;br /&gt;&lt;/li&gt;
   &lt;li&gt;映射主机名与ip&lt;br /&gt;&lt;/li&gt;
@@ -592,28 +592,29 @@
 当将 rm2 停止 后,rm1处于active中&lt;br /&gt;&lt;/p&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;h4 id=&quot;附件-jpsutilsh&quot;&gt;附件 jpsutil.sh&lt;/h4&gt;
-    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;      &lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
-      &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;i &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;admin@hd001 admin@hd002 admin@hd003
-      &lt;span class=&quot;k&quot;&gt;do
-              &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;=========== &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$i&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; ============&quot;&lt;/span&gt;
-              ssh &lt;span class=&quot;nv&quot;&gt;$i&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'jps'&lt;/span&gt;
-      &lt;span class=&quot;k&quot;&gt;done&lt;/span&gt; 
+    &lt;h4 id=&quot;附件&quot;&gt;附件&lt;/h4&gt;
+    &lt;ul&gt;
+      &lt;li&gt;
+        &lt;h5 id=&quot;图解hadoop-ha&quot;&gt;图解hadoop-HA&lt;/h5&gt;
+        &lt;p&gt;&lt;img src=&quot;https://stone-upyun.b0.upaiyun.com/blog20180416172754.png!700x999&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;h5 id=&quot;jpsutilsh&quot;&gt;jpsutil.sh&lt;/h5&gt;
+        &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;i &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;admin@hd001 admin@hd002 admin@hd003
+  &lt;span class=&quot;k&quot;&gt;do
+          &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;=========== &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$i&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; ============&quot;&lt;/span&gt;
+          ssh &lt;span class=&quot;nv&quot;&gt;$i&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'jps'&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;done&lt;/span&gt; 
 &lt;/code&gt;&lt;/pre&gt;
-    &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
   &lt;/li&gt;
   &lt;li&gt;
     &lt;h4 id=&quot;hadoop-ha官方文档地址&quot;&gt;hadoop-HA&lt;a href=&quot;http://hadoop.apache.org/docs/r2.7.5/hadoop-project-dist/hadoop-hdfs/HDFSHighAvailabilityWithQJM.html&quot; target=&quot;_blank&quot;&gt;官方文档地址&lt;/a&gt;&lt;/h4&gt;
   &lt;/li&gt;
-&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">准备工作 静态IP 映射主机名与ip jdk环境 防火墙关闭 ssh免密</summary></entry><entry><title type="html">zookeeper集群相关问题</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="zookeeper集群相关问题" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/">&lt;h3 id=&quot;问题一&quot;&gt;问题一&lt;/h3&gt;
-&lt;h5 id=&quot;问题描述&quot;&gt;问题描述&lt;/h5&gt;
-&lt;p&gt;第N次启动zookeeper集群时,按照节点顺序启动时,无法正常启动&lt;/p&gt;
-
-&lt;h5 id=&quot;解决方案&quot;&gt;解决方案&lt;/h5&gt;
-&lt;p&gt;需要先启动上次的leader节点.再一次启动其他节点,可以正常启动&lt;/p&gt;
-
-&lt;h3 id=&quot;发现的问题&quot;&gt;发现的问题&lt;/h3&gt;
-&lt;p&gt;第一次启动集群时,无需关注启动节点的顺序.第N(N&amp;gt;1)次启动时,需要先启动上次的leader节点,后启动其他节点,才能启动集群&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">问题一 问题描述 第N次启动zookeeper集群时,按照节点顺序启动时,无法正常启动</summary></entry><entry><title type="html">zookeeper集群搭建</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="alternate" type="text/html" title="zookeeper集群搭建" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">&lt;h2 id=&quot;准备工作&quot;&gt;准备工作&lt;/h2&gt;
+&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">准备工作 静态IP 映射主机名与ip jdk环境 防火墙关闭 ssh免密</summary></entry><entry><title type="html">zookeeper集群搭建</title><link href="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="alternate" type="text/html" title="zookeeper集群搭建" /><published>2018-04-13T00:00:00+08:00</published><updated>2018-04-13T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA</id><content type="html" xml:base="http://localhost:4000/2018/04/13/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">&lt;h2 id=&quot;准备工作&quot;&gt;准备工作&lt;/h2&gt;
 &lt;ul&gt;
   &lt;li&gt;jdk环境&lt;/li&gt;
   &lt;li&gt;zookeeper安装包(本文使用的是zookeeper-3.4.10 版本) 可到&lt;a href=&quot;http://zookeeper.apache.org/releases.html&quot; target=&quot;_blank&quot;&gt;Zookeeper官网&lt;/a&gt;下载&lt;/li&gt;
@@ -1147,47 +1148,65 @@ hadoop104
 &lt;/code&gt;&lt;/pre&gt;
     &lt;/div&gt;
   &lt;/li&gt;
-  &lt;li&gt;自定义脚本分发文件
-    &lt;blockquote&gt;
-      &lt;p&gt;新建自定义脚本文件 touch /usr/bin/xsync&lt;/p&gt;
-      &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo chmod +x /usr/bin/xsync
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;图解说明&quot;&gt;图解说明&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;h4 id=&quot;图解namenode工作机制&quot;&gt;图解namenode工作机制&lt;/h4&gt;
+    &lt;p&gt;&lt;img src=&quot;https://stone-upyun.b0.upaiyun.com/blog20180416172857.png!700x999&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h4 id=&quot;图解datanode工作机制&quot;&gt;图解datanode工作机制&lt;/h4&gt;
+    &lt;p&gt;&lt;img src=&quot;https://stone-upyun.b0.upaiyun.com/blog20180416173056.png!700x999&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;h4 id=&quot;图解yarn架构&quot;&gt;图解yarn架构&lt;/h4&gt;
+    &lt;p&gt;&lt;img src=&quot;https://stone-upyun.b0.upaiyun.com/blog20180416173218.png!700x999&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;自定义脚本分发文件&quot;&gt;自定义脚本分发文件&lt;/h3&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;新建自定义脚本文件 touch /usr/bin/xsync&lt;/p&gt;
+  &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo chmod +x /usr/bin/xsync
 vim /usr/bin/xsync
 &lt;/code&gt;&lt;/pre&gt;
-      &lt;/div&gt;
-    &lt;/blockquote&gt;
+  &lt;/div&gt;
+&lt;/blockquote&gt;
 
-    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
- &lt;span class=&quot;c&quot;&gt;# 获取输入参数个数&lt;/span&gt;
- &lt;span class=&quot;nv&quot;&gt;pcount&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$#&lt;/span&gt;
- &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;pcount&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;==&lt;/span&gt;0&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt;;&lt;span class=&quot;k&quot;&gt;then
- &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo &lt;/span&gt;no args;
- &lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;;
- &lt;span class=&quot;k&quot;&gt;fi&lt;/span&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;``` bash
+#!/bin/bash
+# 获取输入参数个数
+pcount=$#
+if((pcount==0));then
+echo no args;
+exit;
+fi
 
- &lt;span class=&quot;c&quot;&gt;# 获取文件名&lt;/span&gt;
- &lt;span class=&quot;nv&quot;&gt;p1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$1&lt;/span&gt;
- &lt;span class=&quot;nv&quot;&gt;fname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;basename &lt;span class=&quot;nv&quot;&gt;$p1&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;
- &lt;span class=&quot;nb&quot;&gt;echo &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;fname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$fname&lt;/span&gt;
+# 获取文件名
+p1=$1
+fname=`basename $p1`
+echo fname=$fname
 
- &lt;span class=&quot;c&quot;&gt;# 获取上机目录到绝对路径&lt;/span&gt;
+# 获取上机目录到绝对路径
 
- &lt;span class=&quot;nv&quot;&gt;pdir&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; -P &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;dirname &lt;span class=&quot;nv&quot;&gt;$p1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;; &lt;span class=&quot;nb&quot;&gt;pwd&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;
+pdir=`cd -P $(dirname $p1); pwd`
 
- &lt;span class=&quot;nb&quot;&gt;echo &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;pdir&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$pdir&lt;/span&gt;
+echo pdir=$pdir
 
- &lt;span class=&quot;c&quot;&gt;# 获取当前用户名&lt;/span&gt;
- &lt;span class=&quot;nv&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;whoami&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;
+# 获取当前用户名
+user=`whoami`
 
- &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;103;host&amp;lt;109;host++&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt;;&lt;span class=&quot;k&quot;&gt;do
-         &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; --------------------hadoop&lt;span class=&quot;nv&quot;&gt;$host&lt;/span&gt;-----------------
-         rsync -rvl &lt;span class=&quot;nv&quot;&gt;$pdir&lt;/span&gt;/&lt;span class=&quot;nv&quot;&gt;$fname&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$user&lt;/span&gt;@hadoop&lt;span class=&quot;nv&quot;&gt;$host&lt;/span&gt;:&lt;span class=&quot;nv&quot;&gt;$pdir&lt;/span&gt;
- &lt;span class=&quot;k&quot;&gt;done
+for((host=103;host&amp;lt;109;host++));do
+        echo --------------------hadoop$host-----------------
+        rsync -rvl $pdir/$fname $user@hadoop$host:$pdir
+done
 
- &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;success&quot;&lt;/span&gt;
+echo &quot;success&quot;
+```
 &lt;/code&gt;&lt;/pre&gt;
-    &lt;/div&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">准备工作: 三台或三台以上机器(本文以三台虚拟机为例) centOS 6.8 VMware Fusion 10.1(maxos的虚拟机版本),window下推荐VMware 12或14稳定版 每台机器安装jdk,hadoop,并配置相应的环境变量 jdk 1.8 hadoop 2.7.2</summary></entry><entry><title type="html">本地jekyll-server启动证书错误问题</title><link href="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="本地jekyll-server启动证书错误问题" /><published>2018-04-09T00:00:00+08:00</published><updated>2018-04-09T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/">&lt;hr /&gt;
+&lt;/div&gt;</content><author><name>liushan</name></author><summary type="html">准备工作: 三台或三台以上机器(本文以三台虚拟机为例) centOS 6.8 VMware Fusion 10.1(maxos的虚拟机版本),window下推荐VMware 12或14稳定版 每台机器安装jdk,hadoop,并配置相应的环境变量 jdk 1.8 hadoop 2.7.2</summary></entry><entry><title type="html">本地jekyll-server启动证书错误问题</title><link href="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="本地jekyll-server启动证书错误问题" /><published>2018-04-09T00:00:00+08:00</published><updated>2018-04-09T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:4000/2018/04/09/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/">&lt;hr /&gt;
 
 &lt;h3 id=&quot;问题描述&quot;&gt;问题描述:&lt;/h3&gt;
 &lt;blockquote&gt;
