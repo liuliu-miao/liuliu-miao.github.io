@@ -1,4 +1,178 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-04-16T17:47:25+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">hadoop-HA(高可用)集群搭建</title><link href="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="alternate" type="text/html" title="hadoop-HA(高可用)集群搭建" /><published>2018-04-16T00:00:00+08:00</published><updated>2018-04-16T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA</id><content type="html" xml:base="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">&lt;h4 id=&quot;准备工作&quot;&gt;准备工作&lt;/h4&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="http://jekyllrb.com" version="3.4.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-05-02T12:37:30+08:00</updated><id>http://localhost:4000/</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>liushan</name></author><entry><title type="html">flume的搭建和简单使用</title><link href="http://localhost:4000/2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/" rel="alternate" type="text/html" title="flume的搭建和简单使用" /><published>2018-05-02T00:00:00+08:00</published><updated>2018-05-02T00:00:00+08:00</updated><id>http://localhost:4000/2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8</id><content type="html" xml:base="http://localhost:4000/2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/">&lt;h3 id=&quot;flume-简介&quot;&gt;flume 简介:&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;百度百科:&lt;br /&gt;
+  Flume是Cloudera提供的一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统，Flume支持在日志系统中定制各类数据发送方，用于收集数据；同时，Flume提供对数据进行简单处理，并写到各种数据接受方（可定制）的能力。
+  当前Flume有两个版本Flume 0.9X版本的统称Flume-og，Flume1.X版本的统称Flume-ng。由于Flume-ng经过重大重构，与Flume-og有很大不同，使用时请注意区分。&lt;/li&gt;
+  &lt;li&gt;简介2&lt;br /&gt;
+  1) Flume 提供一个分布式的，可靠的，对大数据量的日志进行高效收集、聚集、移动的服务， Flume 只能在 Unix 环境下运行。&lt;br /&gt;
+  2) Flume 基于流式架构，容错性强，也很灵活简单。&lt;br /&gt;
+  3) Flume、Kafka 用来实时进行数据收集，Spark、Storm 用来实时处理数据，impala 用来实 时查询。&lt;br /&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;模式&quot;&gt;模式&lt;/h3&gt;
+&lt;p&gt;参考&lt;a href=&quot;http://flume.apache.org/FlumeUserGuide.html&quot;&gt;官文文档&lt;/a&gt;&lt;br /&gt;
+模式一:单输入单输出 &lt;br /&gt;
+    &lt;img src=&quot;https://stone-upyun.b0.upaiyun.com/blog20180502120225.png!700x999&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;模式二:多flume连接
+    &lt;img src=&quot;https://stone-upyun.b0.upaiyun.com/blog20180502120550.png!700x999&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;模式三:多输入汇总
+    &lt;img src=&quot;https://stone-upyun.b0.upaiyun.com/blog20180502120652.png!700x999&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;模式四:多输出分发
+    &lt;img src=&quot;https://stone-upyun.b0.upaiyun.com/blog20180502120712.png!700x999&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;flume-角色&quot;&gt;Flume 角色&lt;br /&gt;&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;1、Source &lt;br /&gt;
+  用于采集数据，Source 是产生数据流的地方，同时 Source 会将产生的数据流传输到 Channel，
+  这个有点类似于 Java IO 部分的 Channel。&lt;br /&gt;&lt;/li&gt;
+  &lt;li&gt;2、Channel&lt;br /&gt;
+  用于桥接 Sources 和 Sinks，类似于一个队列。&lt;br /&gt;&lt;/li&gt;
+  &lt;li&gt;3、Sink&lt;br /&gt;
+  从 Channel 收集数据，将数据写到目标源(可以是下一个 Source，也可以是 HDFS 或者 HBase)。&lt;/li&gt;
+  &lt;li&gt;4、Event&lt;br /&gt;
+  传输单元，Flume 数据传输的基本单元，以事件的形式将数据从源头送至目的地&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;安装&quot;&gt;安装&lt;/h3&gt;
+
+&lt;p&gt;下载官方对应的安装包,解压&lt;br /&gt;
+修改 conf/flume-env.sh 文件中JAVA_HOME即可使用&lt;br /&gt;
+本文使用的版本:1.7.0 下载地址: &lt;a href=&quot;http://archive.apache.org/dist/flume/&quot;&gt;官方下载地址&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;遇到的问题&quot;&gt;遇到的问题:&lt;/h3&gt;
+&lt;p&gt;在flume中配置两个sink输出到指定两端口,然后用两个soureces去接受这两个sink传递过来的值,,最终将之前其中一个sink的发送的数据放到hdfs,另一个数据放到本地磁盘.但是放到本地磁盘的那份数据,只有目录和文件,数据没有,放到hdfs上的有数据&lt;br /&gt;
+第一个flume的配置&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;# 讲一个source 分发给多个chanel-对应多个sink，给下一个相应的flume
+a1.sources = r1
+a1.channels = c1 c2
+a1.sinks = k1 k2
+
+# 将数据复制给多个channel
+a1.sources.r1.selector.type = replicating
+
+# sources 设置
+a1.sources.r1.type = exec
+a1.sources.r1.command = tail -F /home/admin/module/hive-1.2.2/logs/hive.log
+a1.sources.r1.shell = /bin/bash -c
+
+#channels 设置
+# Use a channel which buffers events in memory
+a1.channels.c1.type = memory
+a1.channels.c1.capacity = 1000
+a1.channels.c1.transactionCapacity = 100
+
+a1.channels.c2.type = memory
+a1.channels.c2.capacity = 1000
+a1.channels.c2.transactionCapacity = 100
+
+# sinks 设置
+a1.sinks.k2.type = avro
+a1.sinks.k2.hostname = hd001
+a1.sinks.k2.port = 8088
+a1.sinks.k1.type = avro
+a1.sinks.k1.hostname = hd001
+a1.sinks.k1.port = 8089  
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;第二个flume的配置&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;#接受上一个flume 的sink的结果# 定义服务
+a2.sources = r1
+a2.channels = c1
+a2.sinks = k1
+
+# source 设置
+a2.sources.r1.type = avro
+a2.sources.r1.bind = hd001
+a2.sources.r1.port = 8089
+
+# sink 设置
+a2.sinks.k1.type = hdfs
+a2.sinks.k1.hdfs.path = hdfs://192.168.1.20:9000/flume4/manysinks/%Y%m%d/%H
+#上传文件的前缀
+a2.sinks.k1.hdfs.filePrefix = upload2-
+#是否按照时间滚动文件夹
+a2.sinks.k1.hdfs.round = true
+#多少时间单位创建一个新的文件夹
+a2.sinks.k1.hdfs.roundValue = 1
+#重新定义时间单位
+a2.sinks.k1.hdfs.roundUnit = hour
+#是否使用本地时间戳
+a2.sinks.k1.hdfs.useLocalTimeStamp = true
+#积攒多少个Event才flush到HDFS一次
+a2.sinks.k1.hdfs.batchSize = 1000
+#设置文件类型，可支持压缩
+a2.sinks.k1.hdfs.fileType = DataStream
+#多久生成一个新的文件
+a2.sinks.k1.hdfs.rollInterval = 600
+#设置每个文件的滚动大小
+a2.sinks.k1.hdfs.rollSize = 134217700
+#文件的滚动与Event数量无关
+a2.sinks.k1.hdfs.rollCount = 0
+#最小冗余数
+a2.sinks.k1.hdfs.minBlockReplicas = 1
+
+
+# Use a channel which buffers events in memory
+a2.channels.c1.type = memory
+a2.channels.c1.capacity = 1000
+a2.channels.c1.transactionCapacity = 100
+
+a2.sources.r1.channels = c1
+a2.sinks.k1.channel = c1
+
+a1.sources.r1.channels = c1 c2
+a1.sinks.k1.channel = c1
+a1.sinks.k2.channel = c2 
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;第三个flume的配置&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;#接受上一个flume 的sink的结果# 定义服务
+a3.sources = r1
+a3.channels = c1
+a3.sinks = k1
+# source 设置
+a3.sources.r1.type = avro
+a3.sources.r1.bind = hd001
+a3.sources.r1.port = 8088
+# sink 设置
+a3.sinks.k1.type = file_roll
+a3.sinks.k1.sink.directory = /home/admin/tmp/flume4
+# Use a channel which buffers events in memory
+a3.channels.c1.type = memory
+a3.channels.c1.capacity = 100
+a3.channels.c1.transactionCapacity = 50
+
+a3.sources.r1.cahnnels = c1
+a3.sinks.k1.channel = c1  
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;p&gt;查看第三个flume配置中对应结果目录数据&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[admin@hd001 ~]$ ll tmp/flum4/
+总用量 0
+-rw-rw-r--. 1 admin admin 0 5月   2 11:32 1525231977673-1
+-rw-rw-r--. 1 admin admin 0 5月   2 11:37 1525231977673-10
+-rw-rw-r--. 1 admin admin 0 5月   2 11:37 1525231977673-11
+-rw-rw-r--. 1 admin admin 0 5月   2 11:38 1525231977673-12
+-rw-rw-r--. 1 admin admin 0 5月   2 11:39 1525231977673-13
+-rw-rw-r--. 1 admin admin 0 5月   2 11:39 1525231977673-14
+-rw-rw-r--. 1 admin admin 0 5月   2 11:39 1525231977673-15
+-rw-rw-r--. 1 admin admin 0 5月   2 11:40 1525231977673-16
+-rw-rw-r--. 1 admin admin 0 5月   2 11:41 1525231977673-17
+-rw-rw-r--. 1 admin admin 0 5月   2 11:41 1525231977673-18
+-rw-rw-r--. 1 admin admin 0 5月   2 11:41 1525231977673-19
+里面的数据为0,cat * 出来也是空的,但是在第二个flume中到hdfs上的数据是有对应的hive.log日志
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;</content><author><name>liushan</name></author><summary type="html">flume 简介: 百度百科: Flume是Cloudera提供的一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统，Flume支持在日志系统中定制各类数据发送方，用于收集数据；同时，Flume提供对数据进行简单处理，并写到各种数据接受方（可定制）的能力。 当前Flume有两个版本Flume 0.9X版本的统称Flume-og，Flume1.X版本的统称Flume-ng。由于Flume-ng经过重大重构，与Flume-og有很大不同，使用时请注意区分。 简介2 1) Flume 提供一个分布式的，可靠的，对大数据量的日志进行高效收集、聚集、移动的服务， Flume 只能在 Unix 环境下运行。 2) Flume 基于流式架构，容错性强，也很灵活简单。 3) Flume、Kafka 用来实时进行数据收集，Spark、Storm 用来实时处理数据，impala 用来实 时查询。</summary></entry><entry><title type="html">hadoop-HA(高可用)集群搭建</title><link href="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="alternate" type="text/html" title="hadoop-HA(高可用)集群搭建" /><published>2018-04-16T00:00:00+08:00</published><updated>2018-04-16T00:00:00+08:00</updated><id>http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA</id><content type="html" xml:base="http://localhost:4000/2018/04/16/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">&lt;h4 id=&quot;准备工作&quot;&gt;准备工作&lt;/h4&gt;
 &lt;ul&gt;
   &lt;li&gt;静态IP&lt;br /&gt;&lt;/li&gt;
   &lt;li&gt;映射主机名与ip&lt;br /&gt;&lt;/li&gt;
@@ -1616,76 +1790,4 @@ docker run username/repository:tag                   &lt;span class=&quot;c&quot
 &lt;/div&gt;
 &lt;ul&gt;
   &lt;li&gt;本文参考&lt;a href=&quot;https://docs.docker.com/hackathon/&quot;&gt;docker官方文档&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">docker学习笔记(一)</summary></entry><entry><title type="html">github.io+jekyll搭建博客</title><link href="http://localhost:4000/2017/06/28/buildBlog-github-jekyll/" rel="alternate" type="text/html" title="github.io+jekyll搭建博客" /><published>2017-06-28T00:00:00+08:00</published><updated>2017-06-28T00:00:00+08:00</updated><id>http://localhost:4000/2017/06/28/buildBlog-github-jekyll</id><content type="html" xml:base="http://localhost:4000/2017/06/28/buildBlog-github-jekyll/">&lt;h2 id=&quot;githubiojekyll搭建静态博客&quot;&gt;gitHub.io+jekyll搭建静态博客&lt;/h2&gt;
-
-&lt;h3 id=&quot;环境准备&quot;&gt;环境准备&lt;/h3&gt;
-&lt;blockquote&gt;
-  &lt;p&gt;macos10.12(Linux类似)&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;rvm&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;ruby 2.3.0&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;jekyll 3.2.1&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;本文基于macOs的,Linux系统类似&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h3 id=&quot;一安装rvm&quot;&gt;一.安装rvm&lt;/h3&gt;
-&lt;p&gt;因为国内网络原因,rvm安装需要翻墙才能访问.至于翻墙,自行想办法了.
-install rvm 参考地址:&lt;a href=&quot;https://rvm.io/rvm/install&quot;&gt;https://rvm.io/rvm/install&lt;/a&gt;进行安装
-中间可能需要等待有点长时间,时间视网络情况,你懂的;
-安装成功输入 rvm -v 查看&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;rvm -v
-rvm 1.29.2 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;latest&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; by Michal Papis, Piotr Kuczynski, Wayne E. Seguin &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;https://rvm.io/]
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-&lt;hr /&gt;
-&lt;h3 id=&quot;二安装ruby&quot;&gt;二.安装ruby&lt;/h3&gt;
-&lt;p&gt;如果你成功安装rvm了.安装ruby就轻松了.参考
-&lt;a href=&quot;https://ruby-china.org/wiki/install_ruby_guide&quot;&gt;https://ruby-china.org/wiki/install_ruby_guide&lt;/a&gt;
-,soeasy&lt;/p&gt;
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;rvm install 2.3.0
-&lt;span class=&quot;c&quot;&gt;# 设置默认使用的 ruby 版本&lt;/span&gt;
-rvm use 2.3.0 --default
-&lt;span class=&quot;c&quot;&gt;# 安装 bundler&lt;/span&gt;
-gem install bundler
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-&lt;hr /&gt;
-&lt;h3 id=&quot;三安装jekyll&quot;&gt;三.安装jekyll&lt;/h3&gt;
-&lt;p&gt;克隆jekyll模板
-git clone https://github.com/mzlogin/mzlogin.github.io.git 到本地目录,
-进入刚刚克隆的目录&lt;/p&gt;
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# 进入主题目录&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;mzlogin.github.io
-&lt;span class=&quot;c&quot;&gt;# 安装 jekyll 等&lt;/span&gt;
-bundle install
-&lt;span class=&quot;c&quot;&gt;# 启动&lt;/span&gt;
-jekyll -H 0.0.0.0 -P 4444
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-&lt;p&gt;打开浏览器可看到,删除作者自己写的_posts中的内容,替换成自己的博客markdown文件,根据博客主题作者提示改配置和文件,替换为自己的即可;&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h3 id=&quot;四推送到自己github上&quot;&gt;四.推送到自己gitHub上&lt;/h3&gt;
-&lt;p&gt;首先在 Github 上创建一个自己用户名的github.io，如: 用户名.github.io，之后讲刚刚修改的主题目录下的 .git 删除 ,git init 初始化,设置 git remote set-url 指向自己的github.io,最后推送到github上完成；Github 本身也是使用 jekyll 进行生成，所以会自动识别并生成博客；最后访问 http://用户名.github.io 即可.&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h3 id=&quot;参考&quot;&gt;参考&lt;/h3&gt;
-&lt;p&gt;本搭建教程参考
-&lt;a href=&quot;https://mritd.me/2016/10/09/jekyll-create-a-static-blog/&quot;&gt;https://mritd.me/2016/10/09/jekyll-create-a-static-blog/&lt;/a&gt;&lt;/p&gt;</content><author><name>liushan</name></author><summary type="html">gitHub.io+jekyll搭建静态博客</summary></entry></feed>
+&lt;/ul&gt;</content><author><name>liushan</name></author><summary type="html">docker学习笔记(一)</summary></entry></feed>

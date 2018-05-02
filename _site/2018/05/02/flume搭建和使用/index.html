@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>flume的搭建和简单使用 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:4000/2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="/html_title.png">
+    
+    <meta property="og:title" content="flume的搭建和简单使用">
+      
+    <meta name="keywords" content="flume搭建, flume使用">
+    <meta name="og:keywords" content="flume搭建, flume使用">
+      
+    <meta name="description" content="flume 简介:  百度百科:  Flume是Cloudera提供的一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统，Flume支持在日志系统中定制各类数据发送方，用于收集数据；同时，Flume提供对数据进行简单处理，并写到各种数据接受方（可定制）的能力。  当前Flume有两个版本Flume 0.9X版本的统称Flume-og，Flume1.X版本的统称Flume-ng。由于Flume-ng经过重大重构，与Flume-og有很大不同，使用时请注意区分。  简介2  1) Flume 提供一个分布式的，可靠的，对大数据量的日志进行高效收集、聚集、移动的服务， Flume 只能在 Unix 环境下运行。  2) Flume 基于流式架构，容错性强，也很灵活简单。  3) Flume、Kafka 用来实时进行数据收集，Spark、Storm 用来实时处理数据，impala 用来实 时查询。">
+    <meta name="og:description" content="flume 简介:  百度百科:  Flume是Cloudera提供的一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统，Flume支持在日志系统中定制各类数据发送方，用于收集数据；同时，Flume提供对数据进行简单处理，并写到各种数据接受方（可定制）的能力。  当前Flume有两个版本Flume 0.9X版本的统称Flume-og，Flume1.X版本的统称Flume-ng。由于Flume-ng经过重大重构，与Flume-og有很大不同，使用时请注意区分。  简介2  1) Flume 提供一个分布式的，可靠的，对大数据量的日志进行高效收集、聚集、移动的服务， Flume 只能在 Unix 环境下运行。  2) Flume 基于流式架构，容错性强，也很灵活简单。  3) Flume、Kafka 用来实时进行数据收集，Spark、Storm 用来实时处理数据，impala 用来实 时查询。">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:4000/2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2018-05-02">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="flume的搭建和简单使用">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">flume的搭建和简单使用</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2018/05/02
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Flume" title="Flume">Flume</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h3 id="flume-简介">flume 简介:</h3>
+<ul>
+  <li>百度百科:<br />
+  Flume是Cloudera提供的一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统，Flume支持在日志系统中定制各类数据发送方，用于收集数据；同时，Flume提供对数据进行简单处理，并写到各种数据接受方（可定制）的能力。
+  当前Flume有两个版本Flume 0.9X版本的统称Flume-og，Flume1.X版本的统称Flume-ng。由于Flume-ng经过重大重构，与Flume-og有很大不同，使用时请注意区分。</li>
+  <li>简介2<br />
+  1) Flume 提供一个分布式的，可靠的，对大数据量的日志进行高效收集、聚集、移动的服务， Flume 只能在 Unix 环境下运行。<br />
+  2) Flume 基于流式架构，容错性强，也很灵活简单。<br />
+  3) Flume、Kafka 用来实时进行数据收集，Spark、Storm 用来实时处理数据，impala 用来实 时查询。<br /></li>
+</ul>
+
+<hr />
+
+<h3 id="模式">模式</h3>
+<p>参考<a href="http://flume.apache.org/FlumeUserGuide.html">官文文档</a><br />
+模式一:单输入单输出 <br />
+    <img src="https://stone-upyun.b0.upaiyun.com/blog20180502120225.png!700x999" alt="" /></p>
+
+<p>模式二:多flume连接
+    <img src="https://stone-upyun.b0.upaiyun.com/blog20180502120550.png!700x999" alt="" /></p>
+
+<p>模式三:多输入汇总
+    <img src="https://stone-upyun.b0.upaiyun.com/blog20180502120652.png!700x999" alt="" /></p>
+
+<p>模式四:多输出分发
+    <img src="https://stone-upyun.b0.upaiyun.com/blog20180502120712.png!700x999" alt="" /></p>
+
+<hr />
+
+<h3 id="flume-角色">Flume 角色<br /></h3>
+<ul>
+  <li>1、Source <br />
+  用于采集数据，Source 是产生数据流的地方，同时 Source 会将产生的数据流传输到 Channel，
+  这个有点类似于 Java IO 部分的 Channel。<br /></li>
+  <li>2、Channel<br />
+  用于桥接 Sources 和 Sinks，类似于一个队列。<br /></li>
+  <li>3、Sink<br />
+  从 Channel 收集数据，将数据写到目标源(可以是下一个 Source，也可以是 HDFS 或者 HBase)。</li>
+  <li>4、Event<br />
+  传输单元，Flume 数据传输的基本单元，以事件的形式将数据从源头送至目的地</li>
+</ul>
+
+<h3 id="安装">安装</h3>
+
+<p>下载官方对应的安装包,解压<br />
+修改 conf/flume-env.sh 文件中JAVA_HOME即可使用<br />
+本文使用的版本:1.7.0 下载地址: <a href="http://archive.apache.org/dist/flume/">官方下载地址</a></p>
+
+<h3 id="遇到的问题">遇到的问题:</h3>
+<p>在flume中配置两个sink输出到指定两端口,然后用两个soureces去接受这两个sink传递过来的值,,最终将之前其中一个sink的发送的数据放到hdfs,另一个数据放到本地磁盘.但是放到本地磁盘的那份数据,只有目录和文件,数据没有,放到hdfs上的有数据<br />
+第一个flume的配置</p>
+<div class="highlighter-rouge"><pre class="highlight"><code># 讲一个source 分发给多个chanel-对应多个sink，给下一个相应的flume
+a1.sources = r1
+a1.channels = c1 c2
+a1.sinks = k1 k2
+
+# 将数据复制给多个channel
+a1.sources.r1.selector.type = replicating
+
+# sources 设置
+a1.sources.r1.type = exec
+a1.sources.r1.command = tail -F /home/admin/module/hive-1.2.2/logs/hive.log
+a1.sources.r1.shell = /bin/bash -c
+
+#channels 设置
+# Use a channel which buffers events in memory
+a1.channels.c1.type = memory
+a1.channels.c1.capacity = 1000
+a1.channels.c1.transactionCapacity = 100
+
+a1.channels.c2.type = memory
+a1.channels.c2.capacity = 1000
+a1.channels.c2.transactionCapacity = 100
+
+# sinks 设置
+a1.sinks.k2.type = avro
+a1.sinks.k2.hostname = hd001
+a1.sinks.k2.port = 8088
+a1.sinks.k1.type = avro
+a1.sinks.k1.hostname = hd001
+a1.sinks.k1.port = 8089  
+</code></pre>
+</div>
+
+<p>第二个flume的配置</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>#接受上一个flume 的sink的结果# 定义服务
+a2.sources = r1
+a2.channels = c1
+a2.sinks = k1
+
+# source 设置
+a2.sources.r1.type = avro
+a2.sources.r1.bind = hd001
+a2.sources.r1.port = 8089
+
+# sink 设置
+a2.sinks.k1.type = hdfs
+a2.sinks.k1.hdfs.path = hdfs://192.168.1.20:9000/flume4/manysinks/%Y%m%d/%H
+#上传文件的前缀
+a2.sinks.k1.hdfs.filePrefix = upload2-
+#是否按照时间滚动文件夹
+a2.sinks.k1.hdfs.round = true
+#多少时间单位创建一个新的文件夹
+a2.sinks.k1.hdfs.roundValue = 1
+#重新定义时间单位
+a2.sinks.k1.hdfs.roundUnit = hour
+#是否使用本地时间戳
+a2.sinks.k1.hdfs.useLocalTimeStamp = true
+#积攒多少个Event才flush到HDFS一次
+a2.sinks.k1.hdfs.batchSize = 1000
+#设置文件类型，可支持压缩
+a2.sinks.k1.hdfs.fileType = DataStream
+#多久生成一个新的文件
+a2.sinks.k1.hdfs.rollInterval = 600
+#设置每个文件的滚动大小
+a2.sinks.k1.hdfs.rollSize = 134217700
+#文件的滚动与Event数量无关
+a2.sinks.k1.hdfs.rollCount = 0
+#最小冗余数
+a2.sinks.k1.hdfs.minBlockReplicas = 1
+
+
+# Use a channel which buffers events in memory
+a2.channels.c1.type = memory
+a2.channels.c1.capacity = 1000
+a2.channels.c1.transactionCapacity = 100
+
+a2.sources.r1.channels = c1
+a2.sinks.k1.channel = c1
+
+a1.sources.r1.channels = c1 c2
+a1.sinks.k1.channel = c1
+a1.sinks.k2.channel = c2 
+</code></pre>
+</div>
+
+<p>第三个flume的配置</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>#接受上一个flume 的sink的结果# 定义服务
+a3.sources = r1
+a3.channels = c1
+a3.sinks = k1
+# source 设置
+a3.sources.r1.type = avro
+a3.sources.r1.bind = hd001
+a3.sources.r1.port = 8088
+# sink 设置
+a3.sinks.k1.type = file_roll
+a3.sinks.k1.sink.directory = /home/admin/tmp/flume4
+# Use a channel which buffers events in memory
+a3.channels.c1.type = memory
+a3.channels.c1.capacity = 100
+a3.channels.c1.transactionCapacity = 50
+
+a3.sources.r1.cahnnels = c1
+a3.sinks.k1.channel = c1  
+</code></pre>
+</div>
+<p>查看第三个flume配置中对应结果目录数据</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>[admin@hd001 ~]$ ll tmp/flum4/
+总用量 0
+-rw-rw-r--. 1 admin admin 0 5月   2 11:32 1525231977673-1
+-rw-rw-r--. 1 admin admin 0 5月   2 11:37 1525231977673-10
+-rw-rw-r--. 1 admin admin 0 5月   2 11:37 1525231977673-11
+-rw-rw-r--. 1 admin admin 0 5月   2 11:38 1525231977673-12
+-rw-rw-r--. 1 admin admin 0 5月   2 11:39 1525231977673-13
+-rw-rw-r--. 1 admin admin 0 5月   2 11:39 1525231977673-14
+-rw-rw-r--. 1 admin admin 0 5月   2 11:39 1525231977673-15
+-rw-rw-r--. 1 admin admin 0 5月   2 11:40 1525231977673-16
+-rw-rw-r--. 1 admin admin 0 5月   2 11:41 1525231977673-17
+-rw-rw-r--. 1 admin admin 0 5月   2 11:41 1525231977673-18
+-rw-rw-r--. 1 admin admin 0 5月   2 11:41 1525231977673-19
+里面的数据为0,cat * 出来也是空的,但是在第二个flume中到hdfs上的数据是有对应的hive.log日志
+
+</code></pre>
+</div>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:4000/2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/';
+              this.page.identifier = '/2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/';
+              this.page.title = 'flume的搭建和简单使用';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="liushan">liushan</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="http://github.com/liushan150/liushan150.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+</body>
+</html>
