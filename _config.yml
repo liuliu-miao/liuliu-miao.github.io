@@ -92,7 +92,15 @@ disqus_username: disqus_7JU2Q6xla4
 # 在使用网易云跟帖时可点击显示 Disqus
 lazy_load_disqus : true
 
+simple_jekyll_search:
+    # 是否支持全文搜索
+    fulltext: false
+    # 最多显示多少条搜索结果
+    limit: 10
+
+
 # ---------------- #
 #    Analytics     #
 # ---------------- #
-##    analytics_id: UA-80669434-1
+google:
+  analytics_id: UA-118986826-1
