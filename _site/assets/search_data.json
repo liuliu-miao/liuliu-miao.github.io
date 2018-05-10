@@ -1,5 +1,11 @@
 {
   
+  "2018-05-09-kubernetes-e6-b5-85-e5-85-a5": {
+    "title": "kubernetes浅入(一)",
+    "url": " /2018/05/09/kubernetes%E6%B5%85%E5%85%A5/",
+    "category": "Docker"
+  },
+  
   "2018-05-02-flume-e6-90-ad-e5-bb-ba-e5-92-8c-e4-bd-bf-e7-94-a8": {
     "title": "flume的搭建和简单使用",
     "url": " /2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/",
@@ -188,6 +194,12 @@
     "title": "flume的搭建和简单使用",
     "url": "/2018/05/02/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/",
     "category": "[&quot;Flume&quot;]"
+  },
+  
+  "2018-05-09-kubernetes-e6-b5-85-e5-85-a5": {
+    "title": "kubernetes浅入(一)",
+    "url": "/2018/05/09/kubernetes%E6%B5%85%E5%85%A5/",
+    "category": "[&quot;Docker&quot;, &quot;Kubernetes&quot;]"
   },
   
   "wiki-android-studio": {
