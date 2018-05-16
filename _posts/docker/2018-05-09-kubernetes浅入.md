@@ -8,11 +8,11 @@ keywords: kubernetes安装,kubernetes浅入
 
 ---
 
-> 公司需要搭建一个k8s集群用于爬虫快捷部署,临时看了mritd[](https://mritd.me/2018/04/19/set-up-kubernetes-1.10.1-cluster-by-hyperkube/)的搭建教程,基本算是可以使用了.
+公司需要搭建一个k8s集群用于爬虫快捷部署,临时看了mritd[](https://mritd.me/2018/04/19/set-up-kubernetes-1.10.1-cluster-by-hyperkube/)的搭建教程,基本算是可以使用了.
 
-> 本文仅做个人笔记使用,搭建过程参考自:[mritd的博文](https://mritd.me/2018/04/19/set-up-kubernetes-1.10.1-cluster-by-hyperkube/){:target="_blank"}
+本文仅做个人笔记使用,搭建过程参考自:[mritd的博文](https://mritd.me/2018/04/19/set-up-kubernetes-1.10.1-cluster-by-hyperkube/){:target="_blank"}
 
-> 为了快速搭建,本次搭建使用了mritd的脚本
+为了快速搭建,本次搭建使用了mritd的脚本
 
 ---
 
