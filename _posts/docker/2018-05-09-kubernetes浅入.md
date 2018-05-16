@@ -16,12 +16,12 @@ keywords: kubernetes安装,kubernetes浅入
 
 ---
 
-# 系统和软件
+## 系统和软件
 1. Ubuntu16.04 server
 2. Kubernetes1.10.1
 3. Docker 18.03.1-ce
 
-# 软件和背景
+## 软件和背景
 1. 需要提前安装docker和docker-compose
 2. etcd [etcd简介参考文档](https://yq.aliyun.com/articles/11035) ETCD是用于共享配置和服务发现的分布式，一致性的KV存储系统。
 3. cfssl 用于生成ectd证书[GitHub官网下载](https://github.com/cloudflare/cfssl/releases)
@@ -38,7 +38,7 @@ keywords: kubernetes安装,kubernetes浅入
 
 
 
-# 开始搭建 
+## 开始搭建 
 切换到root用户,在root家目录新建个文件夹用户存放后续需要用到的文件和配置,
 
 记得对从节点配置ssh免登陆
@@ -48,10 +48,10 @@ keywords: kubernetes安装,kubernetes浅入
 先查看安装目录结构<br>
 ![](https://stone-upyun.b0.upaiyun.com/blog20180509130102.png!700x999)
 <br>
-## 一 安装cfssl
+### 一 安装cfssl
 使用mritd的cnd下载二进制安装包,如果不能用,可到[GitHub下载](https://github.com/cloudflare/cfssl/releases)
 
-### 1.1 安装
+#### 1.1 安装
 
 ```
 wget https://mritdftp.b0.upaiyun.com/cfssl/cfssl.tar.gz
@@ -60,10 +60,10 @@ mv cfssl cfssljson /usr/local/bin
 chmod +x /usr/local/bin/cfssl /usr/local/bin/cfssljson
 rm -f cfssl.tar.gz
 ```
-### 1.2 生成etcd证书
+#### 1.2 生成etcd证书
 mkdir ssl 
 cd ssl
-#### etcd-csr.json
+##### etcd-csr.json
 修改hosts相关配置为自己的ip
 ```
 {
@@ -92,7 +92,7 @@ cd ssl
 
 ```
 
-#### etcd-gencert.json
+##### etcd-gencert.json
 ```
 {
   "signing": {
@@ -109,7 +109,7 @@ cd ssl
 }
 ```
 
-#### etcd-root-ca-csr.json
+##### etcd-root-ca-csr.json
 ```
 {
   "key": {
@@ -129,7 +129,7 @@ cd ssl
 }
 ```
 
-#### 生成证书
+##### 生成证书
 ```
 cfssl gencert --initca=true etcd-root-ca-csr.json | cfssljson --bare etcd-root-ca
 cfssl gencert --ca etcd-root-ca.pem --ca-key etcd-root-ca-key.pem --config etcd-gencert.json etcd-csr.json | cfssljson --bare etcd
@@ -138,12 +138,12 @@ cfssl gencert --ca etcd-root-ca.pem --ca-key etcd-root-ca-key.pem --config etcd-
 ![](https://stone-upyun.b0.upaiyun.com/blog20180509144247.png!700x999)
 <br>
 
-## 二 安装etcd
+### 二 安装etcd
 Etcd 这里采用最新的 3.2.18 版本，安装方式直接复制二进制文件、systemd service 配置
 cd ~/k8s/
 mkdir systemd && cd systemd
 touch etcd.service
-### etcd.service
+#### etcd.service
 ```
 [Unit]
 Description=Etcd Server
@@ -156,7 +156,7 @@ Type=notify
 WorkingDirectory=/var/lib/etcd/
 EnvironmentFile=-/etc/etcd/etcd.conf
 User=etcd
-# set GOMAXPROCS to number of processors
+## set GOMAXPROCS to number of processors
 ExecStart=/bin/bash -c "GOMAXPROCS=$(nproc) /usr/local/bin/etcd --name=\"${ETCD_NAME}\" --data-dir=\"${ETCD_DATA_DIR}\" --listen-client-urls=\"${ETCD_LISTEN_CLIENT_URLS}\""
 Restart=on-failure
 LimitNOFILE=65536
@@ -167,9 +167,9 @@ WantedBy=multi-user.target
 ```
 
 touch etcd.conf
-### etcd.conf
+#### etcd.conf
 ```
-# [member]
+## [member]
 ETCD_NAME=etcd1
 ETCD_DATA_DIR="/var/lib/etcd/etcd1.etcd"
 ETCD_WAL_DIR="/var/lib/etcd/wal"
@@ -182,9 +182,9 @@ ETCD_MAX_SNAPSHOTS="5"
 ETCD_MAX_WALS="5"
 #ETCD_CORS=""
 
-# [cluster]
+## [cluster]
 ETCD_INITIAL_ADVERTISE_PEER_URLS="https://192.168.1.61:2380"
-# if you use different ETCD_NAME (e.g. test), set ETCD_INITIAL_CLUSTER value for this name, i.e. "test=http://..."
+## if you use different ETCD_NAME (e.g. test), set ETCD_INITIAL_CLUSTER value for this name, i.e. "test=http://..."
 ETCD_INITIAL_CLUSTER="etcd1=https://192.168.1.61:2380,etcd2=https://192.168.1.62:2380,etcd3=https://192.168.1.63:2380"
 ETCD_INITIAL_CLUSTER_STATE="new"
 ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"
@@ -196,7 +196,7 @@ ETCD_ADVERTISE_CLIENT_URLS="https://192.168.1.61:2379"
 #ETCD_STRICT_RECONFIG_CHECK="false"
 #ETCD_AUTO_COMPACTION_RETENTION="0"
 
-# [proxy]
+## [proxy]
 #ETCD_PROXY="off"
 #ETCD_PROXY_FAILURE_WAIT="5000"
 #ETCD_PROXY_REFRESH_INTERVAL="30000"
@@ -204,7 +204,7 @@ ETCD_ADVERTISE_CLIENT_URLS="https://192.168.1.61:2379"
 #ETCD_PROXY_WRITE_TIMEOUT="5000"
 #ETCD_PROXY_READ_TIMEOUT="0"
 
-# [security]
+## [security]
 ETCD_CERT_FILE="/etc/etcd/ssl/etcd.pem"
 ETCD_KEY_FILE="/etc/etcd/ssl/etcd-key.pem"
 ETCD_CLIENT_CERT_AUTH="true"
@@ -216,14 +216,14 @@ ETCD_PEER_CLIENT_CERT_AUTH="true"
 ETCD_PEER_TRUSTED_CA_FILE="/etc/etcd/ssl/etcd-root-ca.pem"
 ETCD_PEER_AUTO_TLS="true"
 
-# [logging]
+## [logging]
 #ETCD_DEBUG="false"
-# examples for -log-package-levels etcdserver=WARNING,security=DEBUG
+## examples for -log-package-levels etcdserver=WARNING,security=DEBUG
 #ETCD_LOG_PACKAGE_LEVELS=""
 ```
 
 touch install.sh
-### install .sh
+#### install .sh
 这里解释下,此处下载etcd安装包,为系统添加etcd用户,并赋值etcd用户权限,安装下载来的安装包,拷贝相关证书到/etc/etcd/目录中给etcd使用
 ```
 #!/bin/bash
@@ -239,7 +239,7 @@ function download(){
     fi
 }
 
-# 添加ectd相关用户和权限
+## 添加ectd相关用户和权限
 function preinstall(){
     getent group etcd >/dev/null || groupadd -r etcd
     getent passwd etcd >/dev/null || useradd -r -g etcd -d /var/lib/etcd -s /sbin/nologin -c "etcd user" etcd
@@ -285,7 +285,7 @@ postinstall
 
 <font color='red'>注意:完后install后,将etcd目录scp到每台需要安装etcd的节点,修改etcd.conf 中的相关配置(ETCD_NAME,IP等),在每个etcd再执行install.sh </font>
 
-## 三 安装kubernetes
+### 三 安装kubernetes
 由于 kubelet 和 kube-proxy 用到的 kubeconfig 配置文件需要借助 kubectl 来生成，所以需要先安装一下 kubect
 ```
 wget https://storage.googleapis.com/kubernetes-release/release/v1.10.1/bin/linux/amd64/hyperkube -O hyperkube_1.10.1
@@ -293,8 +293,8 @@ chmod +x hyperkube_1.10.1
 cp hyperkube_1.10.1 /usr/local/bin/hyperkube
 ln -s /usr/local/bin/hyperkube /usr/local/bin/kubectl
 ```
-### 3.1生成k8s证书
-#### admin-csr.json
+#### 3.1生成k8s证书
+##### admin-csr.json
 ```
 {
   "CN": "admin",
@@ -315,7 +315,7 @@ ln -s /usr/local/bin/hyperkube /usr/local/bin/kubectl
 }
 ```
 
-#### k8s-gencert.json
+##### k8s-gencert.json
 ```
 {
   "CN": "kubernetes",
@@ -335,7 +335,7 @@ ln -s /usr/local/bin/hyperkube /usr/local/bin/kubectl
 }
 ```
 
-#### kube-apiserver-csr.json
+##### kube-apiserver-csr.json
 注意修改为自己的ip,10.254.0.1这个ip我暂时不听清楚具体是啥,貌似是k8s集群里类似路由地址的东西
 ```
 {
@@ -371,7 +371,7 @@ ln -s /usr/local/bin/hyperkube /usr/local/bin/kubectl
 }
 ```
 
-#### kube-proxy-csr.json
+##### kube-proxy-csr.json
 ```
 {
   "CN": "system:kube-proxy",
@@ -392,73 +392,73 @@ ln -s /usr/local/bin/hyperkube /usr/local/bin/kubectl
 }
 ```
 
-#### 生成证书操作:
+##### 生成证书操作:
 可将此脚本写到一个 sh中,然后执行
 ```
-# 生成 CA
+## 生成 CA
 cfssl gencert --initca=true k8s-root-ca-csr.json | cfssljson --bare k8s-root-ca
 
-# 依次生成其他组件证书
+## 依次生成其他组件证书
 for targetName in kube-apiserver admin kube-proxy; do
     cfssl gencert --ca k8s-root-ca.pem --ca-key k8s-root-ca-key.pem --config k8s-gencert.json --profile kubernetes $targetName-csr.json | cfssljson --bare $targetName
 done
 
-# 地址默认为 127.0.0.1:6443
-# 如果在 master 上启用 kubelet 请在生成后的 kubeconfig 中
-# 修改该地址为 当前MASTER_IP:6443
+## 地址默认为 127.0.0.1:6443
+## 如果在 master 上启用 kubelet 请在生成后的 kubeconfig 中
+## 修改该地址为 当前MASTER_IP:6443
 KUBE_APISERVER="https://127.0.0.1:6443"
 BOOTSTRAP_TOKEN=$(head -c 16 /dev/urandom | od -An -t x | tr -d ' ')
 echo "Tokne: ${BOOTSTRAP_TOKEN}"
 
-# 不要质疑 system:bootstrappers 用户组是否写错了，有疑问请参考官方文档
-# https://kubernetes.io/docs/admin/kubelet-tls-bootstrapping/
+## 不要质疑 system:bootstrappers 用户组是否写错了，有疑问请参考官方文档
+## https://kubernetes.io/docs/admin/kubelet-tls-bootstrapping/
 cat > token.csv <<EOF
 ${BOOTSTRAP_TOKEN},kubelet-bootstrap,10001,"system:bootstrappers"
 EOF
 
 echo "Create kubelet bootstrapping kubeconfig..."
-# 设置集群参数
+## 设置集群参数
 kubectl config set-cluster kubernetes \
   --certificate-authority=k8s-root-ca.pem \
   --embed-certs=true \
   --server=${KUBE_APISERVER} \
   --kubeconfig=bootstrap.kubeconfig
-# 设置客户端认证参数
+## 设置客户端认证参数
 kubectl config set-credentials kubelet-bootstrap \
   --token=${BOOTSTRAP_TOKEN} \
   --kubeconfig=bootstrap.kubeconfig
-# 设置上下文参数
+## 设置上下文参数
 kubectl config set-context default \
   --cluster=kubernetes \
   --user=kubelet-bootstrap \
   --kubeconfig=bootstrap.kubeconfig
-# 设置默认上下文
+## 设置默认上下文
 kubectl config use-context default --kubeconfig=bootstrap.kubeconfig
 
 echo "Create kube-proxy kubeconfig..."
-# 设置集群参数
+## 设置集群参数
 kubectl config set-cluster kubernetes \
   --certificate-authority=k8s-root-ca.pem \
   --embed-certs=true \
   --server=${KUBE_APISERVER} \
   --kubeconfig=kube-proxy.kubeconfig
-# 设置客户端认证参数
+## 设置客户端认证参数
 kubectl config set-credentials kube-proxy \
   --client-certificate=kube-proxy.pem \
   --client-key=kube-proxy-key.pem \
   --embed-certs=true \
   --kubeconfig=kube-proxy.kubeconfig
-# 设置上下文参数
+## 设置上下文参数
 kubectl config set-context default \
   --cluster=kubernetes \
   --user=kube-proxy \
   --kubeconfig=kube-proxy.kubeconfig
-# 设置默认上下文
+## 设置默认上下文
 kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
 
-# 创建高级审计配置
+## 创建高级审计配置
 cat >> audit-policy.yaml <<EOF
-# Log all requests at the Metadata level.
+## Log all requests at the Metadata level.
 apiVersion: audit.k8s.io/v1beta1
 kind: Policy
 rules:
@@ -469,14 +469,14 @@ EOF
 生成完成后如下截图:<br>
 ![](https://stone-upyun.b0.upaiyun.com/blog20180510112658.png!700x999)
 
-### 3.2配置systemd
+#### 3.2配置systemd
 安装k8s都是用二进制文件的,所以需要手动创建systemd
 ```
 cd k8s && mkdir systemd  && cd systemd
 ```
 如果已经创建了这个目录就不需要了
 
-#### vim kube-apiserver.service
+##### vim kube-apiserver.service
 ```
 [Unit]
 Description=Kubernetes API Server
@@ -506,7 +506,7 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 ```
-#### vim kube-controller-manager.service
+##### vim kube-controller-manager.service
 ```
 [Unit]
 Description=Kubernetes Controller Manager
@@ -528,7 +528,7 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 ```
 
-#### vim kubelet.service
+##### vim kubelet.service
 ```
 [Unit]
 Description=Kubernetes Kubelet Server
@@ -557,7 +557,7 @@ WantedBy=multi-user.target
 
 ```
 
-#### vim kube-proxy.service
+##### vim kube-proxy.service
 
 ```
 [Unit]
@@ -580,7 +580,7 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 ```
 
-#### vim kube-scheduler.service
+##### vim kube-scheduler.service
 ```
 [Unit]
 Description=Kubernetes Scheduler Plugin
@@ -604,72 +604,72 @@ WantedBy=multi-user.target
 至此 systemd创建完成,后续通过脚本会将此此目录中是的文件 copy到系统的systemd目录中的<br>
 返回上层目录,回到k8s目录,继续创建相关配置
 ```
-# cd .. && pwd
+## cd .. && pwd
 /root/k8s
 ```
 
-### 3.3k8s-配置master节点
+#### 3.3k8s-配置master节点
 /root/k8s目录下进行<br>
 Master 节点主要会运行 3 各组件: kube-apiserver、kube-controller-manager、kube-scheduler，其中用到的配置文件如下
 
-#### config
+##### config
 config 是一个通用配置文件，值得注意的是由于安装时对于 Node、Master 节点都会包含该文件，在 Node 节点上请注释掉 KUBE_MASTER 变量，因为 Node 节点需要做 HA，要连接本地的 6443 加密端口；而这个变量将会覆盖 kubeconfig 中指定的 127.0.0.1:6443 地址
 
 ```
 ###
-# kubernetes system config
+## kubernetes system config
 #
-# The following values are used to configure various aspects of all
-# kubernetes services, including
+## The following values are used to configure various aspects of all
+## kubernetes services, including
 #
-#   kube-apiserver.service
-#   kube-controller-manager.service
-#   kube-scheduler.service
-#   kubelet.service
-#   kube-proxy.service
-# logging to stderr means we get it in the systemd journal
+##   kube-apiserver.service
+##   kube-controller-manager.service
+##   kube-scheduler.service
+##   kubelet.service
+##   kube-proxy.service
+## logging to stderr means we get it in the systemd journal
 KUBE_LOGTOSTDERR="--logtostderr=true"
 
-# journal message level, 0 is debug
+## journal message level, 0 is debug
 KUBE_LOG_LEVEL="--v=2"
 
-# Should this cluster be allowed to run privileged docker containers
+## Should this cluster be allowed to run privileged docker containers
 KUBE_ALLOW_PRIV="--allow-privileged=true"
 
-# How the controller-manager, scheduler, and proxy find the apiserver
+## How the controller-manager, scheduler, and proxy find the apiserver
 KUBE_MASTER="--master=http://127.0.0.1:8080"
 
 ```
 
-#### apiserver
+##### apiserver
 apiserver 配置相对于 1.8 略有变动，其中准入控制器(admission control)选项名称变为了 --enable-admission-plugins，控制器列表也有相应变化，这里采用官方推荐配置，具体请参考 [官方文档](https://kubernetes.io/docs/admin/admission-controllers/#is-there-a-recommended-set-of-admission-controllers-to-use)<br>
 注意,此处直接复制了mritd的文档.其中ip需要改为自己的
 ```
 ###
-# kubernetes system config
+## kubernetes system config
 #
-# The following values are used to configure the kube-apiserver
+## The following values are used to configure the kube-apiserver
 #
 
-# The address on the local server to listen to.
+## The address on the local server to listen to.
 KUBE_API_ADDRESS="--advertise-address=192.168.1.61 --bind-address=192.168.1.61"
 
-# The port on the local server to listen on.
+## The port on the local server to listen on.
 KUBE_API_PORT="--secure-port=6443"
 
-# Port minions listen on
-# KUBELET_PORT="--kubelet-port=10250"
+## Port minions listen on
+## KUBELET_PORT="--kubelet-port=10250"
 
-# Comma separated list of nodes in the etcd cluster
+## Comma separated list of nodes in the etcd cluster
 KUBE_ETCD_SERVERS="--etcd-servers=https://192.168.1.61:2379,https://192.168.1.62:2379,https://192.168.1.63:2379"
 
-# Address range to use for services
+## Address range to use for services
 KUBE_SERVICE_ADDRESSES="--service-cluster-ip-range=10.254.0.0/16"
 
-# default admission control policies
+## default admission control policies
 KUBE_ADMISSION_CONTROL="--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,NodeRestriction"
 
-# Add your own!
+## Add your own!
 KUBE_API_ARGS=" --anonymous-auth=false \
                 --apiserver-count=3 \
                 --audit-log-maxage=30 \
@@ -701,15 +701,15 @@ KUBE_API_ARGS=" --anonymous-auth=false \
                 --enable-swagger-ui=true"
 ```
 
-#### controller-manager 
+##### controller-manager 
 controller manager 配置默认开启了证书轮换能力用于自动签署 kueblet 证书，并且证书时间也设置了 10 年，可自行调整；增加了 --controllers 选项以指定开启全部控制器
 ```
 ###
-# The following values are used to configure the kubernetes controller-manager
+## The following values are used to configure the kubernetes controller-manager
 
-# defaults from config and apiserver should be adequate
+## defaults from config and apiserver should be adequate
 
-# Add your own!
+## Add your own!
 KUBE_CONTROLLER_MANAGER_ARGS="  --bind-address=0.0.0.0 \
                                 --cluster-name=kubernetes \
                                 --cluster-signing-cert-file=/etc/kubernetes/ssl/k8s-root-ca.pem \
@@ -727,40 +727,40 @@ KUBE_CONTROLLER_MANAGER_ARGS="  --bind-address=0.0.0.0 \
                                 --feature-gates=RotateKubeletServerCertificate=true"
 ```
 
-#### scheduler
+##### scheduler
 ```
 ###
-# kubernetes scheduler config
+## kubernetes scheduler config
 
-# default config should be adequate
+## default config should be adequate
 
-# Add your own!
+## Add your own!
 KUBE_SCHEDULER_ARGS="   --address=0.0.0.0 \
                         --leader-elect=true \
                         --algorithm-provider=DefaultProvider"
 ```
-### 3.4k8s-配置node节点
+#### 3.4k8s-配置node节点
 Node 节点上主要有 kubelet、kube-proxy 组件，用到的配置如下
 
-#### kubelet
+##### kubelet
 kubeket 默认也开启了证书轮换能力以保证自动续签相关证书，同时增加了 --node-labels 选项为 node 打一个标签，关于这个标签最后部分会有讨论，如果在 master 上启动 kubelet，请将 node-role.kubernetes.io/k8s-node=true 修改为 node-role.kubernetes.io/k8s-master=true
 ```
 ###
-# kubernetes kubelet (minion) config
+## kubernetes kubelet (minion) config
 
-# The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
+## The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
 KUBELET_ADDRESS="--node-ip=192.168.1.61"
 
-# The port for the info server to serve on
-# KUBELET_PORT="--port=10250"
+## The port for the info server to serve on
+## KUBELET_PORT="--port=10250"
 
-# You may leave this blank to use the actual hostname
+## You may leave this blank to use the actual hostname
 KUBELET_HOSTNAME="--hostname-override=k1.node"
 
-# location of the api-server
-# KUBELET_API_SERVER=""
+## location of the api-server
+## KUBELET_API_SERVER=""
 
-# Add your own!
+## Add your own!
 KUBELET_ARGS="  --bootstrap-kubeconfig=/etc/kubernetes/bootstrap.kubeconfig \
                 --cert-dir=/etc/kubernetes/ssl \
                 --cgroup-driver=cgroupfs \
@@ -780,12 +780,12 @@ KUBELET_ARGS="  --bootstrap-kubeconfig=/etc/kubernetes/bootstrap.kubeconfig \
                 --resolv-conf=/etc/resolv.conf \
                 --rotate-certificates"
 ```
-#### proxy
+##### proxy
 ```
 ###
-# kubernetes proxy config
-# default config should be adequate
-# Add your own!
+## kubernetes proxy config
+## default config should be adequate
+## Add your own!
 KUBE_PROXY_ARGS="--bind-address=0.0.0.0 \
                  --hostname-override=k1.node \
                  --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig \
@@ -793,7 +793,7 @@ KUBE_PROXY_ARGS="--bind-address=0.0.0.0 \
 
 ```
 
-#### 安装集群组件
+##### 安装集群组件
 完成上述后,会得到如下一个目录结构(需要保证这个目录结构,才能使用接下来的安装脚本)
 ```
 k8s
@@ -837,7 +837,7 @@ k8s
 
 ```
 
-#### install.sh
+##### install.sh
 ```
 #!/bin/bash
 
@@ -905,9 +905,9 @@ postinstall
 
 <font color='red'> <h5>最后执行此脚本安装即可，将k8s目录scp到每个节点 执行install.sh 此外，应确保每个节点安装了 ipset、conntrack 两个包，因为 kube-proxy 组件会使用其处理 iptables 规则等</h5></font>
 
-## 四 启动集群
+### 四 启动集群
 
-### 4.1 启动master
+#### 4.1 启动master
 对于 master 节点启动无需做过多处理，多个 master 只要保证 apiserver 等配置中的 ip 地址监听没问题后直接启动即可
 ```
 systemctl daemon-reload
@@ -919,7 +919,7 @@ systemctl enable kube-controller-manager
 systemctl enable kube-scheduler
 ```
 
-### 4.2 启动node
+#### 4.2 启动node
 ```
 systemctl daemon-reload
 systemctl start kubelet
@@ -932,12 +932,12 @@ systemctl enable kube-proxy
 启动完后如图<br>
 ![](https://stone-upyun.b0.upaiyun.com/blog20180510114912.png!700x999)
 
-## 五 配置集群网络相关
+### 五 配置集群网络相关
 由于 HA 等功能需要，对于 Node 需要做一些处理才能启动，主要有以下两个地方需要处理
-### 5.1 nginx-proxy
+#### 5.1 nginx-proxy
 在启动 kubelet、kube-proxy 服务之前，需要在本地启动 nginx 来 tcp 负载均衡 apiserver 6443 端口，nginx-proxy 使用 docker + systemd 启动，配置如下<br>
 注意: 对于在 master 节点启动 kubelet 来说，不需要 nginx 做负载均衡；可以跳过此步骤，并修改 kubelet.kubeconfig、kube-proxy.kubeconfig 中的 apiserver 地址为当前 master ip 6443 端口即可
-#### nginx-proxy.service
+##### nginx-proxy.service
 ```
 [Unit]
 Description=kubernetes apiserver docker wrapper
@@ -966,7 +966,7 @@ WantedBy=multi-user.target
 ```
 
 
-#### nginx.conf
+##### nginx.conf
 注意修改ip
 ```
 error_log stderr notice;
@@ -995,7 +995,7 @@ stream {
 }
 ```
 
-#### 启动 apiserver 的本地负载均衡 
+##### 启动 apiserver 的本地负载均衡 
 ```
 mkdir /etc/nginx
 cp nginx.conf /etc/nginx
@@ -1006,13 +1006,13 @@ systemctl start nginx-proxy
 systemctl enable nginx-proxy
 ```
 
-#### TLS bootstrapping
+##### TLS bootstrapping
 创建好 nginx-proxy 后不要忘记为 TLS Bootstrap 创建相应的 RBAC 规则，这些规则能实现证自动签署 TLS Bootstrap 发出的 CSR 请求，从而实现证书轮换(创建一次即可)；详情请参考 [Kubernetes TLS bootstrapping 那点事](https://mritd.me/2018/01/07/kubernetes-tls-bootstrapping-note/)
 
-##### tls-bootstrapping-clusterrole.yaml
+###### tls-bootstrapping-clusterrole.yaml
 ```
-# A ClusterRole which instructs the CSR approver to approve a node requesting a
-# serving cert matching its client cert.
+## A ClusterRole which instructs the CSR approver to approve a node requesting a
+## serving cert matching its client cert.
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -1026,31 +1026,31 @@ rules:
 上述yaml需要再master节点执行创建
 
 ```
-# 给与 kubelet-bootstrap 用户进行 node-bootstrapper 的权限
+## 给与 kubelet-bootstrap 用户进行 node-bootstrapper 的权限
 kubectl create clusterrolebinding kubelet-bootstrap \
     --clusterrole=system:node-bootstrapper \
     --user=kubelet-bootstrap
 
 kubectl create -f tls-bootstrapping-clusterrole.yaml
 
-# 自动批准 system:bootstrappers 组用户 TLS bootstrapping 首次申请证书的 CSR 请求
+## 自动批准 system:bootstrappers 组用户 TLS bootstrapping 首次申请证书的 CSR 请求
 kubectl create clusterrolebinding node-client-auto-approve-csr \
         --clusterrole=system:certificates.k8s.io:certificatesigningrequests:nodeclient \
         --group=system:bootstrappers
 
-# 自动批准 system:nodes 组用户更新 kubelet 自身与 apiserver 通讯证书的 CSR 请求
+## 自动批准 system:nodes 组用户更新 kubelet 自身与 apiserver 通讯证书的 CSR 请求
 kubectl create clusterrolebinding node-client-auto-renew-crt \
         --clusterrole=system:certificates.k8s.io:certificatesigningrequests:selfnodeclient \
         --group=system:nodes
 
-# 自动批准 system:nodes 组用户更新 kubelet 10250 api 端口证书的 CSR 请求
+## 自动批准 system:nodes 组用户更新 kubelet 10250 api 端口证书的 CSR 请求
 kubectl create clusterrolebinding node-server-auto-renew-crt \
         --clusterrole=system:certificates.k8s.io:certificatesigningrequests:selfnodeserver \
         --group=system:nodes
 ```
 
 
-#### 执行启动
+##### 执行启动
 多节点部署时先启动好 nginx-proxy，然后修改好相应配置的 ip 地址等配置，最终直接启动即可(master 上启动 kubelet 不要忘了修改 kubeconfig 中的 apiserver 地址，还有对应的 kubelet 的 node label)
 ```
 systemctl daemon-reload
@@ -1067,9 +1067,9 @@ systemctl enable kube-proxy
 
 
 
-### 5.2 Calico
+#### 5.2 Calico
 Calico 安装仍然延续以前的方案，使用 Daemonset 安装 cni 组件，使用 systemd 控制 calico-node 以确保 calico-node 能正确的拿到主机名等
-#### 修改calico配置
+##### 修改calico配置
 ```
 wget https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/calico.yaml -O calico.example.yaml
 
@@ -1090,12 +1090,12 @@ sed -i 's@.*etcd_ca:.*@\ \ etcd_ca:\ "/calico-secrets/etcd-ca"@gi' calico.yaml
 sed -i 's@.*etcd_cert:.*@\ \ etcd_cert:\ "/calico-secrets/etcd-cert"@gi' calico.yaml
 sed -i 's@.*etcd_key:.*@\ \ etcd_key:\ "/calico-secrets/etcd-key"@gi' calico.yaml
 
-# 注释掉 calico-node 部分(由 Systemd 接管)
+## 注释掉 calico-node 部分(由 Systemd 接管)
 sed -i '123,219s@.*@#&@gi' calico.yaml
 ```
 
 
-#### 创建systemd
+##### 创建systemd
 <h5>注意: 创建 systemd service 配置文件要在每个节点上都执行</h5>
 ```
 K8S_MASTER_IP="192.168.1.61"
@@ -1154,26 +1154,26 @@ EOF
 cp -r /etc/etcd/ssl /etc/calico
 ```
 
-#### 修改kubelet配置
+##### 修改kubelet配置
 使用 Calico 后需要修改 kubelet 配置增加 CNI 设置(--network-plugin=cni)，修改后配置如下 <br>
 增加了 --network-plugin=cni \    这个配置
 ```
 ###
-# kubernetes kubelet (minion) config
+## kubernetes kubelet (minion) config
 
-# The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
+## The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
 KUBELET_ADDRESS="--node-ip=192.168.1.30"
 
-# The port for the info server to serve on
-# KUBELET_PORT="--port=10250"
+## The port for the info server to serve on
+## KUBELET_PORT="--port=10250"
 
-# You may leave this blank to use the actual hostname
+## You may leave this blank to use the actual hostname
 KUBELET_HOSTNAME="--hostname-override=k1.node"
 
-# location of the api-server
-# KUBELET_API_SERVER=""
+## location of the api-server
+## KUBELET_API_SERVER=""
 
-# Add your own!
+## Add your own!
 KUBELET_ARGS="  --bootstrap-kubeconfig=/etc/kubernetes/bootstrap.kubeconfig \
                 --cert-dir=/etc/kubernetes/ssl \
                 --cgroup-driver=cgroupfs \
@@ -1195,30 +1195,30 @@ KUBELET_ARGS="  --bootstrap-kubeconfig=/etc/kubernetes/bootstrap.kubeconfig \
                 --rotate-certificates"
 ```
 
-#### 创建 Calico Daemonset
+##### 创建 Calico Daemonset
 ```
-# 先创建 RBAC
+## 先创建 RBAC
 kubectl apply -f \
 https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/rbac.yaml
 
-# 再创建 Calico Daemonset
+## 再创建 Calico Daemonset
 kubectl create -f calico.yaml
 ```
 
-#### 启动 Calico Node
+##### 启动 Calico Node
 ```
 systemctl daemon-reload
 systemctl restart calico-node
 systemctl enable calico-node
 
-# 等待 20s 拉取镜像
+## 等待 20s 拉取镜像
 sleep 20
 systemctl restart kubelet
 ```
 
-#### 测试网络
+##### 测试网络
 ```
-# 创建 deployment
+## 创建 deployment
 cat << EOF >> demo.deploy.yml
 apiVersion: apps/v1
 kind: Deployment
@@ -1248,7 +1248,7 @@ kubectl create -f demo.deploy.yml
 <br>
 
 
-### 5.3 coreDNS
+#### 5.3 coreDNS
 此处使用的mritd的脚本自动安装的<br>
 
 ```
@@ -1256,10 +1256,10 @@ cd ~
 git clone https://github.com/mritd/ktool
 cd /root/ktool/k8s/addons/coredns
 
-# 执行上面的替换脚本
+## 执行上面的替换脚本
 ./deploy.sh
 
-# 创建 CoreDNS
+## 创建 CoreDNS
 kubectl create -f coredns.yaml
 ```
 
@@ -1267,7 +1267,7 @@ kubectl create -f coredns.yaml
 ```
 #!/bin/bash
 
-# Deploys CoreDNS to a cluster currently running Kube-DNS.
+## Deploys CoreDNS to a cluster currently running Kube-DNS.
 
 SERVICE_CIDR=${1:-10.254.0.0/16}
 POD_CIDR=${2:-10.20.0.0/16}
@@ -1279,22 +1279,22 @@ sed -e s/CLUSTER_DNS_IP/$CLUSTER_DNS_IP/g -e s/CLUSTER_DOMAIN/$CLUSTER_DOMAIN/g 
 ```
 
 
-#### 部署DNS自动扩容 
+##### 部署DNS自动扩容 
 vim dns-horizontal-autoscaler.yaml
 ```
-# Copyright 2016 The Kubernetes Authors.
+## Copyright 2016 The Kubernetes Authors.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+##     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
 
 kind: ServiceAccount
 apiVersion: v1
@@ -1320,8 +1320,8 @@ rules:
   - apiGroups: ["extensions"]
     resources: ["deployments/scale", "replicasets/scale"]
     verbs: ["get", "update"]
-# Remove the configmaps rule once below issue is fixed:
-# kubernetes-incubator/cluster-proportional-autoscaler#16
+## Remove the configmaps rule once below issue is fixed:
+## kubernetes-incubator/cluster-proportional-autoscaler#16
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "create"]
@@ -1374,10 +1374,10 @@ spec:
           - /cluster-proportional-autoscaler
           - --namespace=kube-system
           - --configmap=kube-dns-autoscaler
-          # Should keep target in sync with cluster/addons/dns/kube-dns.yaml.base
+          ## Should keep target in sync with cluster/addons/dns/kube-dns.yaml.base
           - --target=Deployment/kube-dns
-          # When cluster is using large nodes(with more cores), "coresPerReplica" should dominate.
-          # If using small nodes, "nodesPerReplica" should dominate.
+          ## When cluster is using large nodes(with more cores), "coresPerReplica" should dominate.
+          ## If using small nodes, "nodesPerReplica" should dominate.
           - --default-params={"linear":{"coresPerReplica":256,"nodesPerReplica":16,"preventSinglePointFailure":true}}
           - --logtostderr=true
           - --v=2
@@ -1391,7 +1391,7 @@ spec:
 kubectl create -f dns-horizontal-autoscaler.yaml 
 ```
 
-## 六 k8s-监控heapster
+### 六 k8s-监控heapster
 直接yaml创建即可
 ```
 kubectl create -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/grafana.yaml
@@ -1400,7 +1400,7 @@ kubectl create -f https://raw.githubusercontent.com/kubernetes/heapster/master/d
 kubectl create -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/rbac/heapster-rbac.yaml
 ```
 至此,搭建完成 ,集群已可以正常使用.如需要管理页面的可翻看下面的内容,不需要就不用了
-## 七 k8s-图形管理页面 Dashboard
+### 七 k8s-图形管理页面 Dashboard
 因为本次搭建没有部署Dashboard,具体搭建可看mritd的 [部署 Dashboard](https://mritd.me/2018/04/19/set-up-kubernetes-1.10.1-cluster-by-hyperkube/#%E5%85%AB%E9%83%A8%E7%BD%B2-dashboard)
 <br>
 <br>
