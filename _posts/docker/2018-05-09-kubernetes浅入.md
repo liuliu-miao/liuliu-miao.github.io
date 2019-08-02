@@ -46,7 +46,7 @@ keywords: kubernetes安装,kubernetes浅入
 我新建的目录为 k8s,后续安装不特别说明都基于 /root/k8s 此目录
 
 先查看安装目录结构<br>
-![](https://stone-upyun.b0.upaiyun.com/blog20180509130102.png!700x999)
+![](https://stone-upyun.b0.aicdn.com/blog20180509130102.png!700x999)
 <br>
 ### 一 安装cfssl
 使用mritd的cnd下载二进制安装包,如果不能用,可到[GitHub下载](https://github.com/cloudflare/cfssl/releases)
@@ -135,7 +135,7 @@ cfssl gencert --initca=true etcd-root-ca-csr.json | cfssljson --bare etcd-root-c
 cfssl gencert --ca etcd-root-ca.pem --ca-key etcd-root-ca-key.pem --config etcd-gencert.json etcd-csr.json | cfssljson --bare etcd
 ```
 生成后结果如下<br>
-![](https://stone-upyun.b0.upaiyun.com/blog20180509144247.png!700x999)
+![](https://stone-upyun.b0.aicdn.com/blog20180509144247.png!700x999)
 <br>
 
 ### 二 安装etcd
@@ -281,7 +281,7 @@ postinstall
 - postinstall : 安装后收尾工作，比如检测 /var/lib/etcd 是否存在，纠正权限等
 
 执行 ./install.sh,得到如下结果:<br>
-![](https://stone-upyun.b0.upaiyun.com/blog20180510110948.png!700x999)
+![](https://stone-upyun.b0.aicdn.com/blog20180510110948.png!700x999)
 
 <font color='red'>注意:完后install后,将etcd目录scp到每台需要安装etcd的节点,修改etcd.conf 中的相关配置(ETCD_NAME,IP等),在每个etcd再执行install.sh </font>
 
@@ -467,7 +467,7 @@ EOF
 ```
 
 生成完成后如下截图:<br>
-![](https://stone-upyun.b0.upaiyun.com/blog20180510112658.png!700x999)
+![](https://stone-upyun.b0.aicdn.com/blog20180510112658.png!700x999)
 
 #### 3.2配置systemd
 安装k8s都是用二进制文件的,所以需要手动创建systemd
@@ -930,7 +930,7 @@ systemctl enable kube-proxy
 其中,如果master也需要跑任务的话, kubelet 和 kube-proxy 也需要在master节点启动<br>
 
 启动完后如图<br>
-![](https://stone-upyun.b0.upaiyun.com/blog20180510114912.png!700x999)
+![](https://stone-upyun.b0.aicdn.com/blog20180510114912.png!700x999)
 
 ### 五 配置集群网络相关
 由于 HA 等功能需要，对于 Node 需要做一些处理才能启动，主要有以下两个地方需要处理
@@ -1061,7 +1061,7 @@ systemctl enable kube-proxy
 
 ```
 启动成功后得到如下图<br>
-![](https://stone-upyun.b0.upaiyun.com/blog20180510115842.png!700x999)
+![](https://stone-upyun.b0.aicdn.com/blog20180510115842.png!700x999)
 <br>
 截图来自mritd,由于是公司机器,不能直接暴露,后续个人搭建时,再来替换为自己的
 
@@ -1244,7 +1244,7 @@ EOF
 kubectl create -f demo.deploy.yml
 ```
 截图引用自mritd<br>
-![](https://stone-upyun.b0.upaiyun.com/blog20180510120356.png!700x999)
+![](https://stone-upyun.b0.aicdn.com/blog20180510120356.png!700x999)
 <br>
 
 
