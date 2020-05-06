@@ -13,24 +13,24 @@ permalink: /about/
 
 ### 工作状况
 >
-> **Java Web Developer一枚，目前就职龙贷，主要负责，后端开发，对接安卓和iOS客户端，以及管理系统的开发；**
+> **大数据Developer一枚，目前就职龙贷，主要大数据Flink开发**
 >
-> **对前端有一定基础，管理后台开发前端自己写，热爱开发，对新技术有好奇心**
+> **同时对后台开发有一定了解，热爱开发，对新技术有好奇心**
 
 ### 职业技能
 >
-> **SSH/SSM(Mybatis)(Strtus2,Spring MVC),Spring Boot,Quartz,Shiro**
+> **Hadoop,Spark,Hive,Flink,Kafka,Zeeplin,Zookeepr,Flume,Logstash,Filebeat,Hbase** 
+> 
+> **Spring Boot,SSH,Mybatis**
 >
-> **Mysql,Oracle,Redis**
+> **Mysql,Redis**
 >
-> **Html,js,JQuery,AngularJs**
->
-> **Other:Linux,Docker,K8s(了解，掌握使用)，Hadoop（学习实践中,能搭建,编写相关代码）**
+> **Other:Linux,Docker,K8s(了解，掌握使用)**
 
 
 ### 学习计划
 >
-> **Hadoop大数据及其相关模块正在学习实践中**
+> **Flink SQL学习实践中.**
 >
 > **Golang,Python学习中**
 >
