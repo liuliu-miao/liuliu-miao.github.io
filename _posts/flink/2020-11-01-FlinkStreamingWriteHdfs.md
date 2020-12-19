@@ -22,6 +22,7 @@ keywords: Flink HDFS
     Hadoop: 3.0.0
     ```
 ## 代码示例
+- 主类
 ```java 
 package com.dz.bigdata.writer.hdfs;
         
@@ -138,7 +139,32 @@ public class BaseEnv {
 }
 
 ```
+- JavaBean 
+```java 
+@Data
+public class ServerStandardLog {
+    private String logId="";
+    private String bline="";
+    private String pline="";
+    private Long reqTime;
+    private String ip="";
+    private String country="";
+    private String province="";
+    private String city="";
+    private String uid="";
+    private String ua="";
+    private String imei="";
+    private String imsi="";
+    private String idfa="";
+    private String idfv="";
+    private String key="";
+    private String subKey="";
+    private Map<String,String> data = new HashMap<>();
 
+    public ServerStandardLog() {
+    }
+}
+```
 # 总结和问题
 - 使用flink-Streaming写入时,对map类型支持.
 - sink并行度不为1时,且多个topic往同一个目录写入时,需将sink文件名命名为不同的,否则会造成冲突,目前以topic区分,最好的方式可设置为随机数或uuid.
