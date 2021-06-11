@@ -28,8 +28,8 @@ keywords: Flink Clickhouse Exactly-One
 </dependency>
 ```
 ``` java
-#ClickHouseStatementImpl 606行开始
- requestEntity = applyRequestBodyCompression(requestEntity);
+//ClickHouseStatementImpl 606行开始
+requestEntity = applyRequestBodyCompression(requestEntity);
 
         HttpEntity entity = null;
         try {
@@ -196,3 +196,4 @@ FlinkKafkaConsumer<String> kafkaConsumer = KafkaUtils.getKafkaConsumer(Collectio
 - 按类拆分,逐个解决
 将原有任务(Flink一个app中同事sink到Kafka和Clickhouse)进行任务拆分,拆分为具有事务性,和不具备事务性的两个任务.
 - 充分利用Clickhouse快速插入和查询功能,实现实施数据查询.
+- 对于不具备事务性的,可以借助外部存储系统将kafka-offset保存,在重启时,读取最新的offset
