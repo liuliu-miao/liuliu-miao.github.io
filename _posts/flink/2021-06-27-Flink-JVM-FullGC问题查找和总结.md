@@ -139,7 +139,7 @@ jmap -dump:format=b,file=xxx.hprof pid
 ```
 将上述中获取的xxx.hprof文件下载到本地。
 
-使用VisualVM工具分析对象在堆内存中的占用情况，发现char[]中有大量的批量插入语句，占比达到了54.8%。
+使用VisualVM工具分析对象在堆内存中的占用情况，发现char[]中有大量的批量插入语句，占比达到了惊人的54.8%。
 这其中的插入语句不应该有这么多存在。
 这部分的主要原因应该是代码中StringBuilder多次toString和PreparedStatement未关闭造成；
 还有部分原因是因为新生代内存太小，太大对象产生后直接进入到了老年代。
