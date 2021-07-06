@@ -260,6 +260,18 @@ flink-conf.yml
 env.java.opts.taskmanager: -Djava.util.Arrays.useLegacyMergeSort=true -XX:NativeMemoryTracking=detail -Xmn2G  -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70  -XX:+UseCompressedClassPointers -XX:CompressedClassSpaceSize=512M -XX:MetaspaceSize=512m -XX:MaxMetaspaceSize=1024m
 
 ```
+# JVM tools
+查看实时的内存使用
+``` bash
+jstat -gcutil pid 1000
+更多用法 [https://www.cnblogs.com/czbcxy/p/10845193.html](https://www.cnblogs.com/czbcxy/p/10845193.html)
+```
+查看JVM内存配置及使用情况
+``` bash
+jmap -heap pid
+#导出dump（hprof）文件
+jmap -dump:format=b,file=xxx.hprof pid
+```
 
 # JVM调优常用参数
 
