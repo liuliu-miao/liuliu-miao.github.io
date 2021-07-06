@@ -5,7 +5,7 @@ baseurl:
 url:
 date_format: "ordinal"
 title: code busy
-subtitle: "coding change life"
+subtitle: "别后悠悠君莫问，无限事，不言中。"
 description: "code busy的个人博客"
 keywords: code busy, liushan, code_busy
 favicon: https://stone-upyun.b0.aicdn.com/blog20180510143638.png
@@ -17,8 +17,8 @@ side_bar_repo_limit: 5
 #      Author      #
 # ---------------- #
 author: liushan
-organization: Gozap,Inc
-organization_url: https://www.longdai.com
+organization: Volcano-Force
+organization_url: 
 github_username: liushan150
 location: BeiJing, China
 email: liushan159@gmail.com
