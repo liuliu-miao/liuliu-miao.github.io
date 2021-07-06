@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 利用logstash迁移MySQL数据至Elasticsearch
-categories: [MySql,MySQL,Elasticsearch,ES]
+categories: [MySql,Elasticsearch]
 description: logstash move data from mysql to es
 keywords: MySql Elasticsearch MySQL ES
 ---
