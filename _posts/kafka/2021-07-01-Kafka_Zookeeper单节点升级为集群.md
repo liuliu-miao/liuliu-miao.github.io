@@ -146,6 +146,19 @@ Topic: event    PartitionCount: 3       ReplicationFactor: 1    Configs:
     Topic: event    Partition: 2    Leader: 2       Replicas: 2     Isr: 2
 
 ```
+- kafka迁移校验
+``` bash
+./bin/kafka-reassign-partitions.sh --zookeeper 10.0.3.151:2181 --reassignment-json-file event-move.json  --verify
+#输出
+Status of partition reassignment: 
+Reassignment of partition event-2 completed successfully
+Reassignment of partition event-1 completed successfully
+Reassignment of partition event-0 completed successfully
+```
+**注意： 在执行kafka迁移计划验证时，视topic数据量大小，可能需要很长时间。**
+需要等待结果：Reassignment of xxx completed successfully均为Sucessfully才算完成，
+如果有Progress的，需要等待。
+上线环境时，数据量过大，topic数量也比较多，等待了大约2个小时。
 
 **2.4 增加topic分区**（若后期数据量过大，效率低的情况再酌情增加分区）
 ```bash
