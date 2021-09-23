@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Flink-Clickhouse-Exactly-One解决方案
+title: Flink-Clickhouse-Exactly-One解决方案（任有数据丢失风险，仅仅做记录用）
 categories: [Flink,Clickhouse]
 description: Flink read kafka write Clickhouse Exactly-One 
 keywords: Flink Clickhouse Exactly-One
