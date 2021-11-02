@@ -78,7 +78,7 @@ collections:
         output: true
         permalink: /wiki/:path/
 
-repository: liushan150/liushan150.github.io
+# repository: liushan150/liushan150.github.io
 
 # ---------------- #
 #      Comments    #
