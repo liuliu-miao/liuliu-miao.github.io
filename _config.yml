@@ -19,7 +19,7 @@ side_bar_repo_limit: 5
 author: liushan
 organization: Volcano-Force
 organization_url: 
-github_username: liushan150
+# github_username: liushan150
 location: BeiJing, China
 email: liushan159@gmail.com
 
@@ -78,7 +78,7 @@ collections:
         output: true
         permalink: /wiki/:path/
 
-# repository: liushan150/liushan150.github.io
+repository: liushan150/liushan150.github.io
 
 # ---------------- #
 #      Comments    #
