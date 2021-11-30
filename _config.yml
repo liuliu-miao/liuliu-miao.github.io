@@ -7,7 +7,7 @@ date_format: "ordinal"
 title: code busy
 subtitle: "别后悠悠君莫问，无限事，不言中。"
 description: "code busy的个人博客"
-keywords: code busy, liushan, code_busy
+keywords: code busy, code_busy
 favicon: https://stone-upyun.b0.aicdn.com/blog20180510143638.png
 timezone: Asia/Shanghai
 encoding: "utf-8"
@@ -16,8 +16,8 @@ side_bar_repo_limit: 5
 # ---------------- #
 #      Author      #
 # ---------------- #
-author: liushan
-organization: Volcano-Force
+author: em-miao
+organization: 不写也罢
 organization_url: 
 # github_username: liushan150
 location: BeiJing, China
@@ -78,7 +78,7 @@ collections:
         output: true
         permalink: /wiki/:path/
 
-repository: liushan150/liushan150.github.io
+# repository: liushan150/liushan150.github.io
 
 # ---------------- #
 #      Comments    #
