@@ -34,8 +34,8 @@ clickhouse是列式分布式存储系统,ClickHouse是一个用于联机分析(O
     - 缺点: 当CH负载过于高时,重启任务删除数据时,不能正常删除掉.数据准确性受限于CH负载.
 3. 当任务重启时,使用kafka中的offset点直接启动任务,下一个小时通过hive或者具备事务性或幂等性的存储结构回插到CH(CH删除当前小时数据或分钟) 
     - 优点: 能保证数据准确性
-    - 缺点: 资源消耗更多(需要额外的事务性分布式存储系统,目前公司不希望使用更多资源,就是"优化".)
-    - 缺点: 当前重启小时数据不够准确,需要下一个小时数据回插后数据才具备准确性.
+    - 缺点: 资源消耗更多(需要额外的事务性分布式存储系统或集群资源消耗,目前公司不希望使用更多资源,就是"优化".)
+    - 缺点: 当前重启小时CH中数据不够准确,需要下一个小时数据回插后数据才具备准确性.
 
 最终使用了方案2.不要问为啥(成本控制?)
 
@@ -46,12 +46,14 @@ clickhouse是列式分布式存储系统,ClickHouse是一个用于联机分析(O
 当任务重启(失败重启或手动重启)时,回去校验offset一致情况 .
 如果有不一致情况会将clickhouse中多余的数据删除其实保持一致.
 同时:
-users.xml 设置了  <mutations_sync>1</mutations_sync> 同步修改数据属性.
+users.xml 设置了同步修改数据属性.(因为是单节点所以设置1.多节点和副本情况设置2)
+``` xml
+ <mutations_sync>1</mutations_sync> 
+``` 
 导致了任务重启时删除多个按分区删除语句时提示空间不足:
 日志如下:
 ``` log
-dealCkAndKfOffsetNoEqual count=[8211] ;exec-sql=[alter table  db01.test_table  delete where toDate(`logdate`)='2021-11-30' and kf_partition=6 and kf_[2794/6748]
-52053083 and kf_offset<=14152061943]
+dealCkAndKfOffsetNoEqual count=[8211] ;exec-sql=[alter table  db01.test_table  delete where toDate(`logdate`)='2021-11-30' and kf_partition=6 and kf_partition>=14152053083 and kf_offset<=14152061943]
 ru.yandex.clickhouse.except.ClickHouseException: ClickHouse exception, code: 341, host: 172.34.6.84, port: 8123; Code: 341, e.displayText() = DB::Exception: Exception hap
 pened during execution of mutation 'mutation_8222580.txt' with part '20210819_662942_690500_6_8222579' reason: 'Code: 243, e.displayText() = DB::Exception: Cannot reserve
  54.68 GiB, not enough space (version 21.8.11.4 (official build))'. This error maybe retryable or not. In case of unretryable error, mutation can be killed with KILL MUTA
