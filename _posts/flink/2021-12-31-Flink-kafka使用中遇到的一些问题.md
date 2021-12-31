@@ -10,10 +10,12 @@ keywords: Flink-Kafka-Problems
 记录一些在使用flink消费kafka时,遇到一些优化问题和框架问题,不定时更新一些新的问题.
 
 ## 软件版本
+``` markdown
 flink: 1.13.2
 kafka: 2.5.0
 hadoop: 3.2.1
-centos: 7
+centos 7
+```
 
 ## flink checkpoint警告日志
 - 日志1:
