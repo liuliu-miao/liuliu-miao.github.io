@@ -61,14 +61,34 @@ Map -> Sink: late_log_to_kafka)-xxxxx-51, producerId=19575, epoch=9071] has been
 ```
 - flink官网文档建议
 增加超时时间: 
+```
+1. 调整kafka-broker中transaction.max.timeout.ms时间
+transaction.max.timeout.ms:默认15min
+
+2. 调整flink-kafka-producer
+transaction.timeout.ms: 默认1hour
+实际使用中 transaction.timeout.ms设置了 5min,因为出现此问题,增大到12min.(主要是不想去设置kafka-borker,需要重启)
+
+kafkaProp.put(ProducerConfig.TRANSACTION_TIMEOUT_CONFIG, 12 * 60 * 1000);//12min
+
+```
 link: [https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/datastream/kafka/#kafka-producers-and-fault-tolerance](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/datastream/kafka/#kafka-producers-and-fault-tolerance)
 
 
 ## flink-checkpoint失败优化
 * 现象
-flink exactly_one 消费kafka时,kafka峰值流量过大,且分区较多时(且机器资源有限),容易导致checkpoint-data过大,checkpoint失败或超时.
+    
+    flink exactly_one 消费kafka时,kafka峰值流量过大,且分区较多时(且机器资源有限),容易导致checkpoint-data过大,checkpoint失败或超时.
 * 解决方法: 
-增加 kafkaProducersPoolSize 大小,默认5.根据实际情况增大其值.
+    
+    增加 kafkaProducersPoolSize 大小,默认5.根据实际情况增大其值.
+
+    ``` java
+    * <li>decrease number of max concurrent checkpoints
+    * <li>make checkpoints more reliable (so that they complete faster)
+    * <li>increase the delay between checkpoints
+    * <li>increase the size of {@link FlinkKafkaInternalProducer}s pool
+    ```
 
 * 参考源码:
 
