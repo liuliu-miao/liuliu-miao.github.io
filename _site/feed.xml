@@ -1,0 +1,1281 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.2">Jekyll</generator><link href="http://localhost:8000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:8000/" rel="alternate" type="text/html" /><updated>2022-07-13T14:04:28+08:00</updated><id>http://localhost:8000/feed.xml</id><title type="html">code busy</title><subtitle>code busy的个人博客</subtitle><author><name>em-miao</name></author><entry><title type="html">Flink消费Kafka时遇到的一些问题汇总</title><link href="http://localhost:8000/flink/kafka/Flink-kafka%E4%BD%BF%E7%94%A8%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="Flink消费Kafka时遇到的一些问题汇总" /><published>2021-12-31T00:00:00+08:00</published><updated>2021-12-31T00:00:00+08:00</updated><id>http://localhost:8000/flink/kafka/Flink-kafka%E4%BD%BF%E7%94%A8%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:8000/flink/kafka/Flink-kafka%E4%BD%BF%E7%94%A8%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/">&lt;h1 id=&quot;简介&quot;&gt;简介&lt;/h1&gt;
+&lt;p&gt;记录一些在使用flink消费kafka时,遇到一些优化问题和框架问题,不定时更新一些新的问题.&lt;/p&gt;
+
+&lt;h2 id=&quot;软件版本&quot;&gt;软件版本&lt;/h2&gt;
+&lt;div class=&quot;language-markdown highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;flink: 1.13.2
+kafka: 2.5.0
+hadoop: 3.2.1
+centos 7
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;flink-checkpoint警告日志&quot;&gt;flink checkpoint警告日志&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;日志1:&lt;/p&gt;
+
+    &lt;pre&gt;&lt;code class=&quot;language-log&quot;&gt;  [DataStreamer for file /flink/checkpoints/xxx083408/097a5dc4d32c739760d33baea57f9679/shared/7832d571-5039-4c15-ae7f-99c874c64c55] WARN  org.apache.hadoop.hdfs.DataStreamer  - Caught exception
+  java.lang.InterruptedException: null
+          at java.lang.Object.wait(Native Method)
+          at java.lang.Thread.join(Thread.java:1252)
+          at java.lang.Thread.join(Thread.java:1326)
+          at org.apache.hadoop.hdfs.DataStreamer.closeResponder(DataStreamer.java:986)
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;原因:&lt;/p&gt;
+
+    &lt;p&gt;hadoop自身BUG
+  文档说明: https://issues.apache.org/jira/browse/HDFS-10429&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;日志2:&lt;/p&gt;
+
+    &lt;pre&gt;&lt;code class=&quot;language-log&quot;&gt;  block BP-1644493283-172.34.242.137-1636089673161:blk_1076991017_3256384] WARN  org.apache.hadoop.hdfs.DataStreamer  - DataStreamer Exception
+  java.nio.channels.ClosedByInterruptException: null
+          at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:202)
+          at sun.nio.ch.SocketChannelImpl.write(SocketChannelImpl.java:477)
+          at org.apache.hadoop.net.SocketOutputStream$Writer.performIO(SocketOutputStream.java:63)
+          at org.apache.hadoop.net.SocketIOWithTimeout.doIO(SocketIOWithTimeout.java:142)
+          at org.apache.hadoop.net.SocketOutputStream.write(SocketOutputStream.java:159)
+          at org.apache.hadoop.net.SocketOutputStream.write(SocketOutputStream.java:117)
+          at java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:82)
+          at java.io.BufferedOutputStream.flush(BufferedOutputStream.java:140)
+          at java.io.DataOutputStream.flush(DataOutputStream.java:123)
+          at org.apache.hadoop.hdfs.DataStreamer.run(DataStreamer.java:775)
+&lt;/code&gt;&lt;/pre&gt;
+
+    &lt;ul&gt;
+      &lt;li&gt;原因: 
+  flink论坛给出由于hadoop bug造成.
+  link: https://issues.apache.org/jira/browse/FLINK-13228&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;flink消费kafka事务超时问题&quot;&gt;flink消费kafka事务超时问题&lt;/h2&gt;
+&lt;p&gt;日志现象:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-log&quot;&gt;Map -&amp;gt; Sink: late_log_to_kafka)-xxxxx-51, producerId=19575, epoch=9071] has been open for 304327 ms. This is close to or even exceeding the transaction timeout of 300000 ms.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+  &lt;li&gt;flink官网文档建议
+增加超时时间:
+```
+    &lt;ol&gt;
+      &lt;li&gt;调整kafka-broker中transaction.max.timeout.ms时间
+transaction.max.timeout.ms:默认15min&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;调整flink-kafka-producer
+transaction.timeout.ms: 默认1hour
+实际使用中 transaction.timeout.ms设置了 5min,因为出现此问题,增大到12min.(主要是不想去设置kafka-borker,需要重启)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;kafkaProp.put(ProducerConfig.TRANSACTION_TIMEOUT_CONFIG, 12 * 60 * 1000);//12min&lt;/p&gt;
+
+&lt;p&gt;```
+link: &lt;a href=&quot;https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/datastream/kafka/#kafka-producers-and-fault-tolerance&quot;&gt;https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/datastream/kafka/#kafka-producers-and-fault-tolerance&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;flink-checkpoint失败优化&quot;&gt;flink-checkpoint失败优化&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;现象&lt;/p&gt;
+
+    &lt;p&gt;flink exactly_one 消费kafka时,kafka峰值流量过大,且分区较多时(且机器资源有限),容易导致checkpoint-data过大,checkpoint失败或超时.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;解决方法:&lt;/p&gt;
+
+    &lt;p&gt;增加 kafkaProducersPoolSize 大小,默认5.根据实际情况增大其值.&lt;/p&gt;
+
+    &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;li&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;decrease&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;number&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;of&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;max&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;concurrent&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;checkpoints&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;li&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;make&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;checkpoints&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;more&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;reliable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;so&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;that&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;they&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;complete&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;faster&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;li&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;increase&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;the&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;delay&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;between&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;checkpoints&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;li&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;increase&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;the&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;of&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nd&quot;&gt;@link&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FlinkKafkaInternalProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pool&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;参考源码:&lt;/p&gt;
+
+    &lt;p&gt;flink-kafka-producer&lt;/p&gt;
+    &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;cm&quot;&gt;/**
+      * Creates a FlinkKafkaProducer for a given topic. The sink produces its input to the topic. It
+      * accepts a {@link KafkaSerializationSchema} and possibly a custom {@link
+      * FlinkKafkaPartitioner}.
+      *
+      * @param defaultTopic The default topic to write data to
+      * @param serializationSchema A serializable serialization schema for turning user objects into
+      *     a kafka-consumable byte[] supporting key/value messages
+      * @param producerConfig Configuration properties for the KafkaProducer. 'bootstrap.servers.' is
+      *     the only required argument.
+      * @param semantic Defines semantic that will be used by this producer (see {@link
+      *     FlinkKafkaProducer.Semantic}).
+      * @param kafkaProducersPoolSize Overwrite default KafkaProducers pool size (see {@link
+      *     FlinkKafkaProducer.Semantic#EXACTLY_ONCE}).
+      */&lt;/span&gt;
+      &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;FlinkKafkaProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+              &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;defaultTopic&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;nc&quot;&gt;KafkaSerializationSchema&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;IN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;serializationSchema&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;nc&quot;&gt;Properties&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;producerConfig&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;nc&quot;&gt;FlinkKafkaProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;Semantic&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;semantic&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kafkaProducersPoolSize&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+                  &lt;span class=&quot;n&quot;&gt;defaultTopic&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+                  &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+                  &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* keyed schema and FlinkKafkaPartitioner */&lt;/span&gt;
+                  &lt;span class=&quot;n&quot;&gt;serializationSchema&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+                  &lt;span class=&quot;n&quot;&gt;producerConfig&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+                  &lt;span class=&quot;n&quot;&gt;semantic&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+                  &lt;span class=&quot;n&quot;&gt;kafkaProducersPoolSize&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+      &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+    &lt;p&gt;Semantic.EXACTLY_ONCE&lt;/p&gt;
+    &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;cm&quot;&gt;/**
+      * Semantics that can be chosen.
+      * &amp;lt;li&amp;gt;{@link #EXACTLY_ONCE}
+      * &amp;lt;li&amp;gt;{@link #AT_LEAST_ONCE}
+      * &amp;lt;li&amp;gt;{@link #NONE}
+      */&lt;/span&gt;
+      &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;enum&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Semantic&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+          &lt;span class=&quot;cm&quot;&gt;/**
+          * Semantic.EXACTLY_ONCE the Flink producer will write all messages in a Kafka transaction
+          * that will be committed to Kafka on a checkpoint.
+          *
+          * &amp;lt;p&amp;gt;In this mode {@link FlinkKafkaProducer} sets up a pool of {@link
+          * FlinkKafkaInternalProducer}. Between each checkpoint a Kafka transaction is created,
+          * which is committed on {@link FlinkKafkaProducer#notifyCheckpointComplete(long)}. If
+          * checkpoint complete notifications are running late, {@link FlinkKafkaProducer} can run
+          * out of {@link FlinkKafkaInternalProducer}s in the pool. In that case any subsequent
+          * {@link FlinkKafkaProducer#snapshotState(FunctionSnapshotContext)} requests will fail and
+          * {@link FlinkKafkaProducer} will keep using the {@link FlinkKafkaInternalProducer} from
+          * the previous checkpoint. To decrease the chance of failing checkpoints there are four
+          * options:
+          * &amp;lt;li&amp;gt;decrease number of max concurrent checkpoints
+          * &amp;lt;li&amp;gt;make checkpoints more reliable (so that they complete faster)
+          * &amp;lt;li&amp;gt;increase the delay between checkpoints
+          * &amp;lt;li&amp;gt;increase the size of {@link FlinkKafkaInternalProducer}s pool
+          */&lt;/span&gt;
+          &lt;span class=&quot;no&quot;&gt;EXACTLY_ONCE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+
+          &lt;span class=&quot;cm&quot;&gt;/**
+          * Semantic.AT_LEAST_ONCE the Flink producer will wait for all outstanding messages in the
+          * Kafka buffers to be acknowledged by the Kafka producer on a checkpoint.
+          */&lt;/span&gt;
+          &lt;span class=&quot;no&quot;&gt;AT_LEAST_ONCE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+
+          &lt;span class=&quot;cm&quot;&gt;/**
+          * Semantic.NONE means that nothing will be guaranteed. Messages can be lost and/or
+          * duplicated in case of failure.
+          */&lt;/span&gt;
+          &lt;span class=&quot;no&quot;&gt;NONE&lt;/span&gt;
+      &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>em-miao</name></author><category term="Flink" /><category term="Kafka" /><summary type="html">简介 记录一些在使用flink消费kafka时,遇到一些优化问题和框架问题,不定时更新一些新的问题.</summary></entry><entry><title type="html">Flink Write Data to Clickhouse 遇到的一些问题.</title><link href="http://localhost:8000/flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="Flink Write Data to Clickhouse 遇到的一些问题." /><published>2021-11-29T00:00:00+08:00</published><updated>2021-11-29T00:00:00+08:00</updated><id>http://localhost:8000/flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:8000/flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/">&lt;h1 id=&quot;简介&quot;&gt;简介&lt;/h1&gt;
+&lt;p&gt;由于公司业务和框架因素,目前将Clickhouse作为数仓唯一的存储选择.
+现将一些个人在使用Flink写数据到Clickhouse遇到的一些问题做一些笔记.&lt;/p&gt;
+
+&lt;h2 id=&quot;clickhouse简介&quot;&gt;Clickhouse简介:&lt;/h2&gt;
+&lt;p&gt;clickhouse是列式分布式存储系统,ClickHouse是一个用于联机分析(OLAP)的列式数据库管理系统(DBMS)。
+&lt;a href=&quot;https://clickhouse.com/docs/zh/&quot;&gt;官网简介&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;问题一-如果保证-flink-sink-to-clickhouse-有效一次&quot;&gt;问题一: 如果保证 Flink Sink to Clickhouse 有效一次&lt;/h2&gt;
+&lt;p&gt;这个问题是刚到公司,分配给我的. 这里说一下我简单的思路和方案.
+截至目前(2021年11月29日),前几天看到网上阿里已经实现了基于自身Clickhouse的有效一次性入库方案(类似于StreamSinkFile的二次提交)
+但是需要结合clickhouse的源码修改才能完成&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://mp.weixin.qq.com/s/8H2bxYUBmPzHl3Ae6WVWJg&quot;&gt;阿里巴巴相关文档&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;目前官方版本Clickhouse不具备事务.&lt;/p&gt;
+
+&lt;h3 id=&quot;解决思路&quot;&gt;解决思路&lt;/h3&gt;
+&lt;ol&gt;
+  &lt;li&gt;将Clickhouse的表引擎改为:  ReplacingMergeTree (目前是MergeTree)
+    &lt;ul&gt;
+      &lt;li&gt;优点: 满足幂等性,多次写入后数据最终能保证正确性.&lt;/li&gt;
+      &lt;li&gt;缺点: 当表数据很多时,ReplacingMergeTree对CPU和内存消耗很高.不适用于目前业务中.(目前业务将ods层数据都存到CH中,且是单节点.)&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;将kf_partition,kf_offset写入ch的表中,使topic和表一一对应.offset由kafka维护,不一致时,删除ch中多余数据.
+    &lt;ul&gt;
+      &lt;li&gt;优点: 能基本保证数据正确性.&lt;/li&gt;
+      &lt;li&gt;缺点: 不能使用Flink的自动重启机制,需要每次重启时,比对CH与Kafka的对应分区offset.&lt;/li&gt;
+      &lt;li&gt;缺点: 当CH负载过于高时,重启任务删除数据时,不能正常删除掉.数据准确性受限于CH负载.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;当任务重启时,使用kafka中的offset点直接启动任务,下一个小时通过hive或者具备事务性或幂等性的存储结构回插到CH(CH删除当前小时数据或分钟)
+    &lt;ul&gt;
+      &lt;li&gt;优点: 能保证数据准确性&lt;/li&gt;
+      &lt;li&gt;缺点: 资源消耗更多(需要额外的事务性分布式存储系统或集群资源消耗,目前公司不希望使用更多资源,就是”优化”.)&lt;/li&gt;
+      &lt;li&gt;缺点: 当前重启小时CH中数据不够准确,需要下一个小时数据回插后数据才具备准确性.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;最终使用了方案2.不要问为啥(成本控制?)&lt;/p&gt;
+
+&lt;h2 id=&quot;问题二-clickhouse删除数据时提示-空间不足&quot;&gt;问题二: Clickhouse删除数据时提示 空间不足&lt;/h2&gt;
+&lt;ol&gt;
+  &lt;li&gt;问题场景:&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;因为问题一解决方案2是基于保持clickhouse中数据的分区和offset与kafka的分区和offset一致,
+当任务重启(失败重启或手动重启)时,回去校验offset一致情况 .
+如果有不一致情况会将clickhouse中多余的数据删除其实保持一致.
+同时:
+users.xml 设置了同步修改数据属性.(因为是单节点所以设置1.多节点和副本情况设置2)&lt;/p&gt;
+&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;nt&quot;&gt;&amp;lt;mutations_sync&amp;gt;&lt;/span&gt;1&lt;span class=&quot;nt&quot;&gt;&amp;lt;/mutations_sync&amp;gt;&lt;/span&gt; 
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;导致了任务重启时删除多个按分区删除语句时提示空间不足:
+日志如下:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-log&quot;&gt;dealCkAndKfOffsetNoEqual count=[8211] ;exec-sql=[alter table  db01.test_table  delete where toDate(`logdate`)='2021-11-30' and kf_partition=6 and kf_partition&amp;gt;=14152053083 and kf_offset&amp;lt;=14152061943]
+ru.yandex.clickhouse.except.ClickHouseException: ClickHouse exception, code: 341, host: 172.34.6.84, port: 8123; Code: 341, e.displayText() = DB::Exception: Exception hap
+pened during execution of mutation 'mutation_8222580.txt' with part '20210819_662942_690500_6_8222579' reason: 'Code: 243, e.displayText() = DB::Exception: Cannot reserve
+ 54.68 GiB, not enough space (version 21.8.11.4 (official build))'. This error maybe retryable or not. In case of unretryable error, mutation can be killed with KILL MUTA
+TION query (version 21.8.11.4 (official build))
+
+        at ru.yandex.clickhouse.except.ClickHouseExceptionSpecifier.specify(ClickHouseExceptionSpecifier.java:58)
+        at ru.yandex.clickhouse.except.ClickHouseExceptionSpecifier.specify(ClickHouseExceptionSpecifier.java:28)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.checkForErrorAndThrow(ClickHouseStatementImpl.java:876)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.getInputStream(ClickHouseStatementImpl.java:616)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.executeQuery(ClickHouseStatementImpl.java:117)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.executeQuery(ClickHouseStatementImpl.java:100)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.executeQuery(ClickHouseStatementImpl.java:95)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.executeQuery(ClickHouseStatementImpl.java:90)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.execute(ClickHouseStatementImpl.java:226)
+        at flink_demo.utils.ClickhouseUtils.execSql(ClickhouseUtils.java:44)
+        at flink_demo.utils.ClickhouseUtils.execSql(ClickhouseUtils.java:32)
+        at flink_demo.utils.FlinkUtils.dealCkAndKfOffsetNoEqual(FlinkUtils.java:373)
+        at flink_demo.FlinkWriteLogOdsCKQueue.main(FlinkWriteLogOdsCKQueue.java:52)
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.lang.reflect.Method.invoke(Method.java:498)
+        at org.apache.flink.client.program.PackagedProgram.callMainMethod(PackagedProgram.java:355)
+        at org.apache.flink.client.program.PackagedProgram.invokeInteractiveModeForExecution(PackagedProgram.java:222)
+        at org.apache.flink.client.ClientUtils.executeProgram(ClientUtils.java:114)
+        at org.apache.flink.client.cli.CliFrontend.executeProgram(CliFrontend.java:812)
+        at org.apache.flink.client.cli.CliFrontend.run(CliFrontend.java:246)
+        at org.apache.flink.client.cli.CliFrontend.parseAndRun(CliFrontend.java:1054)
+        at org.apache.flink.client.cli.CliFrontend.lambda$main$10(CliFrontend.java:1132)
+        at java.security.AccessController.doPrivileged(Native Method)
+        at javax.security.auth.Subject.doAs(Subject.java:422)
+        at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1730)
+        at org.apache.flink.runtime.security.contexts.HadoopSecurityContext.runSecured(HadoopSecurityContext.java:41)
+        at org.apache.flink.client.cli.CliFrontend.main(CliFrontend.java:1132)
+Caused by: java.lang.Throwable: Code: 341, e.displayText() = DB::Exception: Exception happened during execution of mutation 'mutation_8222580.txt' with part '20210819_662
+942_690500_6_8222579' reason: 'Code: 243, e.displayText() = DB::Exception: Cannot reserve 54.68 GiB, not enough space (version 21.8.11.4 (official build))'. This error ma
+ybe retryable or not. In case of unretryable error, mutation can be killed with KILL MUTATION query (version 21.8.11.4 (official build))
+
+                at ru.yandex.clickhouse.except.ClickHouseExceptionSpecifier.specify(ClickHouseExceptionSpecifier.java:53)
+        ... 28 more
+ru.yandex.clickhouse.except.ClickHouseException: ClickHouse exception, code: 341, host: 172.34.6.84, port: 8123; Code: 341, e.displayText() = DB::Exception: Exception hap
+pened during execution of mutation 'mutation_8222580.txt' with part '20210819_662942_690500_6_8222579' reason: 'Code: 243, e.displayText() = DB::Exception: Cannot reserve
+ 54.68 GiB, not enough space (version 21.8.11.4 (official build))'. This error maybe retryable or not. In case of unretryable error, mutation can be killed with KILL MUTA
+TION query (version 21.8.11.4 (official build))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;在执行时CH内存使用较高,如图
+&lt;img src=&quot;https://i.loli.net/2021/11/30/mnYWsLOuB35Adrj.png&quot; alt=&quot;内存使用图&quot; /&gt;
+同时参考了文章: &lt;a href=&quot;https://cloud.tencent.com/developer/article/1704570&quot;&gt;https://cloud.tencent.com/developer/article/1704570&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;发现执行sql报错提示空间不足,是由因为对指定分区执行了 DELETE WHERE 条件删除，不在删除分区的分区文件，这些分区文件进入了 clone 流程,所以造成提示空间不足&lt;/p&gt;
+
+&lt;p&gt;如有其他关键问题.后期再继续更新.&lt;/p&gt;</content><author><name>em-miao</name></author><category term="Flink" /><category term="Clickhouse" /><summary type="html">简介 由于公司业务和框架因素,目前将Clickhouse作为数仓唯一的存储选择. 现将一些个人在使用Flink写数据到Clickhouse遇到的一些问题做一些笔记.</summary></entry><entry><title type="html">Flume 优化</title><link href="http://localhost:8000/flume/flume-%E4%BC%98%E5%8C%96/" rel="alternate" type="text/html" title="Flume 优化" /><published>2021-11-19T00:00:00+08:00</published><updated>2021-11-19T00:00:00+08:00</updated><id>http://localhost:8000/flume/flume-%E4%BC%98%E5%8C%96</id><content type="html" xml:base="http://localhost:8000/flume/flume-%E4%BC%98%E5%8C%96/">&lt;h1 id=&quot;flume优化&quot;&gt;Flume优化&lt;/h1&gt;
+
+&lt;h2 id=&quot;背景和现象&quot;&gt;背景和现象&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;现象&lt;/p&gt;
+
+    &lt;p&gt;因数据堆积(job停止没有自动重启)后,flink任务将数据消费完成到kafka-topic中,flume消费堆积数据到hdfs(s3)时,数据消费过慢.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;原因&lt;/p&gt;
+
+    &lt;p&gt;修改了kafka的压缩方式,由snappy改为了 zstd,zstd在解压时速率较慢,同时由于堆积造成flume消费kafka时,网速远没达到预期.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;解决过程&quot;&gt;解决过程&lt;/h2&gt;
+&lt;h3 id=&quot;升级机器配置&quot;&gt;升级机器配置&lt;/h3&gt;
+&lt;p&gt;在原有机器上调整了以下配置后,flume机器网速依然没有提升.平均值大约在42MB/s&lt;/p&gt;
+
+&lt;p&gt;原机器 配置: 4C 16GB&lt;/p&gt;
+&lt;div class=&quot;language-conf highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# source
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a1&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;sources&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;r1&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;batchSize&lt;/span&gt; = &lt;span class=&quot;m&quot;&gt;40000&lt;/span&gt; &lt;span class=&quot;c&quot;&gt;# 原有值 10000
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a1&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;sources&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;r1&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;batchDurationMillis&lt;/span&gt; = &lt;span class=&quot;m&quot;&gt;500&lt;/span&gt; &lt;span class=&quot;c&quot;&gt;# 原有值 1000
+&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# sink
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a1&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;sinks&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;k1&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;hdfs&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;batchSize&lt;/span&gt; = &lt;span class=&quot;m&quot;&gt;5000&lt;/span&gt; &lt;span class=&quot;c&quot;&gt;# 原有1000
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;升级了新机器&lt;/p&gt;
+
+&lt;p&gt;32C 64GB后调整了批次大小和间隔时间,依然没有对消费能力有较大提升,最终平均网速也只在50MB/s左右,没有达到预想中的提升.&lt;/p&gt;
+
+&lt;h3 id=&quot;修改自定义拦截器&quot;&gt;修改自定义拦截器&lt;/h3&gt;
+
+&lt;p&gt;通过火焰图发现了拦截效果过慢,大约占用了40-45%的效率时间.&lt;/p&gt;
+
+&lt;p&gt;火焰图使用参考其官网: &lt;a href=&quot;https://github.com/jvm-profiling-tools/async-profiler&quot;&gt;火焰图github官网&lt;/a&gt;&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;ps &lt;span class=&quot;nt&quot;&gt;-ef&lt;/span&gt; |grep flume
+&lt;span class=&quot;c&quot;&gt;#拿到进程id -&amp;gt; pid&lt;/span&gt;
+
+/profiler.sh &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; 30 &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; pid_xxx.html pid
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;优化前火焰图: 
+&lt;img src=&quot;https://i.loli.net/2021/11/29/azbCdjQGpK8OEsn.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;通过查看自定义拦截器代码&lt;/p&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;intercept&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getHeaders&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getBody&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;StandardCharsets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;UTF_8&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;JSONObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;parseObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;JSONObject&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;parseObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;containsKey&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;key&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;timestamp&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;timestamp&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;xxx&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;xxx&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;yyy&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;yyy&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;intercept&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;events&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;event&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;events&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intercept&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intercept&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;intercept&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;){&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;intercept&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;优化后的拦截器代码:使用多多线程解析 List&lt;Event&gt; events,同时去除了重复的JSONObject.parseObject(log);&lt;/Event&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;intercept&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getHeaders&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;JSONObject&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;parseObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getBody&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;StandardCharsets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;UTF_8&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;containsKey&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;key&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;timestamp&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;timestamp&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;xxx&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;xxx&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;yyy&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jsonObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;yyy&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;intercept&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;events&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;events&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;stream&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;parallel&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;event&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intercept&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;event&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;collect&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Collectors&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;toList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;ul&gt;
+  &lt;li&gt;小结:
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;这里总结以下:  events.stream&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;.parallel&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; 并行执行,当events 个数多的时候效果更好.
+同时需要属性jdk8+的lamada表达式及内部原理.
+这里涉及到后期优化kafka消费者的读取批次参数了.
+这对拦截器的效率提升巨大.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;来看一下优化拦截器后的火焰图:
+&lt;img src=&quot;https://i.loli.net/2021/11/29/8ohcMwQ7tWx6kIr.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;修改kafka读取批次和channel大小及sink的批次大小&quot;&gt;修改kafka读取批次和channel大小及sink的批次大小.&lt;/h3&gt;
+&lt;p&gt;在高配机器上上传修改后拦截器jar后,不修改kafka消费参数时,提升效果来到了72MB/s,但是还是没有达到预期100MB+的理想情况.&lt;/p&gt;
+&lt;div class=&quot;language-yml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;a1.sources.r1.batchSize = &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;40000&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;a1.sources.r1.batchDurationMillis = &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;500&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;a1.sources.r1.kafka.consumer.max.poll.records = &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;40000&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;#这个和a1.sources.r1.batchSize很关键&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;kafka.consumer.max.poll.records: 消费者批次拉取数据大小
+a1.sources.r1.batchSize : flume的source批次写入channel时的大小.&lt;/p&gt;
+
+&lt;p&gt;修改上了上述参数后,重启flume,flume消费机器网速来到120MB/s达到了理想情况.&lt;/p&gt;
+
+&lt;h2 id=&quot;优化总结&quot;&gt;优化总结&lt;/h2&gt;
+&lt;ol&gt;
+  &lt;li&gt;在flume拦截使用多线程时,首先需要批次数据更多更有利,同时和cpu个数和频率也有关一定关系.&lt;/li&gt;
+  &lt;li&gt;flume-source:kafka-consumer批次拉取也很关键.如果设置大小.对1也有影响.&lt;/li&gt;
+&lt;/ol&gt;</content><author><name>em-miao</name></author><category term="Flume" /><summary type="html">Flume优化</summary></entry><entry><title type="html">macos中遇到的一些问题</title><link href="http://localhost:8000/macos/macos%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/" rel="alternate" type="text/html" title="macos中遇到的一些问题" /><published>2021-11-03T00:00:00+08:00</published><updated>2021-11-03T00:00:00+08:00</updated><id>http://localhost:8000/macos/macos%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98</id><content type="html" xml:base="http://localhost:8000/macos/macos%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/">&lt;h1 id=&quot;简介&quot;&gt;简介&lt;/h1&gt;
+&lt;p&gt;记录自己在使用MacOS中遇到的一些问题.&lt;/p&gt;
+
+&lt;h2 id=&quot;bash版本问题-date命令问题&quot;&gt;Bash版本问题-&amp;gt;date命令问题&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;场景:
+自己在使用date命令时发现,本机mac和linux环境的中执行效果不一样;
+linux可以正常执行,但是mac不行&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# linux 环境下&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;root@localhost]~# &lt;span class=&quot;nb&quot;&gt;date&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;2021-01-01 00:00:00&quot;&lt;/span&gt; +&lt;span class=&quot;s2&quot;&gt;&quot;%Y%m%d&quot;&lt;/span&gt;
+20210101
+
+&lt;span class=&quot;c&quot;&gt;# mac&lt;/span&gt;
+~ ❯ &lt;span class=&quot;nb&quot;&gt;date&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;2021-01-01 00:00:00&quot;&lt;/span&gt; +&lt;span class=&quot;s2&quot;&gt;&quot;%Y%m%d&quot;&lt;/span&gt;
+usage: &lt;span class=&quot;nb&quot;&gt;date&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-jnRu&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; dst] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-r&lt;/span&gt; seconds] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-t&lt;/span&gt; west] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+|-]val[ymwdHMS]] ...
+            &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;fmt date&lt;/span&gt; | &lt;span class=&quot;o&quot;&gt;[[[&lt;/span&gt;mm]dd]HH]MM[[cc]yy][.ss]] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+format]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;原因
+查看bash版本发现:疑是版本问题.同时在升级完bash版本后无效,发现原因是: macos date 命令未遵循Linux规范&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#mac bash version&lt;/span&gt;
+~ ❯ bash &lt;span class=&quot;nt&quot;&gt;-version&lt;/span&gt; 
+GNU bash, version 3.2.57&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;1&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-release&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;arm64-apple-darwin21&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Copyright &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;C&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 2007 Free Software Foundation, Inc.
+
+&lt;span class=&quot;c&quot;&gt;# linux bash version&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;root@localhost]~# bash &lt;span class=&quot;nt&quot;&gt;-version&lt;/span&gt;
+GNU bash， 版本 4.2.46&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;2&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-release&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;x86_64-redhat-linux-gnu&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Copyright &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;C&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 2011 Free Software Foundation, Inc.
+许可证 GPLv3+: GNU GPL 许可证版本3或者更高 &amp;lt;http://gnu.org/licenses/gpl.html&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;解决方案&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;升级bash,升级后无效; 最后发现:macos date 命令未遵循Linux规范,暂时无解.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;macos date
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;date&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-1d&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-j&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'%Y-%m-%d'&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'2021-10-01'&lt;/span&gt; +&lt;span class=&quot;s2&quot;&gt;&quot;%Y/%m/%d&quot;&lt;/span&gt;
+2021/09/30
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;linux date
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;date&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-1 day 2021-10-01'&lt;/span&gt; +&lt;span class=&quot;s2&quot;&gt;&quot;%Y/%m/%d&quot;&lt;/span&gt;
+2021/09/30
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;m1-macos-rocksdb报错&quot;&gt;M1 MacOS RocksDB报错&lt;/h2&gt;
+
+&lt;p&gt;librocksdbjni-osx.jnilib’ (mach-o file, but is an incompatible architecture (have ‘x86_64’, need ‘arm64e’))&lt;/p&gt;
+
+&lt;p&gt;现象:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-log&quot;&gt;Caused by: java.lang.UnsatisfiedLinkError: /private/var/folders/yy/bzy10qzx6tqdtl8c6rglyc5m0000gn/T/rocksdb-lib-3af5f881382477b5f054b9f48837917c/librocksdbjni-osx.jnilib: dlopen(/private/var/folders/yy/bzy10qzx6tqdtl8c6rglyc5m0000gn/T/rocksdb-lib-3af5f881382477b5f054b9f48837917c/librocksdbjni-osx.jnilib, 0x0001): tried: '/private/var/folders/yy/bzy10qzx6tqdtl8c6rglyc5m0000gn/T/rocksdb-lib-3af5f881382477b5f054b9f48837917c/librocksdbjni-osx.jnilib' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e')), '/usr/lib/librocksdbjni-osx.jnilib' (no such file)
+	at java.lang.ClassLoader$NativeLibrary.load(Native Method)
+	at java.lang.ClassLoader.loadLibrary0(ClassLoader.java:1950)
+	at java.lang.ClassLoader.loadLibrary(ClassLoader.java:1832)
+	at java.lang.Runtime.load0(Runtime.java:811)
+	at java.lang.System.load(System.java:1088)
+	at org.rocksdb.NativeLibraryLoader.loadLibraryFromJar(NativeLibraryLoader.java:78)
+	at org.rocksdb.NativeLibraryLoader.loadLibrary(NativeLibraryLoader.java:56)
+	at org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend.ensureRocksDBIsLoaded(EmbeddedRocksDBStateBackend.java:860)
+	... 17 more
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;暂时无法解决,尚未支持M1 &lt;a href=&quot;https://github.com/facebook/rocksdb/issues/7720&quot;&gt;https://github.com/facebook/rocksdb/issues/7720&lt;/a&gt;&lt;/p&gt;</content><author><name>em-miao</name></author><category term="MacOS" /><summary type="html">简介 记录自己在使用MacOS中遇到的一些问题.</summary></entry><entry><title type="html">Flink1.13.2手动编译</title><link href="http://localhost:8000/flink/complie/Flink1.13.2%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91/" rel="alternate" type="text/html" title="Flink1.13.2手动编译" /><published>2021-09-10T00:00:00+08:00</published><updated>2021-09-10T00:00:00+08:00</updated><id>http://localhost:8000/flink/complie/Flink1.13.2%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91</id><content type="html" xml:base="http://localhost:8000/flink/complie/Flink1.13.2%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91/">&lt;h1 id=&quot;flink1132手动编译&quot;&gt;Flink1.13.2手动编译&lt;/h1&gt;
+
+&lt;h2 id=&quot;编译环境&quot;&gt;编译环境&lt;/h2&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;# 系统
+Linux 3.10.0-1127.el7.x86_64 #1 SMP Tue Mar 31 23:36:51 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
+
+# jdk maven
+Apache Maven 3.6.3 (cecedd343002696d0abb50b32b541b8a6ba2883f)
+Maven home: /home/apache-maven-3.6.3
+Java version: 1.8.0_252, vendor: Oracle Corporation, runtime: /usr/lib/jvm/java-1.8.0-openjdk-1.8.0.252.b09-2.el7_8.x86_64/jre
+Default locale: en_US, platform encoding: UTF-8
+OS name: &quot;linux&quot;, version: &quot;3.10.0-1127.el7.x86_64&quot;, arch: &quot;amd64&quot;, family: &quot;unix&quot;
+# flink
+flink-1.13.2
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;编译步骤&quot;&gt;编译步骤&lt;/h2&gt;
+&lt;h3 id=&quot;1解压源码&quot;&gt;1.解压源码&lt;/h3&gt;
+
+&lt;h3 id=&quot;2执行编译&quot;&gt;2.执行编译&lt;/h3&gt;
+&lt;p&gt;指定hadoop版本，scala版本，hive版本等信息&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;mvn clean install -T4C -DskipTests -Dfast -Dhadoop.version=3.2.1 -Dscala-2.11 -Dhive.version=3.1.2
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;如果环境中正常的情况，上述步骤可以正常编译出符合自己环境的flink运行包&lt;/strong&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;可能遇到的问题&quot;&gt;可能遇到的问题&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;flink-shaded-hadoop编译失败时，下载flink-shaded编译后在进行flink编译
+    &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dcheckstyle.skip=true -Drat.skip=true -pl flink-shaded-hadoop-2-parent/flink-shaded-hadoop-2-uber -am -Dhadoop.version=3.2.1
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;如果出现依赖问题增加仓库
+```xml&lt;/li&gt;
+&lt;/ul&gt;
+&lt;repositories&gt;
+  &lt;repository&gt;
+    &lt;id&gt;jetty&lt;/id&gt;
+    &lt;name&gt;jetty Repository&lt;/name&gt;
+    &lt;url&gt;http://repo.hortonworks.com/content/groups/public/&lt;/url&gt;
+    &lt;releases&gt;
+      &lt;enabled&gt;true&lt;/enabled&gt;
+      &lt;updatePolicy&gt;daily&lt;/updatePolicy&gt;
+    &lt;/releases&gt;
+    &lt;snapshots&gt;
+      &lt;enabled&gt;false&lt;/enabled&gt;
+      &lt;checksumPolicy&gt;warn&lt;/checksumPolicy&gt;
+    &lt;/snapshots&gt;
+    &lt;layout&gt;default&lt;/layout&gt;
+  &lt;/repository&gt;      
+&lt;/repositories&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;
+- flink-yarn-test编译失败，跳过
+
+``` xml
+
+&amp;lt;plugin&amp;gt;
+    &amp;lt;groupId&amp;gt;org.apache.maven.plugins&amp;lt;/groupId&amp;gt;
+    &amp;lt;artifactId&amp;gt;maven-compiler-plugin&amp;lt;/artifactId&amp;gt;
+    &amp;lt;version&amp;gt;3.8.0&amp;lt;/version&amp;gt;
+    &amp;lt;configuration&amp;gt;
+        &amp;lt;source&amp;gt;${java.version}&amp;lt;/source&amp;gt;
+        &amp;lt;target&amp;gt;${java.version}&amp;lt;/target&amp;gt;
+        &amp;lt;!-- 略过测试代码的编译 --&amp;gt;
+        &amp;lt;skip&amp;gt;true&amp;lt;/skip&amp;gt;
+        &amp;lt;!-- The semantics of this option are reversed, see MCOMPILER-209. --&amp;gt;
+        &amp;lt;useIncrementalCompilation&amp;gt;false&amp;lt;/useIncrementalCompilation&amp;gt;
+        &amp;lt;compilerArgs&amp;gt;
+                &amp;lt;!-- Prevents recompilation due to missing package-info.class, see MCOMPILER-205 --&amp;gt;
+            &amp;lt;arg&amp;gt;-Xpkginfo:always&amp;lt;/arg&amp;gt;
+        &amp;lt;/compilerArgs&amp;gt;
+    &amp;lt;/configuration&amp;gt;
+&amp;lt;/plugin&amp;gt;  
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name>em-miao</name></author><category term="Flink" /><category term="Complie" /><summary type="html">Flink1.13.2手动编译</summary></entry><entry><title type="html">Python编译打包为并生成deb(带桌面图标)</title><link href="http://localhost:8000/python/Python%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E4%B8%BA%E5%B9%B6%E7%94%9F%E6%88%90deb(%E5%B8%A6%E6%A1%8C%E9%9D%A2%E5%9B%BE%E6%A0%87)/" rel="alternate" type="text/html" title="Python编译打包为并生成deb(带桌面图标)" /><published>2021-09-08T00:00:00+08:00</published><updated>2021-09-08T00:00:00+08:00</updated><id>http://localhost:8000/python/Python%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E4%B8%BA%E5%B9%B6%E7%94%9F%E6%88%90deb(%E5%B8%A6%E6%A1%8C%E9%9D%A2%E5%9B%BE%E6%A0%87)</id><content type="html" xml:base="http://localhost:8000/python/Python%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E4%B8%BA%E5%B9%B6%E7%94%9F%E6%88%90deb(%E5%B8%A6%E6%A1%8C%E9%9D%A2%E5%9B%BE%E6%A0%87)/">&lt;h1 id=&quot;python编译打包为并生成deb带桌面图标&quot;&gt;Python编译打包为并生成deb(带桌面图标)&lt;/h1&gt;
+
+&lt;h2 id=&quot;环境&quot;&gt;环境&lt;/h2&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Ubuntu20.04
+Python3.8
+
+# 项目未打包前目录结构
+tree -L 2
+❯ tree -L 2
+.
+├── application.png
+├── debbuild
+│   ├── DEBIAN
+│   └── usr
+├── exec_cmd.py
+├── main.py
+├── __pycache__
+│   └── main.cpython-38.pyc
+├── random_wallpaper.py
+
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;1-安装pyinstaller&quot;&gt;1 安装pyinstaller&lt;/h2&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;pip3 install pyinstaller
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h2 id=&quot;2-将main编译为二进制可执行文件&quot;&gt;2 将main编译为二进制可执行文件&lt;/h2&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;pyinstaller -F main.py  打包ubuntu下的可执行文件
+pyinstaller -F -w main.py  不带控制台的打包
+# 带有图标的
+pyinstaller -F -w -i application.png main.py  打包指定ubuntu下的可执行文件的图标打包
+
+# 编译完成后目录：
+❯ tree -L 2
+.
+├── application.png
+├── build
+│   └── main
+├── dist
+│   └── main
+├── exec_cmd.py
+├── main.py
+├── main.spec
+├── __pycache__
+│   └── main.cpython-38.pyc
+├── random_wallpaper.py
+└── venv
+    ├── bin
+    ├── include
+    ├── lib
+    ├── lib64 -&amp;gt; lib
+    └── pyvenv.cfg
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;dist/main为当前系统可执行文件&lt;/strong&gt;&lt;/p&gt;
+&lt;h2 id=&quot;3-将可执行文件打包为deb并且设置桌面图标ubuntu环境&quot;&gt;3 将可执行文件打包为deb并且设置桌面图标（Ubuntu环境）&lt;/h2&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;mkdir debbuild &amp;amp;&amp;amp; cd debbuild
+#以 debbuild 根目录，创建如下目录和文件
+DEBIAN,usr/lib/RandomWallPaper ,usr/lib/share/applications ,usr/lib/share/icons
+❯ tree
+.
+├── DEBIAN
+│   └── control
+└── usr
+    ├── lib
+    │   └── RandomWallpaper
+    │       └── main
+    └── share
+        ├── applications
+        │   └── RandomWallpaper.desktop
+        └── icons
+            └── RandomWallpaper.png
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;usr/lib/RandomWallPaper/main 这个文件就是可执行二进制文件，来自于dist/main ; RandomWallpaper.png 图标文件为自定义&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&quot;31-control&quot;&gt;3.1 control&lt;/h3&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Package: RandomWallpaper
+Version: 1.0.0
+Architecture: amd64
+Maintainer: lius
+Description: random set desktop background img and lock img
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h3 id=&quot;32-randomwallpaperdesktop&quot;&gt;3.2 RandomWallpaper.desktop&lt;/h3&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[Desktop Entry]
+Name=RandomWallpaper
+Comment=An example
+Exec=/usr/lib/RandomWallpaper/main
+Icon=/usr/share/icons/RandomWallpaper.png
+Terminal=false
+Type=Application
+X-Ubuntu-Touch=true
+Categories=Development
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;4-执行打包&quot;&gt;4 执行打包&lt;/h2&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;cd ..
+#---------------#
+❯ tree -L 2
+.
+├── application.ico
+├── application.png
+├── build
+│   └── main
+├── debbuild
+│   ├── DEBIAN
+│   └── usr
+├── dist
+│   └── main
+├── exec_cmd.py
+├── main.py
+├── main.spec
+├── pk.sh
+├── __pycache__
+│   └── main.cpython-38.pyc
+├── randomWallpaper1.0.0.amd64.deb
+├── random_wallpaper.py
+└── venv
+    ├── bin
+    ├── include
+    ├── lib
+    ├── lib64 -&amp;gt; lib
+    └── pyvenv.cfg
+#----------------------#
+
+sudo dpkg -b debbuild  randomWallpaper1.0.0.amd64.deb
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;5-验证安装&quot;&gt;5 验证安装&lt;/h2&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo dpkg -i randomWallpaper1.0.0.amd64.deb
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;备注&quot;&gt;备注&lt;/h2&gt;
+&lt;p&gt;翻阅资料发现pyinstaller在某个版本后，不再支持交叉编译，因为兼容性太差。需要对应操作系统的可执行文件，需要到相应的操作系统下进行编译。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;（But Golang 可以，所以后期有类似的应用程序，尽量都会使用go进行编写）&lt;/strong&gt;&lt;/p&gt;</content><author><name>em-miao</name></author><category term="Python" /><summary type="html">Python编译打包为并生成deb(带桌面图标)</summary></entry><entry><title type="html">Flink-Sink-ElasticSearch部分字段追加数据</title><link href="http://localhost:8000/flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE/" rel="alternate" type="text/html" title="Flink-Sink-ElasticSearch部分字段追加数据" /><published>2021-08-13T00:00:00+08:00</published><updated>2021-08-13T00:00:00+08:00</updated><id>http://localhost:8000/flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE</id><content type="html" xml:base="http://localhost:8000/flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE/">&lt;h1 id=&quot;flink-flink-sink-elasticsearch部分字段追加数据&quot;&gt;Flink Flink-Sink-ElasticSearch部分字段追加数据&lt;/h1&gt;
+
+&lt;h2 id=&quot;背景需求&quot;&gt;背景需求&lt;/h2&gt;
+&lt;p&gt;因flink消费kafka，其中数据需要进行补维操作，正常补维的数据都保存了最新属性数据到mysql。当任务正常流通时，从mysql拿取属性数据进行维度补充没有问题。
+现有需求：当数据重放时：需要拿到对应时间状态的维度数据。&lt;/p&gt;
+
+&lt;h2 id=&quot;解决方案&quot;&gt;解决方案&lt;/h2&gt;
+
+&lt;h3 id=&quot;方案一&quot;&gt;方案一：&lt;/h3&gt;
+&lt;p&gt;flink 双流join 关联用户ID，或其他关键值进行双流join完成。
+&lt;a href=&quot;https://ci.apache.org/projects/flink/flink-docs-master/docs/dev/datastream/operators/joining/#interval-join&quot;&gt;https://ci.apache.org/projects/flink/flink-docs-master/docs/dev/datastream/operators/joining/#interval-join&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;方案一缺点：&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;存在重放数据中没有属性数据时，关联不上的问题。当然这个也可以依赖外部储存解决&lt;/li&gt;
+  &lt;li&gt;增加程序的关联复杂度。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;优点：&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;利用flink join机制 ，降低对外部存储系统依赖&lt;/li&gt;
+  &lt;li&gt;高效。可以解决大部分的关联数据，但是有部分可能还是关联不上。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;方案二&quot;&gt;方案二:&lt;/h3&gt;
+&lt;p&gt;通过保存历史版本数据，当回放数据时，判断当前数据与最新本的版本号是否一致。
+不一致时，使用相对应的版本的属性数据。
+优点：&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;不存在数据丢失。&lt;/li&gt;
+  &lt;li&gt;相对程序来说简单一点&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;缺点：&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;严重依赖外部存储。特别是数据量巨大的情况。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;最终选择&quot;&gt;最终选择&lt;/h2&gt;
+&lt;p&gt;综合考虑下来，选择了方案二
+因公司相关程序都是跑在云（Flink on Yarn-EMR)上，没有自己的分布式存储系统。
+本来想使用HBase,但是hbase强依赖hdfs，公司没有自建的HDFS集群，放弃。
+选择使用ES。&lt;/p&gt;
+
+&lt;p&gt;说了这么多，好像都跟ES没有啥关系。。。。&lt;/p&gt;
+
+&lt;p&gt;选择ES来存储属性维度版本数据。
+版本号就是属性数据中的timestamp字段（时间戳字段）
+分别两个索性
+1：存储版本的索性  user_versions
+2：存储对应版本的数据索引 user_property_index&lt;/p&gt;
+
+&lt;p&gt;其中索引user_versions专门用来存储用户数据的版本信息
+eg:
+user_versions
+id=pid_uid
+source=timestamps:[1628823667951]&lt;/p&gt;
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_index&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;user_versions&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_type&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;_doc&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_id&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;1_100007140&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_score&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;1.0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_source&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+          &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;timestamps&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+            &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628823667951&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+            &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628823667952&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+            &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628823668001&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+            &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628823855026&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+            &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628823856738&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+            &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628823873136&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+            &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628823958514&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+            &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628824061838&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+          &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+      &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;user_property_index
+id=pid_uid_timestamp
+eg:其余字段省略了。只列出关键数据&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;GET user_property_index/_doc/1_100007140_1628824061838
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_index&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;user_property_index&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_type&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;_doc&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_id&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;1_100007140_1628824061838&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_version&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_seq_no&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3360&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_primary_term&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;found&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;_source&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;data&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&quot;&quot;{
+        &quot;&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;pid&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;: &quot;&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;,
+        &quot;&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;uid&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;: &quot;&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;100007140&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;,
+        &quot;&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;: &quot;&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628824061838&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;,
+        &quot;&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;md&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;: &quot;&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;83874&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;7742&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;78&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;bd&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;916&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;cc&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;430&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;44&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;527&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;
+    }&quot;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;update_at&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1628841996&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;1_100007140&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;当存储用户信息时，选择数据追加方式，
+ES中有关于数据追加方式的介绍
+&lt;a href=&quot;https://www.huaweicloud.com/articles/da7557ae10f7f6153d23b000ec2d4015.html&quot;&gt;华为云文档&lt;/a&gt;
+简陋的&lt;a href=&quot;https://www.elastic.co/guide/cn/elasticsearch/php/current/_updating_documents.html&quot;&gt;官网文档&lt;/a&gt;（应该是我找的方式不对）&lt;/p&gt;
+
+&lt;p&gt;在flink中使用&lt;/p&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ElasticsearchSink&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;JSONObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;genESSink&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;HttpHost&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;httpHosts&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;ElasticsearchSink&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;Builder&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;esBuilder&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ElasticsearchSink&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;Builder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;httpHosts&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ElasticsearchSinkFunction&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;JSONObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+            &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;UpdateRequest&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;createUserPropertySnapshotRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;JSONObject&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;pid&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;uid&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getLong&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;timestamp&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+                &lt;span class=&quot;c1&quot;&gt;//保存property 信息&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;propertyId&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;_&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;_&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;UpdateRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;updateReq&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;UpdateRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ESClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;userPropertyIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;propertyId&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;_&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;data&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;toJSONString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;update_at&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;currentTimeMillis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+                &lt;span class=&quot;nc&quot;&gt;IndexRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IndexRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ESClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;userPropertyIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;propertyId&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;source&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;timeout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;TimeValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;timeValueSeconds&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;60&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+
+                &lt;span class=&quot;n&quot;&gt;updateReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;doc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;upsert&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;timeout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;TimeValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;timeValueSeconds&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;60&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;updateReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+            &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+            &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;JSONObject&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RuntimeContext&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RequestIndexer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;indexer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;indexer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;createUserPropertySnapshotRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;),&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;createPropertyVersionRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+            &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;UpdateRequest&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;createPropertyVersionRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;JSONObject&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;pid&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;uid&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getLong&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;timestamp&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+                &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionId&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;_&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                &lt;span class=&quot;c1&quot;&gt;//保存版本信息&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;UpdateRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;updateReq&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;UpdateRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ESClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;versionIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionId&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;params&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;params&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;new_timestamp&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;idOrCode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;ctx._source.timestamps.add(params.new_timestamp)&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;Script&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;script&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Script&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ScriptType&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;INLINE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Script&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;DEFAULT_SCRIPT_LANG&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;idOrCode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;params&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;updateReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;script&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;script&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+                &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;timestamps&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;});&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;IndexRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IndexRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ESClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;versionIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;versionId&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;source&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sourceMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;timeout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;TimeValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;timeValueSeconds&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;60&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;updateReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;upsert&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;indexReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;timeout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;TimeValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;timeValueSeconds&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;60&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;updateReq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;});&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;esBuilder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;setBulkFlushMaxActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+      
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;esBuilder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;build&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;cm&quot;&gt;/**
+     * 获取离时间参数版本最近的一个版本
+     *
+     * @param pid              product_id
+     * @param uid              userId
+     * @param versionTimestamp 时间参数版本号
+     * @return user_property dataJson
+     */&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getUserVersionProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionTimestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionId&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;_&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;RestHighLevelClient&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RestHighLevelClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;clientBuilder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;//获取最近版本&lt;/span&gt;
+            &lt;span class=&quot;nc&quot;&gt;GetRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getRequest&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;GetRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;versionIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionId&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;nc&quot;&gt;GetResponse&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RequestOptions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;isExists&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamps&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getSource&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;timestamps&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;timestamps&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamps&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;instanceof&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;versionList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+                &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sub&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionTimestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resVersion&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1L&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;HashSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionSet&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HashSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;versionSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addAll&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;versionList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;version&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                    &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tempSub&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;versionTimestamp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;//&lt;/span&gt;
+                    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tempSub&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tempSub&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sub&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;//找到差值最小前一个版本&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;sub&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tempSub&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;resVersion&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resVersion&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1L&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                    &lt;span class=&quot;nc&quot;&gt;GetRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;proGet&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;GetRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;userPropertyIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;_&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;_&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resVersion&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;resp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;proGet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RequestOptions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;isExists&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                        &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;source&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getSource&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+                        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;source&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;source&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;isEmpty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;source&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;data&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;source&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;data&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;toString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+                        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+                    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;getUserVersionProperty exception : &quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name>em-miao</name></author><category term="Flink" /><category term="ElasticSearch" /><summary type="html">Flink Flink-Sink-ElasticSearch部分字段追加数据</summary></entry><entry><title type="html">记一次Kafka-Manager JMX异常处理</title><link href="http://localhost:8000/kafka/%E8%AE%B0%E4%B8%80%E6%AC%A1Kafka-Manager-JMX%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/" rel="alternate" type="text/html" title="记一次Kafka-Manager JMX异常处理" /><published>2021-08-02T00:00:00+08:00</published><updated>2021-08-02T00:00:00+08:00</updated><id>http://localhost:8000/kafka/%E8%AE%B0%E4%B8%80%E6%AC%A1Kafka-Manager-JMX%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86</id><content type="html" xml:base="http://localhost:8000/kafka/%E8%AE%B0%E4%B8%80%E6%AC%A1Kafka-Manager-JMX%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/">&lt;h1 id=&quot;记一次kafka-manager-jmx异常处理&quot;&gt;记一次Kafka-Manager JMX异常处理&lt;/h1&gt;
+
+&lt;h2 id=&quot;现象&quot;&gt;现象&lt;/h2&gt;
+&lt;p&gt;直接上日志：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-log&quot;&gt;2021-08-02 03:49:15,548 - [ERROR] k.m.a.c.BrokerViewCacheActor - Failed to get broker metrics for BrokerIdentity(0,172.34.10.2,9999,false,true,Map(PLAINTEXT -&amp;gt; 9092))
+java.rmi.ConnectException: Connection refused to host: 127.0.0.1; nested exception is: 
+        java.net.ConnectException: Connection refused (Connection refused)
+        at sun.rmi.transport.tcp.TCPEndpoint.newSocket(TCPEndpoint.java:623)
+        at sun.rmi.transport.tcp.TCPChannel.createConnection(TCPChannel.java:216)
+        at sun.rmi.transport.tcp.TCPChannel.newConnection(TCPChannel.java:202)
+        at sun.rmi.server.UnicastRef.invoke(UnicastRef.java:131)
+        at java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:235)
+        at java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:180)
+        at com.sun.proxy.$Proxy5.newClient(Unknown Source)
+        at javax.management.remote.rmi.RMIConnector.getConnection(RMIConnector.java:2430)
+        at javax.management.remote.rmi.RMIConnector.connect(RMIConnector.java:308)
+        at javax.management.remote.JMXConnectorFactory.connect(JMXConnectorFactory.java:270)
+Caused by: java.net.ConnectException: Connection refused (Connection refused)
+        at java.net.PlainSocketImpl.socketConnect(Native Method)
+        at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:350)
+        at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:206)
+        at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:188)
+        at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:392)
+        at java.net.Socket.connect(Socket.java:606)
+        at java.net.Socket.connect(Socket.java:555)
+        at java.net.Socket.&amp;lt;init&amp;gt;(Socket.java:451)
+        at java.net.Socket.&amp;lt;init&amp;gt;(Socket.java:228)
+2021-08-02 03:49:15,559 - [ERROR] k.m.j.KafkaJMX$ - Failed to connect to service:jmx:rmi:///jndi/rmi://172.34.56.7:9999/jmxrmi
+java.rmi.ConnectException: Connection refused to host: 127.0.0.1; nested exception is: 
+        java.net.ConnectException: Connection refused (Connection refused)
+        at sun.rmi.transport.tcp.TCPEndpoint.newSocket(TCPEndpoint.java:623)
+        at sun.rmi.transport.tcp.TCPChannel.createConnection(TCPChannel.java:216)
+        at sun.rmi.transport.tcp.TCPChannel.newConnection(TCPChannel.java:202)
+        at sun.rmi.server.UnicastRef.invoke(UnicastRef.java:131)
+        at java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:235)
+        at java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:180)
+        at com.sun.proxy.$Proxy5.newClient(Unknown Source)
+        at javax.management.remote.rmi.RMIConnector.getConnection(RMIConnector.java:2430)
+        at javax.management.remote.rmi.RMIConnector.connect(RMIConnector.java:308)
+        at javax.management.remote.JMXConnectorFactory.connect(JMXConnectorFactory.java:270)
+Caused by: java.net.ConnectException: Connection refused (Connection refused)
+        at java.net.PlainSocketImpl.socketConnect(Native Method)
+        at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:350)
+        at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:206)
+        at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:188)
+        at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:392)
+        at java.net.Socket.connect(Socket.java:606)
+        at java.net.Socket.connect(Socket.java:555)
+        at java.net.Socket.&amp;lt;init&amp;gt;(Socket.java:451)
+        at java.net.Socket.&amp;lt;init&amp;gt;(Socket.java:228)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;启动时已经启动了JMX_PORT端口监控&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;env &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;JMX_PORT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;9999 bin/kafka-server-start.sh &lt;span class=&quot;nt&quot;&gt;-daemon&lt;/span&gt; ./config/server.properties &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;原因&quot;&gt;原因：&lt;/h2&gt;
+&lt;p&gt;172.34.56.7，172.34.10.2为broker地址，其中 Connection refused to host: 127.0.0.1 中的127.0.0.1是Broker的JMX上报的地址，当kafka-manager去127.0.0.1连接JMX获取数据时，被拒绝了。实际上应该是去broker的ip:172.34.56.7，172.34.10.2中去获取。&lt;/p&gt;
+
+&lt;p&gt;网上找了很多帖子，发现配置kafka的conf
+-Djava.rmi.server.hostname=172.34.56.7
+-Dcom.sun.management.jmxremote.local.only=false&lt;/p&gt;
+
+&lt;p&gt;这种方式可行，但是想了想不太友好。
+受此篇文章启发：&lt;a href=&quot;https://blog.csdn.net/chenchaofuck1/article/details/51558995&quot;&gt;https://blog.csdn.net/chenchaofuck1/article/details/51558995&lt;/a&gt;
+通过hostname -i 发现
+返回了127.0.0.1
+猜测JMX上报时，java.rmi.server.hostname 地址上报的应该是hostname -i得到的值&lt;/p&gt;
+
+&lt;h2 id=&quot;解决方法&quot;&gt;解决方法：&lt;/h2&gt;
+&lt;p&gt;修改/etc/hosts
+增加 
+172.34.56.7 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hostname&lt;/code&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost6 localhost6.localdomain6
+172.34.56.7  ip-172-34-56-7.compute.internal
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;再hostname -i 返回了机器的内网地址。
+然后重启kafka-broker，kafka-manager可以正常监控了。&lt;/p&gt;
+
+&lt;h2 id=&quot;附录hostname相关知识&quot;&gt;附录：hostname相关知识&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&quot;https://www.huaweicloud.com/articles/e06cc282064a70fb8101ca48944ab64a.html&quot;&gt;https://www.huaweicloud.com/articles/e06cc282064a70fb8101ca48944ab64a.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;对于-Djava.rmi.server.hostname orcale-jdk文档说明：
+&lt;a href=&quot;https://docs.oracle.com/javase/9/management/monitoring-and-management-using-jmx-technology.htm#JSMGM-GUID-F08985BB-629A-4FBF-A0CB-8762DF7590E0&quot;&gt;https://docs.oracle.com/javase/9/management/monitoring-and-management-using-jmx-technology.htm#JSMGM-GUID-F08985BB-629A-4FBF-A0CB-8762DF7590E0&lt;/a&gt;&lt;/p&gt;</content><author><name>em-miao</name></author><category term="Kafka" /><summary type="html">记一次Kafka-Manager JMX异常处理</summary></entry><entry><title type="html">利用logstash迁移MySQL数据至Elasticsearch</title><link href="http://localhost:8000/mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch/" rel="alternate" type="text/html" title="利用logstash迁移MySQL数据至Elasticsearch" /><published>2021-07-06T00:00:00+08:00</published><updated>2021-07-06T00:00:00+08:00</updated><id>http://localhost:8000/mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch</id><content type="html" xml:base="http://localhost:8000/mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch/">&lt;h1 id=&quot;利用logstash迁移mysql数据至elasticsearch&quot;&gt;利用logstash迁移MySQL数据至Elasticsearch&lt;/h1&gt;
+&lt;h2 id=&quot;背景&quot;&gt;背景&lt;/h2&gt;
+&lt;p&gt;公司某个表A，目前时mysql单库单表，对接Flink，主要用于读取和写入操作，后期考虑到量大后，对读写性能要求一定抗压，现将mysql迁移至Elasticsearch.&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;MySql Version: 5.6
+Elasticsearch Version： 7.9.3
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;安装logstash&quot;&gt;安装logstash&lt;/h2&gt;
+&lt;p&gt;下载对应Elasticsearch版本的logstash&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; ~/ &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;mkdir&lt;/span&gt; ~/opt &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;opt/
+wget https://artifacts.elastic.co/downloads/logstash/logstash-7.9.3.tar.gz
+
+&lt;span class=&quot;nb&quot;&gt;tar&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-zxvf&lt;/span&gt; logstash-7.9.3.tar.gz
+
+&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;logstash-7.9.3 &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;mkdir &lt;/span&gt;mysql 
+
+wget https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar &lt;span class=&quot;nt&quot;&gt;-o&lt;/span&gt; mysql/mysql-connector-java-5.1.49.jar
+
+&lt;span class=&quot;nb&quot;&gt;cp &lt;/span&gt;config/logstash-sample.conf mysql/logstash-mysql-es.conf
+
+
+bin/logstash-plugin &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;logstash-input-jdbc
+bin/logstash-plugin &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;logstash-output-elasticsearch
+
+vim mysql/logstash-mysql-es.conf
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h2 id=&quot;配置-logstash-mysql-esconf&quot;&gt;配置 logstash-mysql-es.conf&lt;/h2&gt;
+
+&lt;div class=&quot;language-yml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;input {&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;jdbc {&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 设置 MySql/MariaDB 数据库url以及数据库名称&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;jdbc_connection_string =&amp;gt; &quot;jdbc:mysql://10.0.xx.xx:3306/dimension?useUnicode=true&amp;amp;characterEncoding=UTF-8&amp;amp;autoReconnect=true&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 用户名和密码&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;jdbc_user =&amp;gt; &quot;xxxxx&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;jdbc_password =&amp;gt; &quot;xxxxx&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 数据库驱动所在位置，可以是绝对路径或者相对路径&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;jdbc_driver_library =&amp;gt; &quot;/home/elex/opt/logstash-7.9.3/mysql/mysql-connector-java-5.1.49.jar&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 驱动类名&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;jdbc_driver_class =&amp;gt; &quot;com.mysql.jdbc.Driver&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 开启分页&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;jdbc_paging_enabled =&amp;gt; &quot;true&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 分页每页数量，可以自定义&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;jdbc_page_size =&amp;gt; &quot;500000&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 执行的sql文件路径&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;#statement_filepath =&amp;gt; &quot;/usr/local/logstash-7.9.3/sync/foodie-items.sql&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;statement =&amp;gt; &quot;SELECT id,data,update_at,xxx,xxx FROM user&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 设置定时任务间隔  含义：分、时、天、月、年，全部为*默认含义为每分钟跑一次任务,配合statement中的语句可以做增量同步。&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;#schedule =&amp;gt; &quot;* * * * *&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 是否开启记录上次追踪的结果，也就是上次更新的时间，这个会记录到 last_run_metadata_path 的文件&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;use_column_value =&amp;gt; &lt;/span&gt;&lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 记录上一次追踪的结果值&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;last_run_metadata_path =&amp;gt; &quot;/home/elex/opt/logstash-7.9.3/mysql/track_time&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 如果 use_column_value 为true， 配置本参数，追踪的 column 名，可以是自增id或者时间&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;tracking_column =&amp;gt; &quot;update_at&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# tracking_column 对应字段的类型&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;tracking_column_type =&amp;gt; &quot;numeric&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 是否清除 last_run_metadata_path 的记录，true则每次都从头开始查询所有的数据库记录&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;clean_run =&amp;gt; &lt;/span&gt;&lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 数据库字段名称大写转小写&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;lowercase_column_names =&amp;gt; &lt;/span&gt;&lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;filter {&lt;/span&gt;
+    
+  &lt;span class=&quot;s&quot;&gt;mutate {&lt;/span&gt;
+       &lt;span class=&quot;s&quot;&gt;remove_field =&amp;gt; [&quot;@timestamp&quot;]&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;mutate {&lt;/span&gt;
+       &lt;span class=&quot;s&quot;&gt;remove_field =&amp;gt; [&quot;@version&quot;]&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;
+
+
+&lt;span class=&quot;s&quot;&gt;output {&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;elasticsearch {&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;hosts =&amp;gt; [&quot;10.0.xx.xx:9200&quot;]&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;# 索引名字，必须小写&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;index =&amp;gt; &quot;dimension-user&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;document_id =&amp;gt; &quot;%{id}&quot;&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;action =&amp;gt; &quot;index&quot;&lt;/span&gt;
+
+    &lt;span class=&quot;s&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h2 id=&quot;执行迁移&quot;&gt;执行迁移&lt;/h2&gt;
+&lt;p&gt;执行过程中需要不要终止任务
+也可放到后台运行&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;./bin/logstash &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; mysql/logstash-mysql-es.conf
+&lt;span class=&quot;c&quot;&gt;# 或者&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;nohup&lt;/span&gt; ./bin/logstash &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; mysql/logstash-mysql-es.conf &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; log.out 2&amp;gt;&amp;amp;1 &amp;amp; 
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;总结&quot;&gt;总结&lt;/h2&gt;
+&lt;ol&gt;
+  &lt;li&gt;在迁移过程中，发现利用logstash迁移时，读取数据库时是全表扫描，对mysql压力极大。这个是问题。&lt;/li&gt;
+  &lt;li&gt;ES7版本和6版本有很多不同，需要注意配置的使用。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;1的解决方案： 可以通过手动程序，读取mysql数据，导入ES。
+由于目前mysql数据量在百万，还能接受。所以就没有写程序。
+如有遇到千万或上亿级数据时，最好不要使用logstash同步数据，或者测试通过在使用。&lt;/p&gt;</content><author><name>em-miao</name></author><category term="MySql" /><category term="Elasticsearch" /><summary type="html">利用logstash迁移MySQL数据至Elasticsearch 背景 公司某个表A，目前时mysql单库单表，对接Flink，主要用于读取和写入操作，后期考虑到量大后，对读写性能要求一定抗压，现将mysql迁移至Elasticsearch. MySql Version: 5.6 Elasticsearch Version： 7.9.3</summary></entry><entry><title type="html">Zookeeper_Kafka单节点模式升级为集群模式</title><link href="http://localhost:8000/zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4/" rel="alternate" type="text/html" title="Zookeeper_Kafka单节点模式升级为集群模式" /><published>2021-07-01T00:00:00+08:00</published><updated>2021-07-01T00:00:00+08:00</updated><id>http://localhost:8000/zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4</id><content type="html" xml:base="http://localhost:8000/zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4/">&lt;h1 id=&quot;写在前面&quot;&gt;写在前面&lt;/h1&gt;
+&lt;p&gt;目前集群中zk,kafka为单节点模式（standlone），flume上传数据到kafka中，kafka依赖zk，flink相关任务消费kafka数据。
+将zk和kafka升级为集群模式时，最好将flume停止和flink相关任务停止。
+且最后升级完成后，需要对zk和kafka进行测试。
+需要将kafka中的topic重新分配到不同broker中，然后再启动Flume，观察每个broker中的流量。
+最后再启动Flink任务。观察消费流量。（升级过程中开启kafka的JMX端口进行流量查看）&lt;/p&gt;
+&lt;h1 id=&quot;1-增加zk节点&quot;&gt;1. 增加zk节点&lt;/h1&gt;
+&lt;p&gt;&lt;strong&gt;1.1  将现有节点停止，编辑配置文件zoo.cfg，将其设为集群模式。&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;language-yml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;dataDir=/home/elex/zookeeper/data&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;dataLogDir=/home/elex/zookeeper/log&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# the port at which the clients will connect&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;clientPort=2181&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;#admin.serverPort=8888&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;server.1=127.0.0.1:2287:3387&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;server.2=127.0.0.1:2288:3388&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;server.3=127.0.0.1:2289:3389&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;#线上时：------------------------------------------&lt;/span&gt;
+
+&lt;span class=&quot;s&quot;&gt;dataDir=/home/elex/zookeeper/data&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;dataLogDir=/home/elex/zookeeper/log&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# the port at which the clients will connect&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;clientPort=2181&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;server.1=ip1:2288:3388&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;server.2=ip2:2288:3388&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;server.3=ip3:2288:3388&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;1.2 添加新节点。配置 myid文件&lt;/strong&gt;
+同步主节点zookeeper目录到其他节点。修改myid文件&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# dataDir,dataLogDir目录&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;mkdir&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; /home/elex/zookeeper/data
+&lt;span class=&quot;nb&quot;&gt;mkdir&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; /home/elex/zookeeper/log
+&lt;span class=&quot;c&quot;&gt;#在节点1，2，3上分别执行 myid中值记得都不同，和server.x保持一致。&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;echo &lt;/span&gt;1 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; /home/elex/zookeeper/data/myid
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;1.3 增加完新节后，启动集群，分别到每个节点启动&lt;/strong&gt;
+后期考虑写脚本一件启停。&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;./bin/zkServer.sh start conf/zoo.cfg
+
+./bin/zkServer.sh status
+
+&lt;span class=&quot;c&quot;&gt;#全部启动后，可以停止leader看，是否其他节点可以主动选举为新的leader&lt;/span&gt;
+./bin/zkServer.sh stop
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;2增加kafka节点&quot;&gt;2.增加kafka节点&lt;/h1&gt;
+&lt;p&gt;(以下配置为测试环境，单机模拟集群模式，线上环境需要换上真实ip和端口)
+&lt;strong&gt;2.1 修改现有kafka节点，将其设为集群模式（如果已经为集群模式，跳过）。&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;language-yml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;#broker.id每个节点不一样，记得修改&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;broker.id=0&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;#数据目录，记得改为真实的数据目录。&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;log.dirs=/home/test1/kafkalog,/home/test2/kafkalog&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;#zk地址改成zk的集群地址&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;zookeeper.connect=10.0.3.151:2181,10.0.3.151:2182,10.0.3.151:2183&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;2.2 增加新的kafka节点&lt;/strong&gt; &lt;strong&gt;broker.id不能重复&lt;/strong&gt;
+将kafka目录拷贝到其他节点，然后删除新加节点的dataDir和dataLogDir。&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;scp kafka root@ip1:xxx
+&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;kafka 
+&lt;span class=&quot;nb&quot;&gt;rm&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-rf&lt;/span&gt; data/&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;rm&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-rf&lt;/span&gt; log/&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# 修改 &lt;/span&gt;
+vim conf/server.properties
+broker.id&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1
+broker.id&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;2
+&lt;span class=&quot;c&quot;&gt;#根据新节点的实际IP和目录修改&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;listeners&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;PLAINTEXT://10.0.3.151:9092
+zookeeper.connect&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;10.0.3.151:2181,10.0.3.151:2182,10.0.3.151:2183
+log.dirs&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/test1/kafkalog,/home/test2/kafkalog
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;增加完成后，启动每一个节点的kafka进程,并启用JMX监控&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;env &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;JMX_PORT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;9999 bin/kafka-server-start.sh &lt;span class=&quot;nt&quot;&gt;-daemon&lt;/span&gt; ./config/server.properties &amp;amp;
+&lt;span class=&quot;c&quot;&gt;# 或者 修改kafka-run-class.sh脚本，第一行增加JMX_PORT=9988开启监控。&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;2.3将现有的topic分配到不同的broker中。&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;vim event-topic.json
+&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;EOF&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt; &amp;gt; event-topic.json
+{&quot;topics&quot;:  [{&quot;topic&quot;: &quot;event&quot;}],
+&quot;version&quot;:1
+}
+&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;
+EOF
+
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;注意： 后期增加的topic不用指定，会自动分配到不同的broker中。&lt;/strong&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# 查看当前topic分布&lt;/span&gt;
+./bin/kafka-topics.sh &lt;span class=&quot;nt&quot;&gt;--describe&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--zookeeper&lt;/span&gt; 10.0.3.151:2181 &lt;span class=&quot;nt&quot;&gt;--topic&lt;/span&gt; event
+Topic: event    PartitionCount: 3       ReplicationFactor: 1    Configs: 
+        Topic: event    Partition: 0    Leader: 0       Replicas: 0     Isr: 0
+        Topic: event    Partition: 1    Leader: 1       Replicas: 0     Isr: 1
+        Topic: event    Partition: 2    Leader: 2       Replicas: 0     Isr: 2
+
+&lt;span class=&quot;c&quot;&gt;# 生成计划&lt;/span&gt;
+./bin/kafka-reassign-partitions.sh &lt;span class=&quot;nt&quot;&gt;--zookeeper&lt;/span&gt; 10.0.3.151:2181  &lt;span class=&quot;nt&quot;&gt;--topics-to-move-json-file&lt;/span&gt; event-topic.json &lt;span class=&quot;nt&quot;&gt;--broker-list&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;0,1,2&quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--generate&lt;/span&gt;
+Current partition replica assignment
+&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;version&quot;&lt;/span&gt;:1,&lt;span class=&quot;s2&quot;&gt;&quot;partitions&quot;&lt;/span&gt;:[&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:2,&lt;span class=&quot;s2&quot;&gt;&quot;replicas&quot;&lt;/span&gt;:[0],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:1,&lt;span class=&quot;s2&quot;&gt;&quot;replicas&quot;&lt;/span&gt;:[0],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:0,&lt;span class=&quot;s2&quot;&gt;&quot;replicas&quot;&lt;/span&gt;:[0],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}]}&lt;/span&gt;
+
+Proposed partition reassignment configuration
+&lt;span class=&quot;c&quot;&gt;#将这部分信息 得到一个  event-move.json 文件用于执行计划&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;version&quot;&lt;/span&gt;:1,&lt;span class=&quot;s2&quot;&gt;&quot;partitions&quot;&lt;/span&gt;:[&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:0,&lt;span class=&quot;s2&quot;&gt;&quot;replicas&quot;&lt;/span&gt;:[1],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:2,&lt;span class=&quot;s2&quot;&gt;&quot;replicas&quot;&lt;/span&gt;:[0],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:1,&lt;span class=&quot;s2&quot;&gt;&quot;replicas&quot;&lt;/span&gt;:[2],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}]}&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;#执行计划&lt;/span&gt;
+./bin/kafka-reassign-partitions.sh &lt;span class=&quot;nt&quot;&gt;--zookeeper&lt;/span&gt; 10.0.3.151:2181 &lt;span class=&quot;nt&quot;&gt;--reassignment-json-file&lt;/span&gt; event-move.json &lt;span class=&quot;nt&quot;&gt;--execute&lt;/span&gt;
+
+Current partition replica assignment
+                                                                                                
+&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;version&quot;&lt;/span&gt;:1,&lt;span class=&quot;s2&quot;&gt;&quot;partitions&quot;&lt;/span&gt;:[&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:2,&lt;span class=&quot;s2&quot;&gt;&quot;replicas&quot;&lt;/span&gt;:[0],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:1,&lt;span class=&quot;s2&quot;&gt;&quot;replicas&quot;&lt;/span&gt;:[0],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;topic&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;event&quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&quot;partition&quot;&lt;/span&gt;:0,&lt;span class=&quot;s2&quot;&gt;&quot;repl
+icas&quot;&lt;/span&gt;:[0],&lt;span class=&quot;s2&quot;&gt;&quot;log_dirs&quot;&lt;/span&gt;:[&lt;span class=&quot;s2&quot;&gt;&quot;any&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]}]}&lt;/span&gt;   
+                                                                                                
+Save this to use as the &lt;span class=&quot;nt&quot;&gt;--reassignment-json-file&lt;/span&gt; option during rollback
+Successfully started reassignment of partitions.
+
+&lt;span class=&quot;c&quot;&gt;#校验执行计划&lt;/span&gt;
+./bin/kafka-reassign-partitions.sh &lt;span class=&quot;nt&quot;&gt;--zookeeper&lt;/span&gt; 10.0.3.151:2181 &lt;span class=&quot;nt&quot;&gt;--reassignment-json-file&lt;/span&gt; event-move.json  &lt;span class=&quot;nt&quot;&gt;--verify&lt;/span&gt;
+Status of partition reassignment: 
+Reassignment of partition event-2 completed successfully
+Reassignment of partition event-1 completed successfully
+Reassignment of partition event-0 completed successfully
+
+&lt;span class=&quot;c&quot;&gt;#再次查看，分区分布在不同的broker上了&lt;/span&gt;
+./bin/kafka-topics.sh &lt;span class=&quot;nt&quot;&gt;--describe&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--zookeeper&lt;/span&gt; 10.0.3.151:2181 &lt;span class=&quot;nt&quot;&gt;--topic&lt;/span&gt; event
+
+Topic: event    PartitionCount: 3       ReplicationFactor: 1    Configs: 
+    Topic: event    Partition: 0    Leader: 0       Replicas: 0     Isr: 0
+    Topic: event    Partition: 1    Leader: 1       Replicas: 1     Isr: 1
+    Topic: event    Partition: 2    Leader: 2       Replicas: 2     Isr: 2
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;ul&gt;
+  &lt;li&gt;kafka迁移校验
+    &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;./bin/kafka-reassign-partitions.sh &lt;span class=&quot;nt&quot;&gt;--zookeeper&lt;/span&gt; 10.0.3.151:2181 &lt;span class=&quot;nt&quot;&gt;--reassignment-json-file&lt;/span&gt; event-move.json  &lt;span class=&quot;nt&quot;&gt;--verify&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;#输出&lt;/span&gt;
+Status of partition reassignment: 
+Reassignment of partition event-2 completed successfully
+Reassignment of partition event-1 completed successfully
+Reassignment of partition event-0 completed successfully
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+    &lt;p&gt;&lt;strong&gt;注意： 在执行kafka迁移计划验证时，视topic数据量大小，可能需要很长时间。&lt;/strong&gt;
+需要等待结果：Reassignment of xxx completed successfully均为Sucessfully才算完成，
+如果有Progress的，需要等待。
+上线环境时，数据量过大，topic数量也比较多，等待了大约2个小时。&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;2.4 增加topic分区&lt;/strong&gt;（若后期数据量过大，效率低的情况再酌情增加分区）&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;./bin/kafka-topics.sh &lt;span class=&quot;nt&quot;&gt;--zookeeper&lt;/span&gt; zk01:2181,zk02:2181,zk03:2181 &lt;span class=&quot;nt&quot;&gt;--alter&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--topic&lt;/span&gt; track_pc &lt;span class=&quot;nt&quot;&gt;--partitions&lt;/span&gt; 3
+&lt;span class=&quot;c&quot;&gt;# 或使用kafka-manager进行修改&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;其他&quot;&gt;其他&lt;/h1&gt;
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;项目经验之Kafka机器数量计算
+ Kafka机器数量（经验公式）=2&lt;em&gt;（峰值生产速度&lt;/em&gt;副本数/100）+1&lt;/p&gt;
+
+    &lt;p&gt;峰值生产速度，再根据设定的副本数，就能预估出需要部署Kafka的数量。
+ 比如我们的峰值生产速度是50M/s。副本数为2。
+ Kafka机器数量=2&lt;em&gt;（50&lt;/em&gt;2/100）+ 1=3台&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;项目经验值Kafka分区数计算
+ 创建一个只有1个分区的topic
+ 测试这个topic的producer吞吐量和consumer吞吐量。
+ 假设他们的值分别是Tp和Tc，单位可以是MB/s。
+ 然后假设总的目标吞吐量是Tt，那么分区数=Tt / min（Tp，Tc）&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;</content><author><name>em-miao</name></author><category term="Zookeeper" /><category term="Kafka" /><summary type="html">写在前面 目前集群中zk,kafka为单节点模式（standlone），flume上传数据到kafka中，kafka依赖zk，flink相关任务消费kafka数据。 将zk和kafka升级为集群模式时，最好将flume停止和flink相关任务停止。 且最后升级完成后，需要对zk和kafka进行测试。 需要将kafka中的topic重新分配到不同broker中，然后再启动Flume，观察每个broker中的流量。 最后再启动Flink任务。观察消费流量。（升级过程中开启kafka的JMX端口进行流量查看） 1. 增加zk节点 1.1 将现有节点停止，编辑配置文件zoo.cfg，将其设为集群模式。 ``` yml dataDir=/home/elex/zookeeper/data dataLogDir=/home/elex/zookeeper/log the port at which the clients will connect clientPort=2181 #admin.serverPort=8888 server.1=127.0.0.1:2287:3387 server.2=127.0.0.1:2288:3388 server.3=127.0.0.1:2289:3389</summary></entry></feed>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Zookeeper_Kafka单节点模式升级为集群模式 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="Zookeeper_Kafka单节点模式升级为集群模式">
+      
+    <meta name="keywords" content="Zookeeper Kafka Standlone Cluster-Mode">
+    <meta name="og:keywords" content="Zookeeper Kafka Standlone Cluster-Mode">
+      
+    <meta name="description" content="写在前面目前集群中zk,kafka为单节点模式（standlone），flume上传数据到kafka中，kafka依赖zk，flink相关任务消费kafka数据。将zk和kafka升级为集群模式时，最好将flume停止和flink相关任务停止。且最后升级完成后，需要对zk和kafka进行测试。需要将kafka中的topic重新分配到不同broker中，然后再启动Flume，观察每个broker中的流量。最后再启动Flink任务。观察消费流量。（升级过程中开启kafka的JMX端口进行流量查看）1. 增加zk节点1.1  将现有节点停止，编辑配置文件zoo.cfg，将其设为集群模式。``` ymldataDir=/home/elex/zookeeper/datadataLogDir=/home/elex/zookeeper/logthe port at which the clients will connectclientPort=2181#admin.serverPort=8888server.1=127.0.0.1:2287:3387server.2=127.0.0.1:2288:3388server.3=127.0.0.1:2289:3389">
+    <meta name="og:description" content="写在前面目前集群中zk,kafka为单节点模式（standlone），flume上传数据到kafka中，kafka依赖zk，flink相关任务消费kafka数据。将zk和kafka升级为集群模式时，最好将flume停止和flink相关任务停止。且最后升级完成后，需要对zk和kafka进行测试。需要将kafka中的topic重新分配到不同broker中，然后再启动Flume，观察每个broker中的流量。最后再启动Flink任务。观察消费流量。（升级过程中开启kafka的JMX端口进行流量查看）1. 增加zk节点1.1  将现有节点停止，编辑配置文件zoo.cfg，将其设为集群模式。``` ymldataDir=/home/elex/zookeeper/datadataLogDir=/home/elex/zookeeper/logthe port at which the clients will connectclientPort=2181#admin.serverPort=8888server.1=127.0.0.1:2287:3387server.2=127.0.0.1:2288:3388server.3=127.0.0.1:2289:3389">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2021-07-01">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="Zookeeper_Kafka">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">Zookeeper_Kafka单节点模式升级为集群模式</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2021/07/01
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Zookeeper" title="Zookeeper">Zookeeper</a>
+          </span>
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Kafka" title="Kafka">Kafka</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h1 id="写在前面">写在前面</h1>
+<p>目前集群中zk,kafka为单节点模式（standlone），flume上传数据到kafka中，kafka依赖zk，flink相关任务消费kafka数据。
+将zk和kafka升级为集群模式时，最好将flume停止和flink相关任务停止。
+且最后升级完成后，需要对zk和kafka进行测试。
+需要将kafka中的topic重新分配到不同broker中，然后再启动Flume，观察每个broker中的流量。
+最后再启动Flink任务。观察消费流量。（升级过程中开启kafka的JMX端口进行流量查看）</p>
+<h1 id="1-增加zk节点">1. 增加zk节点</h1>
+<p><strong>1.1  将现有节点停止，编辑配置文件zoo.cfg，将其设为集群模式。</strong></p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">dataDir=/home/elex/zookeeper/data</span>
+<span class="s">dataLogDir=/home/elex/zookeeper/log</span>
+<span class="c1"># the port at which the clients will connect</span>
+<span class="s">clientPort=2181</span>
+<span class="c1">#admin.serverPort=8888</span>
+<span class="s">server.1=127.0.0.1:2287:3387</span>
+<span class="s">server.2=127.0.0.1:2288:3388</span>
+<span class="s">server.3=127.0.0.1:2289:3389</span>
+
+<span class="c1">#线上时：------------------------------------------</span>
+
+<span class="s">dataDir=/home/elex/zookeeper/data</span>
+<span class="s">dataLogDir=/home/elex/zookeeper/log</span>
+<span class="c1"># the port at which the clients will connect</span>
+<span class="s">clientPort=2181</span>
+<span class="s">server.1=ip1:2288:3388</span>
+<span class="s">server.2=ip2:2288:3388</span>
+<span class="s">server.3=ip3:2288:3388</span>
+
+</code></pre></div></div>
+<p><strong>1.2 添加新节点。配置 myid文件</strong>
+同步主节点zookeeper目录到其他节点。修改myid文件</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># dataDir,dataLogDir目录</span>
+<span class="nb">mkdir</span> <span class="nt">-p</span> /home/elex/zookeeper/data
+<span class="nb">mkdir</span> <span class="nt">-p</span> /home/elex/zookeeper/log
+<span class="c">#在节点1，2，3上分别执行 myid中值记得都不同，和server.x保持一致。</span>
+<span class="nb">echo </span>1 <span class="o">&gt;</span> /home/elex/zookeeper/data/myid
+</code></pre></div></div>
+
+<p><strong>1.3 增加完新节后，启动集群，分别到每个节点启动</strong>
+后期考虑写脚本一件启停。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./bin/zkServer.sh start conf/zoo.cfg
+
+./bin/zkServer.sh status
+
+<span class="c">#全部启动后，可以停止leader看，是否其他节点可以主动选举为新的leader</span>
+./bin/zkServer.sh stop
+</code></pre></div></div>
+
+<h1 id="2增加kafka节点">2.增加kafka节点</h1>
+<p>(以下配置为测试环境，单机模拟集群模式，线上环境需要换上真实ip和端口)
+<strong>2.1 修改现有kafka节点，将其设为集群模式（如果已经为集群模式，跳过）。</strong></p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#broker.id每个节点不一样，记得修改</span>
+<span class="s">broker.id=0</span>
+<span class="c1">#数据目录，记得改为真实的数据目录。</span>
+<span class="s">log.dirs=/home/test1/kafkalog,/home/test2/kafkalog</span>
+<span class="c1">#zk地址改成zk的集群地址</span>
+<span class="s">zookeeper.connect=10.0.3.151:2181,10.0.3.151:2182,10.0.3.151:2183</span>
+</code></pre></div></div>
+
+<p><strong>2.2 增加新的kafka节点</strong> <strong>broker.id不能重复</strong>
+将kafka目录拷贝到其他节点，然后删除新加节点的dataDir和dataLogDir。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>scp kafka root@ip1:xxx
+<span class="nb">cd </span>kafka 
+<span class="nb">rm</span> <span class="nt">-rf</span> data/<span class="k">*</span>
+<span class="nb">rm</span> <span class="nt">-rf</span> log/<span class="k">*</span>
+<span class="c"># 修改 </span>
+vim conf/server.properties
+broker.id<span class="o">=</span>1
+broker.id<span class="o">=</span>2
+<span class="c">#根据新节点的实际IP和目录修改</span>
+<span class="nv">listeners</span><span class="o">=</span>PLAINTEXT://10.0.3.151:9092
+zookeeper.connect<span class="o">=</span>10.0.3.151:2181,10.0.3.151:2182,10.0.3.151:2183
+log.dirs<span class="o">=</span>/home/test1/kafkalog,/home/test2/kafkalog
+</code></pre></div></div>
+<p>增加完成后，启动每一个节点的kafka进程,并启用JMX监控</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">env </span><span class="nv">JMX_PORT</span><span class="o">=</span>9999 bin/kafka-server-start.sh <span class="nt">-daemon</span> ./config/server.properties &amp;
+<span class="c"># 或者 修改kafka-run-class.sh脚本，第一行增加JMX_PORT=9988开启监控。</span>
+</code></pre></div></div>
+
+<p><strong>2.3将现有的topic分配到不同的broker中。</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vim event-topic.json
+<span class="nb">cat</span> <span class="o">&lt;&lt;</span> <span class="no">EOF</span><span class="sh"> &gt; event-topic.json
+{"topics":  [{"topic": "event"}],
+"version":1
+}
+</span><span class="no">
+EOF
+
+</span></code></pre></div></div>
+<p><strong>注意： 后期增加的topic不用指定，会自动分配到不同的broker中。</strong></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 查看当前topic分布</span>
+./bin/kafka-topics.sh <span class="nt">--describe</span> <span class="nt">--zookeeper</span> 10.0.3.151:2181 <span class="nt">--topic</span> event
+Topic: event    PartitionCount: 3       ReplicationFactor: 1    Configs: 
+        Topic: event    Partition: 0    Leader: 0       Replicas: 0     Isr: 0
+        Topic: event    Partition: 1    Leader: 1       Replicas: 0     Isr: 1
+        Topic: event    Partition: 2    Leader: 2       Replicas: 0     Isr: 2
+
+<span class="c"># 生成计划</span>
+./bin/kafka-reassign-partitions.sh <span class="nt">--zookeeper</span> 10.0.3.151:2181  <span class="nt">--topics-to-move-json-file</span> event-topic.json <span class="nt">--broker-list</span> <span class="s2">"0,1,2"</span> <span class="nt">--generate</span>
+Current partition replica assignment
+<span class="o">{</span><span class="s2">"version"</span>:1,<span class="s2">"partitions"</span>:[<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:2,<span class="s2">"replicas"</span>:[0],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}</span>,<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:1,<span class="s2">"replicas"</span>:[0],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}</span>,<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:0,<span class="s2">"replicas"</span>:[0],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}]}</span>
+
+Proposed partition reassignment configuration
+<span class="c">#将这部分信息 得到一个  event-move.json 文件用于执行计划</span>
+<span class="o">{</span><span class="s2">"version"</span>:1,<span class="s2">"partitions"</span>:[<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:0,<span class="s2">"replicas"</span>:[1],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}</span>,<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:2,<span class="s2">"replicas"</span>:[0],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}</span>,<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:1,<span class="s2">"replicas"</span>:[2],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}]}</span>
+
+<span class="c">#执行计划</span>
+./bin/kafka-reassign-partitions.sh <span class="nt">--zookeeper</span> 10.0.3.151:2181 <span class="nt">--reassignment-json-file</span> event-move.json <span class="nt">--execute</span>
+
+Current partition replica assignment
+                                                                                                
+<span class="o">{</span><span class="s2">"version"</span>:1,<span class="s2">"partitions"</span>:[<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:2,<span class="s2">"replicas"</span>:[0],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}</span>,<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:1,<span class="s2">"replicas"</span>:[0],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}</span>,<span class="o">{</span><span class="s2">"topic"</span>:<span class="s2">"event"</span>,<span class="s2">"partition"</span>:0,<span class="s2">"repl
+icas"</span>:[0],<span class="s2">"log_dirs"</span>:[<span class="s2">"any"</span><span class="o">]}]}</span>   
+                                                                                                
+Save this to use as the <span class="nt">--reassignment-json-file</span> option during rollback
+Successfully started reassignment of partitions.
+
+<span class="c">#校验执行计划</span>
+./bin/kafka-reassign-partitions.sh <span class="nt">--zookeeper</span> 10.0.3.151:2181 <span class="nt">--reassignment-json-file</span> event-move.json  <span class="nt">--verify</span>
+Status of partition reassignment: 
+Reassignment of partition event-2 completed successfully
+Reassignment of partition event-1 completed successfully
+Reassignment of partition event-0 completed successfully
+
+<span class="c">#再次查看，分区分布在不同的broker上了</span>
+./bin/kafka-topics.sh <span class="nt">--describe</span> <span class="nt">--zookeeper</span> 10.0.3.151:2181 <span class="nt">--topic</span> event
+
+Topic: event    PartitionCount: 3       ReplicationFactor: 1    Configs: 
+    Topic: event    Partition: 0    Leader: 0       Replicas: 0     Isr: 0
+    Topic: event    Partition: 1    Leader: 1       Replicas: 1     Isr: 1
+    Topic: event    Partition: 2    Leader: 2       Replicas: 2     Isr: 2
+
+</code></pre></div></div>
+<ul>
+  <li>kafka迁移校验
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./bin/kafka-reassign-partitions.sh <span class="nt">--zookeeper</span> 10.0.3.151:2181 <span class="nt">--reassignment-json-file</span> event-move.json  <span class="nt">--verify</span>
+<span class="c">#输出</span>
+Status of partition reassignment: 
+Reassignment of partition event-2 completed successfully
+Reassignment of partition event-1 completed successfully
+Reassignment of partition event-0 completed successfully
+</code></pre></div>    </div>
+    <p><strong>注意： 在执行kafka迁移计划验证时，视topic数据量大小，可能需要很长时间。</strong>
+需要等待结果：Reassignment of xxx completed successfully均为Sucessfully才算完成，
+如果有Progress的，需要等待。
+上线环境时，数据量过大，topic数量也比较多，等待了大约2个小时。</p>
+  </li>
+</ul>
+
+<p><strong>2.4 增加topic分区</strong>（若后期数据量过大，效率低的情况再酌情增加分区）</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./bin/kafka-topics.sh <span class="nt">--zookeeper</span> zk01:2181,zk02:2181,zk03:2181 <span class="nt">--alter</span> <span class="nt">--topic</span> track_pc <span class="nt">--partitions</span> 3
+<span class="c"># 或使用kafka-manager进行修改</span>
+
+</code></pre></div></div>
+
+<h1 id="其他">其他</h1>
+<ol>
+  <li>
+    <p>项目经验之Kafka机器数量计算
+ Kafka机器数量（经验公式）=2<em>（峰值生产速度</em>副本数/100）+1</p>
+
+    <p>峰值生产速度，再根据设定的副本数，就能预估出需要部署Kafka的数量。
+ 比如我们的峰值生产速度是50M/s。副本数为2。
+ Kafka机器数量=2<em>（50</em>2/100）+ 1=3台</p>
+  </li>
+  <li>
+    <p>项目经验值Kafka分区数计算
+ 创建一个只有1个分区的topic
+ 测试这个topic的producer吞吐量和consumer吞吐量。
+ 假设他们的值分别是Tp和Tc，单位可以是MB/s。
+ 然后假设总的目标吞吐量是Tt，那么分区数=Tt / min（Tp，Tc）</p>
+  </li>
+</ol>
+
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4/';
+              this.page.identifier = '/zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4/';
+              this.page.title = 'Zookeeper_Kafka单节点模式升级为集群模式';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

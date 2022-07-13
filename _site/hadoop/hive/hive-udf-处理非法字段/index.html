@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>hive 自定义函数处理非法字符 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/hadoop/hive/hive-udf-%E5%A4%84%E7%90%86%E9%9D%9E%E6%B3%95%E5%AD%97%E6%AE%B5/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="hive 自定义函数处理非法字符">
+      
+    <meta name="keywords" content="Hive-UDF">
+    <meta name="og:keywords" content="Hive-UDF">
+      
+    <meta name="description" content="hive 自定义函数 解析非法字符串">
+    <meta name="og:description" content="hive 自定义函数 解析非法字符串">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/hadoop/hive/hive-udf-%E5%A4%84%E7%90%86%E9%9D%9E%E6%B3%95%E5%AD%97%E6%AE%B5/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2019-11-08">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="hive 自定义函数处理非法字">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">hive 自定义函数处理非法字符</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2019/11/08
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Hadoop" title="Hadoop">Hadoop</a>
+          </span>
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Hive" title="Hive">Hive</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h1 id="hive-自定义函数-解析非法字符串">hive 自定义函数 解析非法字符串</h1>
+
+<h2 id="现象">现象:</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>线上业务因解析某个字段,将最终结果导入到mysql出现非法字符不能插入的情况.
+mysql的编码为utf8
+</code></pre></div></div>
+
+<p>现象部分日志</p>
+<pre><code class="language-log">
+org.apache.hadoop.mapreduce.task.TaskInputOutputContextImpl.write(TaskInputOutputContextImpl.java:89) at org.apache.hadoop.mapreduce.lib.map.WrappedMapper$Context.write(WrappedMapper.java:112) at org.apache.sqoop.mapreduce.TextExportMapper.map(TextExportMapper.java:90) ... 10 more Caused by: java.sql.BatchUpdateException: Incorrect string value: '\xF0\x9F\x90\x89' for column 'column_name' at row 24 at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method) at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62) at
+
+</code></pre>
+
+<h2 id="解决方案">解决方案</h2>
+<ol>
+  <li>
+    <p>修改mysql的编码,将其设置为utf8mb4,并配置mysql.conf.重启mysql</p>
+
+    <p>优点:一劳永逸.</p>
+
+    <p>缺点:线上数据库为业务数据库,重启成本太大</p>
+  </li>
+  <li>
+    <p>自定义函数,过滤不合理的字符串,将其替换.</p>
+
+    <p>优点:不用重启数据库.</p>
+
+    <p>缺点: 每次遇到非法字符需要使用自定义函数去解析.</p>
+  </li>
+</ol>
+
+<h2 id="实现">实现</h2>
+<p>现选择了方案2.
+实现方式,直接上代码:
+添加maven依赖 (选择和线上hive相对应的version依赖)</p>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.hive<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>hive-exec<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>1.1.0<span class="nt">&lt;/version&gt;</span>
+  <span class="nt">&lt;/dependency&gt;</span>
+
+</code></pre></div></div>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="cm">/**
+ * 处理hive中utf8字符串中的特殊表情符号,mysql导入数据时,提示非法字符,
+ * 解决方案:
+ * 1.可通过修改 mysql的编码集为: utf8mb4,缺点:需要重启数据库,线上环境不友好
+ * 2.通过自定义函数将 非法字段过滤,替换为空或其他自定义字符串,缺点: 需要编码,将jar上传.
+ */</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">SpecialStringProcess</span> <span class="kd">extends</span> <span class="no">UDF</span> <span class="o">{</span>
+    <span class="cm">/**
+     * 替换非法字符的数据
+     */</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="nc">String</span> <span class="n">replaceStr</span> <span class="o">=</span> <span class="s">""</span><span class="o">;</span>
+
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">evaluate</span><span class="o">(</span><span class="nc">String</span> <span class="n">originValue</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">originValue</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="s">""</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">originValue</span><span class="o">.</span><span class="na">trim</span><span class="o">().</span><span class="na">isEmpty</span><span class="o">())</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="n">originValue</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="nc">String</span> <span class="n">pattern</span> <span class="o">=</span> <span class="s">"[\\ud83c\\udc00-\\ud83c\\udfff]|[\\ud83d\\udc00-\\ud83d\\udfff]|[\\u2600-\\u27ff]"</span><span class="o">;</span>
+        <span class="nc">Pattern</span> <span class="n">emoji</span> <span class="o">=</span> <span class="nc">Pattern</span><span class="o">.</span><span class="na">compile</span><span class="o">(</span><span class="n">pattern</span><span class="o">);</span>
+        <span class="nc">Matcher</span> <span class="n">matcher</span> <span class="o">=</span> <span class="n">emoji</span><span class="o">.</span><span class="na">matcher</span><span class="o">(</span><span class="n">originValue</span><span class="o">);</span>
+        <span class="c1">//去除表情符</span>
+        <span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="n">replaceStr</span><span class="o">);</span>
+        <span class="c1">//去除非UTF8编码的字符</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">filterOffUtf8Mb4V2</span><span class="o">(</span><span class="n">result</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="c1">//过滤 非utf8编码的字符</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="nc">String</span> <span class="nf">filterOffUtf8Mb4</span><span class="o">(</span><span class="nc">String</span> <span class="n">text</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">bytes</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="mi">0</span><span class="o">];</span>
+        <span class="k">try</span> <span class="o">{</span>
+            <span class="n">bytes</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="s">"UTF-8"</span><span class="o">);</span>
+        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">UnsupportedEncodingException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+        <span class="o">}</span>
+        <span class="nc">ByteBuffer</span> <span class="n">buffer</span> <span class="o">=</span> <span class="nc">ByteBuffer</span><span class="o">.</span><span class="na">allocate</span><span class="o">(</span><span class="n">bytes</span><span class="o">.</span><span class="na">length</span><span class="o">);</span>
+        <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+        <span class="k">while</span> <span class="o">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">bytes</span><span class="o">.</span><span class="na">length</span><span class="o">)</span> <span class="o">{</span>
+            <span class="kt">short</span> <span class="n">b</span> <span class="o">=</span> <span class="n">bytes</span><span class="o">[</span><span class="n">i</span><span class="o">];</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">buffer</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">bytes</span><span class="o">[</span><span class="n">i</span><span class="o">++]);</span>
+                <span class="k">continue</span><span class="o">;</span>
+            <span class="o">}</span>
+            <span class="n">b</span> <span class="o">+=</span> <span class="mi">256</span><span class="o">;</span>
+            <span class="k">if</span> <span class="o">((</span><span class="n">b</span> <span class="o">^</span> <span class="mh">0xC0</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">buffer</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">bytes</span><span class="o">,</span> <span class="n">i</span><span class="o">,</span> <span class="mi">2</span><span class="o">);</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">2</span><span class="o">;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">((</span><span class="n">b</span> <span class="o">^</span> <span class="mh">0xE0</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">buffer</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">bytes</span><span class="o">,</span> <span class="n">i</span><span class="o">,</span> <span class="mi">3</span><span class="o">);</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">3</span><span class="o">;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">((</span><span class="n">b</span> <span class="o">^</span> <span class="mh">0xF0</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">4</span><span class="o">;</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="n">buffer</span><span class="o">.</span><span class="na">flip</span><span class="o">();</span>
+        <span class="k">try</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="k">new</span> <span class="nf">String</span><span class="o">(</span><span class="n">buffer</span><span class="o">.</span><span class="na">array</span><span class="o">(),</span> <span class="s">"utf-8"</span><span class="o">);</span>
+        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">UnsupportedEncodingException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">text</span><span class="o">;</span>
+    <span class="o">}</span>
+
+
+    <span class="c1">// 过滤非汉字的utf8的字符</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="nc">String</span> <span class="nf">filterOffUtf8Mb4V2</span><span class="o">(</span><span class="nc">String</span> <span class="n">text</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">bytes</span> <span class="o">=</span> <span class="s">""</span><span class="o">.</span><span class="na">getBytes</span><span class="o">();</span>
+        <span class="k">try</span> <span class="o">{</span>
+            <span class="n">bytes</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="s">"utf-8"</span><span class="o">);</span>
+
+        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+
+        <span class="o">}</span>
+        <span class="nc">ByteBuffer</span> <span class="n">buffer</span> <span class="o">=</span> <span class="nc">ByteBuffer</span><span class="o">.</span><span class="na">allocate</span><span class="o">(</span><span class="n">bytes</span><span class="o">.</span><span class="na">length</span><span class="o">);</span>
+        <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+        <span class="k">while</span> <span class="o">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">bytes</span><span class="o">.</span><span class="na">length</span><span class="o">)</span> <span class="o">{</span>
+            <span class="kt">short</span> <span class="n">b</span> <span class="o">=</span> <span class="n">bytes</span><span class="o">[</span><span class="n">i</span><span class="o">];</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">buffer</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">bytes</span><span class="o">[</span><span class="n">i</span><span class="o">++]);</span>
+                <span class="k">continue</span><span class="o">;</span>
+            <span class="o">}</span>
+
+            <span class="n">b</span> <span class="o">+=</span> <span class="mi">256</span><span class="o">;</span> <span class="c1">// 去掉符号位</span>
+
+            <span class="k">if</span> <span class="o">(((</span><span class="n">b</span> <span class="o">&gt;&gt;</span> <span class="mi">5</span><span class="o">)</span> <span class="o">^</span> <span class="mh">0x6</span><span class="o">)</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">buffer</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">bytes</span><span class="o">,</span> <span class="n">i</span><span class="o">,</span> <span class="mi">2</span><span class="o">);</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">2</span><span class="o">;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(((</span><span class="n">b</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span><span class="o">)</span> <span class="o">^</span> <span class="mh">0xE</span><span class="o">)</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">buffer</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">bytes</span><span class="o">,</span> <span class="n">i</span><span class="o">,</span> <span class="mi">3</span><span class="o">);</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">3</span><span class="o">;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(((</span><span class="n">b</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span><span class="o">)</span> <span class="o">^</span> <span class="mh">0x1E</span><span class="o">)</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">4</span><span class="o">;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(((</span><span class="n">b</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span><span class="o">)</span> <span class="o">^</span> <span class="mh">0x3E</span><span class="o">)</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">5</span><span class="o">;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(((</span><span class="n">b</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span><span class="o">)</span> <span class="o">^</span> <span class="mh">0x7E</span><span class="o">)</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">6</span><span class="o">;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+                <span class="n">buffer</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">bytes</span><span class="o">[</span><span class="n">i</span><span class="o">++]);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="n">buffer</span><span class="o">.</span><span class="na">flip</span><span class="o">();</span>
+        <span class="nc">String</span> <span class="n">str</span> <span class="o">=</span> <span class="s">""</span><span class="o">;</span>
+        <span class="k">try</span> <span class="o">{</span>
+            <span class="n">str</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">String</span><span class="o">(</span><span class="n">buffer</span><span class="o">.</span><span class="na">array</span><span class="o">(),</span> <span class="s">"utf-8"</span><span class="o">);</span>
+
+        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">str</span><span class="o">;</span>
+    <span class="o">}</span>
+
+<span class="o">}</span>
+
+</code></pre></div></div>
+
+<h2 id="使用">使用</h2>
+<p>首先将打包好的jar上传的hdfs</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>hdfs dfs <span class="nt">-put</span> xxx.jar /hdfs/udf/
+</code></pre></div></div>
+
+<p>使用方式有两种.</p>
+
+<ol>
+  <li>在hive中添加全局的自定义function</li>
+</ol>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#进入到hive shell中 ,直接创建永久自定义函数</span>
+hive&gt;
+create <span class="k">function </span>replaceEmoji as <span class="s1">'com.xx.hive.SpecialStringProcess'</span> using jar <span class="s1">'hdfs:///hdfs/udf/xxx.jar'</span><span class="p">;</span>
+
+</code></pre></div></div>
+
+<p>此法优点:一次添加后续直接使用</p>
+
+<p>缺点: 对后期维护不友好</p>
+
+<ol>
+  <li>在hive sql中使用临时的自义定function</li>
+</ol>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#在hive -e "..." 或 hive -f file.. 中 创建临时的function</span>
+
+hive <span class="nt">-e</span> <span class="s2">"
+create temporary function replaceEmoji as 'com.xx.hive.SpecialStringProcess' using jar 'hdfs:///hdfs/udf/xxx.jar';
+other conf.....
+...
+sql 
+....
+
+"</span>
+
+</code></pre></div></div>
+
+<p>此法优点: 明确使用来源,方便查看和定位.</p>
+
+<p>缺点: 每次都需要创建</p>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/hadoop/hive/hive-udf-%E5%A4%84%E7%90%86%E9%9D%9E%E6%B3%95%E5%AD%97%E6%AE%B5/';
+              this.page.identifier = '/hadoop/hive/hive-udf-%E5%A4%84%E7%90%86%E9%9D%9E%E6%B3%95%E5%AD%97%E6%AE%B5/';
+              this.page.title = 'hive 自定义函数处理非法字符';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

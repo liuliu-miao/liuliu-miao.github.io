@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>hadoop完全分布式环境搭建 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/hadoop/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="hadoop完全分布式环境搭建">
+      
+    <meta name="keywords" content="hadoop, hadoop完全分布式, hadoop环境搭建">
+    <meta name="og:keywords" content="hadoop, hadoop完全分布式, hadoop环境搭建">
+      
+    <meta name="description" content="准备工作:  三台或三台以上机器(本文以三台虚拟机为例)          centOS 6.8      VMware Fusion 10.1(maxos的虚拟机版本),window下推荐VMware 12或14稳定版        每台机器安装jdk,hadoop,并配置相应的环境变量          jdk 1.8      hadoop 2.7.2      ">
+    <meta name="og:description" content="准备工作:  三台或三台以上机器(本文以三台虚拟机为例)          centOS 6.8      VMware Fusion 10.1(maxos的虚拟机版本),window下推荐VMware 12或14稳定版        每台机器安装jdk,hadoop,并配置相应的环境变量          jdk 1.8      hadoop 2.7.2      ">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/hadoop/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2018-04-09">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="hadoop完全分布式环境搭建">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">hadoop完全分布式环境搭建</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2018/04/09
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Hadoop" title="Hadoop">Hadoop</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h2 id="准备工作">准备工作:</h2>
+<ul>
+  <li>三台或三台以上机器(本文以三台虚拟机为例)
+    <blockquote>
+
+      <p>centOS 6.8</p>
+
+      <p>VMware Fusion 10.1(maxos的虚拟机版本),window下推荐VMware 12或14稳定版</p>
+    </blockquote>
+  </li>
+  <li>每台机器安装jdk,hadoop,并配置相应的环境变量
+    <blockquote>
+
+      <p>jdk 1.8</p>
+
+      <p>hadoop 2.7.2</p>
+    </blockquote>
+  </li>
+</ul>
+
+<h2 id="安装规划">安装规划</h2>
+<ul>
+  <li>系统中新建个非root用户, 并且 将此用户修改用户root权限</li>
+  <li>所需安装文件全部存于/opt/software目录中</li>
+  <li>所有软件安装到  /opt/module目录下</li>
+  <li>
+    <p>修改/opt目录的拥有者  chgroup hadoop hdaoop</p>
+
+    <table>
+      <tbody>
+        <tr>
+          <td>主机</td>
+          <td>hadoop101</td>
+          <td>hadoop102</td>
+          <td>hadoop103</td>
+        </tr>
+        <tr>
+          <td>角色</td>
+          <td>namenode</td>
+          <td>datanode</td>
+          <td>datanode</td>
+        </tr>
+        <tr>
+          <td> </td>
+          <td>datanode</td>
+          <td>resourcemanager</td>
+          <td>nodemanager</td>
+        </tr>
+        <tr>
+          <td> </td>
+          <td>nodemanager</td>
+          <td>nodemanager</td>
+          <td>secondaryNameNode</td>
+        </tr>
+      </tbody>
+    </table>
+  </li>
+</ul>
+
+<h2 id="机器设置">机器设置</h2>
+<ul>
+  <li>配置三台机器的ip为静态ip,并能够互相ping通,且能ping通外网</li>
+  <li>以下已一台机器为例</li>
+  <li>
+    <h4 id="新建用户">新建用户</h4>
+    <blockquote>
+      <p>新建nginx用户并增加到nginx工作组,-g后跟组名 组和用户名都为hadoop,也可更改为其他用户名
+useradd -g hadoop hadoop  (后续文章都以hadoop用户登录系统做操作)</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1、建用户：
+adduser 用户名                           //新建用户
+passwd 用户名                           //给用户设置密码
+2、建工作组
+groupadd 组名                         //新建工作组
+3、新建用户同时增加工作组
+useradd <span class="nt">-g</span> nginx nginx               //新建nginx用户并增加到nginx工作组,-g后跟组名
+注：：-g 所属组 <span class="nt">-d</span> 家目录 <span class="nt">-s</span> 所用的SHELL
+4、给已有的用户增加工作组
+usermod <span class="nt">-G</span> groupname username
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+  <li>
+    <h4 id="设置静态ip">设置静态ip</h4>
+    <blockquote>
+      <p>vim /etc/sysconfig/network-scripts/ifcfg-eth0</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nv">DEVICE</span><span class="o">=</span>eth0
+  <span class="nv">TYPE</span><span class="o">=</span>Ethernet
+  <span class="nv">UUID</span><span class="o">=</span>c4fcd4b8-9338-4489-bee5-6797d077a036
+  <span class="nv">NM_CONTROLLED</span><span class="o">=</span><span class="nb">yes</span>
+  <span class="c"># 设置静态ip地址</span>
+  <span class="nv">IPADDR</span><span class="o">=</span>192.168.1.102
+  <span class="c"># 网关</span>
+  <span class="nv">GATEWAY</span><span class="o">=</span>192.168.1.2
+  <span class="nv">NETMASK</span><span class="o">=</span>255.255.255.0
+  <span class="c"># 系统启动时启用</span>
+  <span class="nv">ONBOOT</span><span class="o">=</span><span class="nb">yes</span>
+  <span class="c"># 设置为静态ip</span>
+  <span class="nv">BOOTPROTO</span><span class="o">=</span>static
+  <span class="c"># dns</span>
+  <span class="nv">DNS1</span><span class="o">=</span>114.114.114.114
+  <span class="nv">PREFIX</span><span class="o">=</span>24
+  <span class="nv">DEFROUTE</span><span class="o">=</span><span class="nb">yes
+  </span><span class="nv">IPV4_FAILURE_FATAL</span><span class="o">=</span><span class="nb">yes</span>
+  <span class="c"># 禁用ipv6</span>
+  <span class="nv">IPV6INIT</span><span class="o">=</span>no
+  <span class="nv">NAME</span><span class="o">=</span><span class="s2">"System eth0"</span>
+  <span class="c"># mac地址 对应 /etc/udev/rules.d/70-persistent-net.rules 中的 ATTR{address}的值</span>
+  <span class="c"># SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="00:0c:29:d8:7f:e3", ATTR{type}=="1", KERNEL=="eth*", NAME="eth0"</span>
+  <span class="nv">HWADDR</span><span class="o">=</span>00:0c:29:d8:7f:e3
+  <span class="nv">LAST_CONNECT</span><span class="o">=</span>1520522957
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+  <li>
+    <h4 id="修改hostname">修改hostname</h4>
+    <blockquote>
+      <p>vim /etc/sysconfig/network</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">NETWORKING</span><span class="o">=</span><span class="nb">yes
+</span><span class="nv">HOSTNAME</span><span class="o">=</span>hadoop102
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+  <li>
+    <h4 id="重启">重启</h4>
+    <blockquote>
+      <p>sudo reboot -h now</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>reboot <span class="nt">-h</span> now 
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+  <li>
+    <h4 id="修改其他机器的静态ip和hostname">修改其他机器的静态ip和hostname</h4>
+    <p>此处忽略,可以参考第一台的设置</p>
+  </li>
+</ul>
+
+<h2 id="安装jdk-和-hadoop">安装jdk 和 hadoop</h2>
+<ul>
+  <li>下载jdk 和 hadoop压缩包存于 /opt/software目录中</li>
+  <li>将jdk压缩包,hadoop压缩包解到  /opt/module
+    <blockquote>
+      <p>tar -zxvf</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 解压命令</span>
+<span class="nb">tar</span> <span class="nt">-zxvf</span> /opt/software/jdk-8u144-linux-x64.tar.gz <span class="nt">-C</span> /opt/module
+<span class="nb">tar</span> <span class="nt">-zxvf</span> /opt/software/hadoop-2.7.2.tar.gz <span class="nt">-C</span> /opt/module
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+  <li>配置JAVA_HOME和PATH ,编辑/etc/profile文件,最后一行添加如下
+    <blockquote>
+      <p>sudo vim /etc/profile</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/opt/module/jdk1.8.0_144
+<span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$JAVA_HOME</span>/bin
+<span class="nb">export </span><span class="nv">HADOOP_HOME</span><span class="o">=</span>/opt/module/hadoop-2.7.2
+<span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$HADOOP_HOME</span>/bin
+<span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$HADOOP_HOME</span>/sbin
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+  <li>检验是否安装成功
+    <blockquote>
+      <p>java -version</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>java version <span class="s2">"1.8.0_144"</span>
+Java<span class="o">(</span>TM<span class="o">)</span> SE Runtime Environment <span class="o">(</span>build 1.8.0_144-b01<span class="o">)</span>
+Java HotSpot<span class="o">(</span>TM<span class="o">)</span> 64-Bit Server VM <span class="o">(</span>build 25.144-b01, mixed mode<span class="o">)</span>
+</code></pre></div>      </div>
+      <p>hadoop version</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Hadoop 2.7.2
+Subversion Unknown <span class="nt">-r</span> Unknown
+Compiled by root on 2017-05-22T10:49Z
+Compiled with protoc 2.5.0
+From <span class="nb">source </span>with checksum d0fda26633fa762bff87ec759ebe689c
+This <span class="nb">command </span>was run using /opt/module/hadoop-2.7.2/share/hadoop/common/hadoop-common-2.7.2.jar
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+</ul>
+
+<h2 id="配置-hadoop">配置 hadoop</h2>
+<ul>
+  <li>进入到 /opt/module/hadoop-2.7.2/etc/hadoop 目录下</li>
+  <li>
+    <h4 id="编辑hadoop-envsh">编辑hadoop-env.sh</h4>
+    <blockquote>
+      <p>vim hadoop-env.sh 配置JAVA_HOME</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/opt/module/jdk1.8.0_144
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+  <li>
+    <h4 id="编辑hdfs-sitexml">编辑hdfs-site.xml</h4>
+    <blockquote>
+      <p>vim hdfs-site.xml</p>
+    </blockquote>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nt">&lt;configuration&gt;</span>
+          # hdfs文件系统中的文件副本数量 为3(一般情况,完全分布式都是3分以上基数份)
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>dfs.replication<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>3<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          # 第二名称辅助节点地址和端口
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>dfs.namenode.secondary.http-address<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>hadoop104:50090<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          # 节点检测频率,用户namenode 检测datanode是否存活 120s
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>dfs.namenode.checkpoint.period<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>120<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          # namenode存name相关数据地址
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>dfs.namenode.name.dir<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>/opt/module/hadoop-2.7.2/data/tmp/dfs/name<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+
+          #多namenode的name目录,其中 name1 和name2的数据不会重复
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>dfs.namenode.name.dir<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>file:///${hadoop.tmp.dir}/dfs/name1,file:///${hadoop.tmp.dir}/dfs/name2<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          # 指定 dfs 相关的机器地址,用户上下线新的机器
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>dfs.hosts<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>/opt/module/hadoop-2.7.2/etc/hadoop/dfs.hosts<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          # 指定退役的节点
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>dfs.hosts.exclude<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>/opt/module/hadoop-2.7.2/etc/hadoop/dfs.hosts.exclude<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+  <span class="nt">&lt;/configuration&gt;</span>
+
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <h4 id="编辑-core-sitexml">编辑 core-site.xml</h4>
+    <blockquote>
+      <p>vim core-site.xml</p>
+    </blockquote>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nt">&lt;configuration&gt;</span>
+      # dfs 的名称节点
+      <span class="nt">&lt;property&gt;</span>
+          <span class="nt">&lt;name&gt;</span>fs.defaultFS<span class="nt">&lt;/name&gt;</span>
+          <span class="nt">&lt;value&gt;</span>hdfs://hadoop102:9000<span class="nt">&lt;/value&gt;</span>
+      <span class="nt">&lt;/property&gt;</span>
+      # dfs 系统存取数据的目录
+      <span class="nt">&lt;property&gt;</span>
+          <span class="nt">&lt;name&gt;</span>hadoop.tmp.dir<span class="nt">&lt;/name&gt;</span>
+          <span class="nt">&lt;value&gt;</span>/opt/module/hadoop-2.7.2/data/tmp<span class="nt">&lt;/value&gt;</span>
+      <span class="nt">&lt;/property&gt;</span>
+      <span class="nt">&lt;property&gt;</span>
+          <span class="nt">&lt;name&gt;</span>fs.trash.interval<span class="nt">&lt;/name&gt;</span>
+          <span class="nt">&lt;value&gt;</span>1<span class="nt">&lt;/value&gt;</span>
+      <span class="nt">&lt;/property&gt;</span>
+      <span class="nt">&lt;property&gt;</span>
+          <span class="nt">&lt;name&gt;</span>hadoop.http.staticuser.user<span class="nt">&lt;/name&gt;</span>
+          <span class="nt">&lt;value&gt;</span>hadoop<span class="nt">&lt;/value&gt;</span>
+      <span class="nt">&lt;/property&gt;</span>
+  <span class="nt">&lt;/configuration&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <h4 id="配置yarn-sitexml">配置yarn-site.xml</h4>
+    <blockquote>
+      <p>vim yarn-site.xml</p>
+    </blockquote>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nt">&lt;configuration&gt;</span>
+  <span class="c">&lt;!-- reducer获取数据的方式 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>yarn.nodemanager.aux-services<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>mapreduce_shuffle<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+
+          <span class="c">&lt;!-- 指定YARN的ResourceManager的地址 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>yarn.resourcemanager.hostname<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>hd002<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          <span class="c">&lt;!-- 日志聚集功能使能 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>yarn.log-aggregation-enable<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>true<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          <span class="c">&lt;!-- 日志保留时间设置7天 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>yarn.log-aggregation.retain-seconds<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>604800<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+
+  <span class="nt">&lt;/configuration&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <h4 id="编辑maperd-sitexml">编辑maperd-site.xml</h4>
+    <blockquote>
+      <p>vim maperd-site.xml</p>
+    </blockquote>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nt">&lt;configuration&gt;</span>
+  <span class="c">&lt;!-- 指定mr运行在yarn上 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>mapreduce.framework.name<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>yarn<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+
+          <span class="c">&lt;!--配置历史服务器 --&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>mapreduce.jobhistory.address<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>hadoop101:10020<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+          <span class="nt">&lt;property&gt;</span>
+                  <span class="nt">&lt;name&gt;</span>mapreduce.jobhistory.webapp.address<span class="nt">&lt;/name&gt;</span>
+                  <span class="nt">&lt;value&gt;</span>hadoop101:19888<span class="nt">&lt;/value&gt;</span>
+          <span class="nt">&lt;/property&gt;</span>
+  <span class="nt">&lt;/configuration&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <h4 id="配置集群地址">配置集群地址</h4>
+    <blockquote>
+      <p>vim slaves</p>
+      <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>hadoop102
+hadoop103
+hadoop104
+</code></pre></div>      </div>
+    </blockquote>
+  </li>
+  <li>
+    <h4 id="分发文件">分发文件</h4>
+  </li>
+  <li>将/opt/moudle/目录下所有文件分发到其他机器
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="c"># 可自定义脚本执行</span>
+  rsync <span class="nt">-rvl</span> /opt/moudle hadoop@hadoop102:/opt/moudle
+  rsync <span class="nt">-rvl</span> /opt/moudle hadoop@hadoop103:/opt/moudle
+  rsync <span class="nt">-rvl</span> /opt/moudle hadoop@hadoop104:/opt/moudle
+</code></pre></div>    </div>
+  </li>
+  <li>将/etc/profile文件分发到其他机器
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code> rsync <span class="nt">-rvl</span> /etc/profile hadoop@hadoop102:/etc
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <h4 id="启动查看结果">启动查看结果</h4>
+    <blockquote>
+      <p>hadoop101上 启动 dfs</p>
+    </blockquote>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>      sbin/start-dfs.sh
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>hadoop102上 启动 yarn</p>
+    </blockquote>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>      sbin/start-yarn.sh
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>查看结果</p>
+    </blockquote>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  hadoop101<span class="nv">$ </span>jps
+  36577 SecondaryNameNode
+  38209 Jps
+  35314 DataNode
+  35604 NodeManager
+  35160 NameNode
+
+  hadoop102<span class="nv">$ </span>jps
+  37283 NodeManager
+  36981 ResourceManager
+  36829 DataNode
+  41519 Jps
+
+  hadoop103<span class="nv">$ </span>jps
+  36577 SecondaryNameNode
+  36678 NodeManager
+  36438 DataNode
+  41403 Jps
+
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="图解说明">图解说明</h2>
+<ul>
+  <li>
+    <h4 id="图解namenode工作机制">图解namenode工作机制</h4>
+    <p><img src="https://stone-upyun.b0.aicdn.com/blog20180416172857.png!700x999" alt="" /></p>
+  </li>
+  <li>
+    <h4 id="图解datanode工作机制">图解datanode工作机制</h4>
+    <p><img src="https://stone-upyun.b0.aicdn.com/blog20180416173056.png!700x999" alt="" /></p>
+  </li>
+  <li>
+    <h4 id="图解yarn架构">图解yarn架构</h4>
+    <p><img src="https://stone-upyun.b0.aicdn.com/blog20180416173218.png!700x999" alt="" /></p>
+  </li>
+</ul>
+
+<h3 id="自定义脚本分发文件">自定义脚本分发文件</h3>
+<blockquote>
+  <p>新建自定义脚本文件 touch /usr/bin/xsync</p>
+  <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo chmod</span> +x /usr/bin/xsync
+vim /usr/bin/xsync
+</code></pre></div>  </div>
+</blockquote>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>``` bash
+#!/bin/bash
+# 获取输入参数个数
+pcount=$#
+if((pcount==0));then
+echo no args;
+exit;
+fi
+
+# 获取文件名
+p1=$1
+fname=`basename $p1`
+echo fname=$fname
+
+# 获取上机目录到绝对路径
+
+pdir=`cd -P $(dirname $p1); pwd`
+
+echo pdir=$pdir
+
+# 获取当前用户名
+user=`whoami`
+
+for((host=103;host&lt;109;host++));do
+        echo --------------------hadoop$host-----------------
+        rsync -rvl $pdir/$fname $user@hadoop$host:$pdir
+done
+
+echo "success"
+```
+</code></pre></div></div>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/hadoop/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80/';
+              this.page.identifier = '/hadoop/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80/';
+              this.page.title = 'hadoop完全分布式环境搭建';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

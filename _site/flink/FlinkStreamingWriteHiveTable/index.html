@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Flink Streaming Write Hive Table &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/flink/FlinkStreamingWriteHiveTable/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="Flink Streaming Write Hive Table">
+      
+    <meta name="keywords" content="Flink Hive">
+    <meta name="og:keywords" content="Flink Hive">
+      
+    <meta name="description" content="Flink Streaming写入Hive表  需求背景:">
+    <meta name="og:description" content="Flink Streaming写入Hive表  需求背景:">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/flink/FlinkStreamingWriteHiveTable/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2020-12-01">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="Flink Streaming">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">Flink Streaming Write Hive Table</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2020/12/01
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Flink" title="Flink">Flink</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h1 id="flink-streaming写入hive表">Flink Streaming写入Hive表</h1>
+<ul>
+  <li>
+    <p>需求背景:</p>
+
+    <p>因公司大数据后台升级,将kafka中日志流数据,实时解析,
+ 写入指定hive table不同分区中,以此,往实时数仓方向转.
+ (在写入hdfs基础上更一步,因为写入hdfs-dwd层需要手动去增加分区,直接写入hive中更直接)</p>
+  </li>
+  <li>相关软件版本:
+    <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  Flink:1.11.1
+  Java: 1.8
+  Scala: 2.12
+  Kafka:2.2.0
+  Hive: 2.1.1
+  Hadoop: 3.0.0
+</code></pre></div>    </div>
+    <h2 id="代码示例">代码示例</h2>
+  </li>
+  <li>
+    <p>主类</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="kn">package</span> <span class="nn">com.dz.bigdata.writer.hive</span><span class="o">;</span>
+    
+  <span class="kn">import</span> <span class="nn">java.time.Instant</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.time.LocalDateTime</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.time.ZoneId</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.time.ZoneOffset</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.time.format.DateTimeFormatter</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.util.Objects</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.util.Optional</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.util.Properties</span><span class="o">;</span>
+    
+  <span class="kn">import</span> <span class="nn">org.apache.flink.api.common.serialization.SimpleStringSchema</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.api.java.typeutils.RowTypeInfo</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.configuration.CoreOptions</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.connectors.hive.HiveOptions</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.streaming.api.datastream.DataStreamSource</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.streaming.api.environment.StreamExecutionEnvironment</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.api.DataTypes</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.api.EnvironmentSettings</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.api.SqlDialect</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.api.Table</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.api.TableResult</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.api.TableSchema</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.api.bridge.java.StreamTableEnvironment</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.catalog.DataTypeFactory</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.catalog.hive.HiveCatalog</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.functions.FunctionKind</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.functions.ScalarFunction</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.functions.TableFunction</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.functions.UserDefinedFunction</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.types.DataType</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.types.inference.TypeInference</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.types.Row</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.slf4j.Logger</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.slf4j.LoggerFactory</span><span class="o">;</span>
+    
+  <span class="kn">import</span> <span class="nn">com.alibaba.fastjson.JSON</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">com.alibaba.fastjson.JSONObject</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">com.dz.bigdata.common.Constants</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">com.dz.bigdata.config.Config</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">com.dz.bigdata.pojo.ServerStandardLog</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">com.dz.bigdata.utils.ObjectUtils</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">com.dz.bigdata.writer.BaseEnv</span><span class="o">;</span>
+    
+  <span class="kd">public</span> <span class="kd">class</span> <span class="nc">ServerLogHiveWriter</span> <span class="kd">extends</span> <span class="nc">BaseEnv</span> <span class="o">{</span>
+      <span class="kd">private</span> <span class="kd">final</span> <span class="kd">static</span> <span class="nc">Logger</span> <span class="no">LOG</span> <span class="o">=</span> <span class="nc">LoggerFactory</span><span class="o">.</span><span class="na">getLogger</span><span class="o">(</span><span class="nc">ServerLogHiveWriter</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+      <span class="kd">private</span> <span class="kd">final</span> <span class="kd">static</span> <span class="kt">int</span> <span class="n">maxParallelism</span> <span class="o">=</span> <span class="mi">6</span><span class="o">;</span>
+    
+      <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+          <span class="nc">Config</span><span class="o">.</span><span class="na">initArgs</span><span class="o">(</span><span class="n">args</span><span class="o">);</span>
+    
+          <span class="nc">String</span> <span class="n">topic</span> <span class="o">=</span> <span class="nc">Config</span><span class="o">.</span><span class="na">getArgsRequiredValue</span><span class="o">(</span><span class="s">"topic"</span><span class="o">);</span>
+          <span class="nc">String</span> <span class="n">groupId</span> <span class="o">=</span> <span class="nc">Config</span><span class="o">.</span><span class="na">getArgsRequiredValue</span><span class="o">(</span><span class="s">"groupId"</span><span class="o">);</span>
+          <span class="nc">String</span> <span class="n">checkpointInterval</span> <span class="o">=</span> <span class="nc">Config</span><span class="o">.</span><span class="na">getArgsRequiredValue</span><span class="o">(</span><span class="s">"checkpointInterval"</span><span class="o">);</span>
+          <span class="kt">int</span> <span class="n">checkTime</span> <span class="o">=</span> <span class="nc">Integer</span><span class="o">.</span><span class="na">parseInt</span><span class="o">(</span><span class="n">checkpointInterval</span><span class="o">);</span>
+    
+          <span class="nc">StreamExecutionEnvironment</span> <span class="n">env</span> <span class="o">=</span> <span class="n">getStreamEnv</span><span class="o">(</span><span class="n">checkTime</span><span class="o">,</span> <span class="s">"/flink/checkpoints/flink_hive_writer_"</span> <span class="o">+</span> <span class="n">topic</span><span class="o">);</span>
+    
+          <span class="nc">Properties</span> <span class="n">props</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Properties</span><span class="o">();</span>
+          <span class="n">props</span><span class="o">.</span><span class="na">setProperty</span><span class="o">(</span><span class="s">"bootstrap.servers"</span><span class="o">,</span> <span class="nc">Config</span><span class="o">.</span><span class="na">getPropValue</span><span class="o">(</span><span class="nc">Constants</span><span class="o">.</span><span class="na">KAFKA_SERVER</span><span class="o">));</span>
+          <span class="n">props</span><span class="o">.</span><span class="na">setProperty</span><span class="o">(</span><span class="s">"group.id"</span><span class="o">,</span> <span class="n">groupId</span><span class="o">);</span>
+          <span class="n">env</span><span class="o">.</span><span class="na">setParallelism</span><span class="o">(</span><span class="n">maxParallelism</span><span class="o">);</span>
+    
+          <span class="nc">DataStreamSource</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">&gt;</span> <span class="n">source</span> <span class="o">=</span>
+                  <span class="n">env</span><span class="o">.</span><span class="na">addSource</span><span class="o">(</span><span class="k">new</span> <span class="nc">FlinkKafkaConsumer</span><span class="o">&lt;&gt;(</span><span class="n">topic</span><span class="o">,</span> <span class="k">new</span> <span class="nc">SimpleStringSchema</span><span class="o">(),</span> <span class="n">props</span><span class="o">));</span>
+    
+          <span class="nc">RowTypeInfo</span> <span class="n">typeInfo</span> <span class="o">=</span> <span class="nc">ObjectUtils</span><span class="o">.</span><span class="na">getTypeInfo</span><span class="o">(</span><span class="nc">ServerStandardLog</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    
+          <span class="nc">SingleOutputStreamOperator</span><span class="o">&lt;</span><span class="nc">Row</span><span class="o">&gt;</span> <span class="n">rowLog</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="na">map</span><span class="o">(</span><span class="n">line</span> <span class="o">-&gt;</span> <span class="o">{</span>
+              <span class="k">try</span> <span class="o">{</span>
+                  <span class="nc">JSONObject</span> <span class="n">jsonObject</span> <span class="o">=</span> <span class="no">JSON</span><span class="o">.</span><span class="na">parseObject</span><span class="o">(</span><span class="n">line</span><span class="o">);</span>
+                  <span class="k">if</span> <span class="o">(</span><span class="n">jsonObject</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"data"</span><span class="o">)</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+                      <span class="n">jsonObject</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"data"</span><span class="o">,</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getJSONObject</span><span class="o">(</span><span class="s">"data"</span><span class="o">));</span>
+                  <span class="o">}</span>
+                  <span class="nc">ServerStandardLog</span> <span class="n">serverStandardLog</span> <span class="o">=</span>
+                          <span class="no">JSON</span><span class="o">.</span><span class="na">parseObject</span><span class="o">(</span><span class="n">jsonObject</span><span class="o">.</span><span class="na">toJSONString</span><span class="o">(),</span> <span class="nc">ServerStandardLog</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+                  <span class="k">if</span> <span class="o">(</span><span class="n">serverStandardLog</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+                      <span class="nc">Object</span><span class="o">[]</span> <span class="n">values</span> <span class="o">=</span> <span class="nc">ObjectUtils</span><span class="o">.</span><span class="na">getFieldValues</span><span class="o">(</span><span class="n">serverStandardLog</span><span class="o">);</span>
+                      <span class="k">return</span> <span class="nc">Row</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">values</span><span class="o">);</span>
+                  <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+                      <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+                  <span class="o">}</span>
+    
+              <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+                  <span class="no">LOG</span><span class="o">.</span><span class="na">error</span><span class="o">(</span><span class="s">"get log msg exception  "</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+                  <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+                  <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+              <span class="o">}</span>
+          <span class="o">}).</span><span class="na">filter</span><span class="o">(</span><span class="nl">Objects:</span><span class="o">:</span><span class="n">nonNull</span><span class="o">).</span><span class="na">map</span><span class="o">(</span><span class="n">e</span> <span class="o">-&gt;</span> <span class="n">e</span><span class="o">,</span> <span class="n">typeInfo</span><span class="o">);</span>
+    
+          <span class="nc">EnvironmentSettings</span> <span class="n">settings</span> <span class="o">=</span> <span class="nc">EnvironmentSettings</span><span class="o">.</span><span class="na">newInstance</span><span class="o">().</span><span class="na">inStreamingMode</span><span class="o">().</span><span class="na">build</span><span class="o">();</span>
+          <span class="nc">StreamTableEnvironment</span> <span class="n">tbEnv</span> <span class="o">=</span> <span class="nc">StreamTableEnvironment</span><span class="o">.</span><span class="na">create</span><span class="o">(</span><span class="n">env</span><span class="o">,</span> <span class="n">settings</span><span class="o">);</span>
+          <span class="n">tbEnv</span><span class="o">.</span><span class="na">getConfig</span><span class="o">().</span><span class="na">getConfiguration</span><span class="o">().</span><span class="na">set</span><span class="o">(</span><span class="nc">CoreOptions</span><span class="o">.</span><span class="na">DEFAULT_PARALLELISM</span><span class="o">,</span> <span class="n">maxParallelism</span><span class="o">);</span>
+          <span class="n">tbEnv</span><span class="o">.</span><span class="na">getConfig</span><span class="o">().</span><span class="na">getConfiguration</span><span class="o">().</span><span class="na">set</span><span class="o">(</span><span class="nc">HiveOptions</span><span class="o">.</span><span class="na">TABLE_EXEC_HIVE_INFER_SOURCE_PARALLELISM</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+          <span class="n">tbEnv</span><span class="o">.</span><span class="na">getConfig</span><span class="o">().</span><span class="na">getConfiguration</span><span class="o">()</span>
+                  <span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="nc">HiveOptions</span><span class="o">.</span><span class="na">TABLE_EXEC_HIVE_INFER_SOURCE_PARALLELISM_MAX</span><span class="o">,</span> <span class="n">maxParallelism</span><span class="o">);</span>
+          <span class="k">if</span> <span class="o">(</span><span class="s">"dev"</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="nc">Config</span><span class="o">.</span><span class="na">getProfile</span><span class="o">()))</span> <span class="o">{</span>
+              <span class="nc">Table</span> <span class="n">cslTable</span> <span class="o">=</span> <span class="n">tbEnv</span><span class="o">.</span><span class="na">fromDataStream</span><span class="o">(</span><span class="n">rowLog</span><span class="o">);</span>
+              <span class="nc">TableSchema</span> <span class="n">schema</span> <span class="o">=</span> <span class="n">cslTable</span><span class="o">.</span><span class="na">getSchema</span><span class="o">();</span>
+              <span class="nc">Optional</span><span class="o">&lt;</span><span class="nc">DataType</span><span class="o">&gt;</span> <span class="n">data</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="na">getFieldDataType</span><span class="o">(</span><span class="s">"data"</span><span class="o">);</span>
+              <span class="n">tbEnv</span><span class="o">.</span><span class="na">createTemporaryView</span><span class="o">(</span><span class="s">"TmpLog"</span><span class="o">,</span> <span class="n">rowLog</span><span class="o">);</span>
+              <span class="nc">Table</span> <span class="n">table</span> <span class="o">=</span> <span class="n">tbEnv</span><span class="o">.</span><span class="na">sqlQuery</span><span class="o">(</span><span class="s">"SELECT data as dataMap FROM TmpLog"</span><span class="o">);</span>
+              <span class="nc">TableResult</span> <span class="n">result</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="na">execute</span><span class="o">();</span>
+              <span class="n">result</span><span class="o">.</span><span class="na">print</span><span class="o">();</span>
+          <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+    
+              <span class="nc">String</span> <span class="n">tbName</span> <span class="o">=</span> <span class="s">"dwd.dwd_hkx_hkx_server_standard_log_direct"</span><span class="o">;</span>
+              <span class="nc">String</span> <span class="n">defaultDatabase</span> <span class="o">=</span> <span class="s">"dwd"</span><span class="o">;</span>
+              <span class="nc">String</span> <span class="n">hiveConfDir</span> <span class="o">=</span> <span class="s">"/etc/hive/conf"</span><span class="o">;</span> <span class="c1">// a local path</span>
+              <span class="nc">String</span> <span class="n">caName</span> <span class="o">=</span> <span class="n">defaultDatabase</span><span class="o">;</span>
+    
+              <span class="nc">HiveCatalog</span> <span class="n">hive</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">HiveCatalog</span><span class="o">(</span><span class="n">caName</span><span class="o">,</span> <span class="n">defaultDatabase</span><span class="o">,</span> <span class="n">hiveConfDir</span><span class="o">);</span>
+              <span class="n">tbEnv</span><span class="o">.</span><span class="na">registerCatalog</span><span class="o">(</span><span class="n">caName</span><span class="o">,</span> <span class="n">hive</span><span class="o">);</span>
+    
+              <span class="n">tbEnv</span><span class="o">.</span><span class="na">useCatalog</span><span class="o">(</span><span class="n">caName</span><span class="o">);</span>
+              <span class="n">tbEnv</span><span class="o">.</span><span class="na">getConfig</span><span class="o">().</span><span class="na">setSqlDialect</span><span class="o">(</span><span class="nc">SqlDialect</span><span class="o">.</span><span class="na">HIVE</span><span class="o">);</span>
+    
+              <span class="n">tbEnv</span><span class="o">.</span><span class="na">createTemporaryFunction</span><span class="o">(</span><span class="s">"DTFormat"</span><span class="o">,</span> <span class="k">new</span> <span class="nc">DtFormatUDF</span><span class="o">());</span>
+              <span class="n">tbEnv</span><span class="o">.</span><span class="na">createTemporaryView</span><span class="o">(</span><span class="s">"TmpLog"</span><span class="o">,</span> <span class="n">rowLog</span><span class="o">);</span>
+    
+              <span class="n">tbEnv</span><span class="o">.</span><span class="na">useDatabase</span><span class="o">(</span><span class="n">defaultDatabase</span><span class="o">);</span>
+    
+              <span class="nc">String</span> <span class="n">insertSql</span> <span class="o">=</span>
+                      <span class="s">"INSERT INTO "</span> <span class="o">+</span> <span class="n">tbName</span> <span class="o">+</span> <span class="s">" SELECT logId as  log_id,bline,pline,reqTime as req_time,ip,country,"</span>
+                              <span class="o">+</span> <span class="s">"province,city,uid,ua,imei,imsi,idfa,idfv,key,subKey as sub_key,data,"</span>
+                              <span class="o">+</span> <span class="s">" DTFormat(reqTime,'0yyyyMMddHH') as dt "</span> <span class="o">+</span> <span class="s">" FROM TmpLog"</span><span class="o">;</span>
+    
+              <span class="n">tbEnv</span><span class="o">.</span><span class="na">executeSql</span><span class="o">(</span><span class="n">insertSql</span><span class="o">);</span>
+          <span class="o">}</span>
+    
+      <span class="o">}</span>
+  <span class="o">}</span>
+  <span class="kd">public</span> <span class="kd">class</span> <span class="nc">BaseEnv</span> <span class="o">{</span>
+    
+      <span class="kd">public</span> <span class="kd">static</span> <span class="nc">StreamExecutionEnvironment</span> <span class="nf">getStreamEnv</span><span class="o">(</span><span class="kt">int</span> <span class="n">checkpointTime</span><span class="o">,</span> <span class="nc">String</span> <span class="n">checkpointPath</span><span class="o">)</span> <span class="o">{</span>
+          <span class="nc">StreamExecutionEnvironment</span> <span class="n">env</span> <span class="o">=</span> <span class="nc">StreamExecutionEnvironment</span><span class="o">.</span><span class="na">getExecutionEnvironment</span><span class="o">();</span>
+          <span class="n">env</span><span class="o">.</span><span class="na">enableCheckpointing</span><span class="o">(</span><span class="n">checkpointTime</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span><span class="o">,</span> <span class="nc">CheckpointingMode</span><span class="o">.</span><span class="na">EXACTLY_ONCE</span><span class="o">);</span>
+          <span class="n">env</span><span class="o">.</span><span class="na">getCheckpointConfig</span><span class="o">().</span><span class="na">setMaxConcurrentCheckpoints</span><span class="o">(</span><span class="mi">1</span><span class="o">);</span>
+          <span class="n">env</span><span class="o">.</span><span class="na">getCheckpointConfig</span><span class="o">().</span><span class="na">setMinPauseBetweenCheckpoints</span><span class="o">(</span><span class="mi">500</span><span class="o">);</span>
+          <span class="n">env</span><span class="o">.</span><span class="na">getCheckpointConfig</span><span class="o">().</span><span class="na">setCheckpointTimeout</span><span class="o">(</span><span class="n">checkpointTime</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span><span class="o">);</span>
+    
+          <span class="k">if</span> <span class="o">(!</span><span class="s">"dev"</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="nc">Config</span><span class="o">.</span><span class="na">getProfile</span><span class="o">()))</span> <span class="o">{</span>
+              <span class="nc">FsStateBackend</span> <span class="n">fsStateBackend</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">FsStateBackend</span><span class="o">(</span><span class="s">"hdfs://"</span> <span class="o">+</span> <span class="n">checkpointPath</span><span class="o">);</span>
+              <span class="nc">StateBackend</span> <span class="n">rocksDBBackend</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">RocksDBStateBackend</span><span class="o">(</span><span class="n">fsStateBackend</span><span class="o">,</span> <span class="nc">TernaryBoolean</span><span class="o">.</span><span class="na">TRUE</span><span class="o">);</span>
+              <span class="n">env</span><span class="o">.</span><span class="na">setStateBackend</span><span class="o">(</span><span class="n">rocksDBBackend</span><span class="o">);</span>
+              <span class="n">env</span><span class="o">.</span><span class="na">setRestartStrategy</span><span class="o">(</span><span class="nc">RestartStrategies</span><span class="o">.</span><span class="na">fixedDelayRestart</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="nc">Time</span><span class="o">.</span><span class="na">minutes</span><span class="o">(</span><span class="mi">3</span><span class="o">)));</span>
+  <span class="c1">//            env.setRestartStrategy(RestartStrategies.noRestart());</span>
+          <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+              <span class="nc">StateBackend</span> <span class="n">fsStateBackend</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">FsStateBackend</span><span class="o">(</span><span class="s">"file://"</span> <span class="o">+</span> <span class="n">checkpointPath</span><span class="o">);</span>
+              <span class="n">env</span><span class="o">.</span><span class="na">setStateBackend</span><span class="o">(</span><span class="n">fsStateBackend</span><span class="o">);</span>
+              <span class="n">env</span><span class="o">.</span><span class="na">setRestartStrategy</span><span class="o">(</span><span class="nc">RestartStrategies</span><span class="o">.</span><span class="na">noRestart</span><span class="o">());</span>
+          <span class="o">}</span>
+    
+          <span class="n">env</span><span class="o">.</span><span class="na">getCheckpointConfig</span><span class="o">()</span>
+                  <span class="o">.</span><span class="na">enableExternalizedCheckpoints</span><span class="o">(</span><span class="nc">CheckpointConfig</span><span class="o">.</span><span class="na">ExternalizedCheckpointCleanup</span><span class="o">.</span><span class="na">RETAIN_ON_CANCELLATION</span><span class="o">);</span>
+    
+          <span class="k">return</span> <span class="n">env</span><span class="o">;</span>
+      <span class="o">}</span>
+  <span class="o">}</span>
+    
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>DtFormatUDF,ObjectUtils类</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="kn">package</span> <span class="nn">com.dz.bigdata.writer.hive</span><span class="o">;</span>
+    
+  <span class="kn">import</span> <span class="nn">java.time.Instant</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.time.LocalDateTime</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.time.ZoneOffset</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.time.format.DateTimeFormatter</span><span class="o">;</span>
+    
+  <span class="kn">import</span> <span class="nn">org.apache.flink.table.functions.ScalarFunction</span><span class="o">;</span>
+    
+  <span class="kd">public</span> <span class="kd">class</span> <span class="nc">DtFormatUDF</span> <span class="kd">extends</span> <span class="nc">ScalarFunction</span> <span class="o">{</span>
+      <span class="kd">public</span> <span class="nc">String</span> <span class="nf">eval</span><span class="o">(</span><span class="nc">Long</span> <span class="n">time</span><span class="o">,</span> <span class="nc">String</span> <span class="n">format</span><span class="o">)</span> <span class="o">{</span>
+          <span class="k">return</span> <span class="nc">LocalDateTime</span><span class="o">.</span><span class="na">ofInstant</span><span class="o">(</span><span class="nc">Instant</span><span class="o">.</span><span class="na">ofEpochMilli</span><span class="o">(</span><span class="n">time</span><span class="o">),</span> <span class="nc">ZoneOffset</span><span class="o">.</span><span class="na">ofHours</span><span class="o">(</span><span class="mi">8</span><span class="o">))</span>
+                         <span class="o">.</span><span class="na">format</span><span class="o">(</span><span class="nc">DateTimeFormatter</span><span class="o">.</span><span class="na">ofPattern</span><span class="o">(</span><span class="n">format</span><span class="o">));</span>
+      <span class="o">}</span>
+  <span class="o">}</span>
+  <span class="kn">package</span> <span class="nn">com.dz.bigdata.utils</span><span class="o">;</span>
+    
+  <span class="kn">import</span> <span class="nn">java.lang.reflect.Field</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.lang.reflect.Method</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.lang.reflect.Modifier</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.util.Arrays</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.util.List</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.util.Map</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">java.util.stream.Collectors</span><span class="o">;</span>
+    
+  <span class="kn">import</span> <span class="nn">org.apache.commons.lang3.StringUtils</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.api.common.typeinfo.TypeInformation</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.api.common.typeinfo.Types</span><span class="o">;</span>
+  <span class="kn">import</span> <span class="nn">org.apache.flink.api.java.typeutils.RowTypeInfo</span><span class="o">;</span>
+    
+  <span class="kd">public</span> <span class="kd">class</span> <span class="nc">ObjectUtils</span> <span class="o">{</span>
+    
+      <span class="kd">public</span> <span class="kd">static</span> <span class="nc">RowTypeInfo</span> <span class="nf">getTypeInfo</span><span class="o">(</span><span class="nc">Class</span><span class="o">&lt;?&gt;</span> <span class="n">cls</span><span class="o">){</span>
+    
+          <span class="nc">List</span><span class="o">&lt;</span><span class="nc">Field</span><span class="o">&gt;</span> <span class="n">declaredFields</span> <span class="o">=</span> <span class="nc">Arrays</span><span class="o">.</span><span class="na">stream</span><span class="o">(</span><span class="n">cls</span><span class="o">.</span><span class="na">getDeclaredFields</span><span class="o">()).</span><span class="na">filter</span><span class="o">(</span><span class="n">e</span> <span class="o">-&gt;</span> <span class="o">!</span><span class="nc">Modifier</span><span class="o">.</span><span class="na">isStatic</span><span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="na">getModifiers</span><span class="o">()))</span>
+                                        <span class="o">.</span><span class="na">collect</span><span class="o">(</span><span class="nc">Collectors</span><span class="o">.</span><span class="na">toList</span><span class="o">());</span>
+          <span class="kt">int</span> <span class="n">fieldLength</span> <span class="o">=</span> <span class="n">declaredFields</span><span class="o">.</span><span class="na">size</span><span class="o">();</span>
+          <span class="nc">String</span><span class="o">[]</span> <span class="n">fieldNames</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">String</span><span class="o">[</span><span class="n">fieldLength</span><span class="o">];</span>
+          <span class="nc">TypeInformation</span><span class="o">[]</span> <span class="n">typeInformation</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TypeInformation</span><span class="o">[</span><span class="n">fieldLength</span><span class="o">];</span>
+    
+          <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">declaredFields</span><span class="o">.</span><span class="na">size</span><span class="o">();</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+              <span class="nc">Field</span> <span class="n">field</span> <span class="o">=</span> <span class="n">declaredFields</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">i</span><span class="o">);</span>
+              <span class="n">fieldNames</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span>  <span class="n">field</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span>
+              <span class="nc">Class</span><span class="o">&lt;?&gt;</span> <span class="n">type</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="na">getType</span><span class="o">();</span>
+              <span class="k">if</span><span class="o">(</span><span class="n">type</span> <span class="o">==</span> <span class="nc">Long</span><span class="o">.</span><span class="na">class</span><span class="o">){</span>
+                  <span class="n">typeInformation</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span> <span class="nc">Types</span><span class="o">.</span><span class="na">LONG</span><span class="o">;</span>
+              <span class="o">}</span><span class="k">else</span> <span class="k">if</span><span class="o">(</span><span class="n">type</span> <span class="o">==</span> <span class="nc">Map</span><span class="o">.</span><span class="na">class</span><span class="o">){</span>
+                  <span class="n">typeInformation</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span> <span class="nc">Types</span><span class="o">.</span><span class="na">MAP</span><span class="o">(</span><span class="nc">Types</span><span class="o">.</span><span class="na">STRING</span><span class="o">,</span><span class="nc">Types</span><span class="o">.</span><span class="na">STRING</span><span class="o">);</span>
+              <span class="o">}</span><span class="k">else</span> <span class="o">{</span>
+                  <span class="n">typeInformation</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span> <span class="nc">Types</span><span class="o">.</span><span class="na">STRING</span><span class="o">;</span>
+              <span class="o">}</span>
+          <span class="o">}</span>
+          <span class="nc">RowTypeInfo</span> <span class="n">outputType</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">RowTypeInfo</span><span class="o">(</span><span class="n">typeInformation</span><span class="o">,</span><span class="n">fieldNames</span><span class="o">);</span>
+          <span class="k">return</span> <span class="n">outputType</span><span class="o">;</span>
+      <span class="o">}</span>
+      <span class="kd">public</span> <span class="kd">static</span> <span class="nc">Object</span><span class="o">[]</span> <span class="nf">getFieldValues</span><span class="o">(</span><span class="nc">Object</span> <span class="n">obj</span><span class="o">){</span>
+          <span class="nc">Class</span><span class="o">&lt;?&gt;</span> <span class="n">csClass</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="na">getClass</span><span class="o">();</span>
+           <span class="nc">List</span><span class="o">&lt;</span><span class="nc">Field</span><span class="o">&gt;</span> <span class="n">declaredFields</span> <span class="o">=</span>
+                   <span class="nc">Arrays</span><span class="o">.</span><span class="na">stream</span><span class="o">(</span><span class="n">csClass</span><span class="o">.</span><span class="na">getDeclaredFields</span><span class="o">()).</span><span class="na">filter</span><span class="o">(</span><span class="n">e</span> <span class="o">-&gt;</span> <span class="o">!</span><span class="nc">Modifier</span><span class="o">.</span><span class="na">isStatic</span><span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="na">getModifiers</span><span class="o">()))</span>
+                                                                       <span class="o">.</span><span class="na">collect</span><span class="o">(</span><span class="nc">Collectors</span><span class="o">.</span><span class="na">toList</span><span class="o">());</span>
+          <span class="nc">Object</span><span class="o">[]</span> <span class="n">values</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Object</span><span class="o">[</span><span class="n">declaredFields</span><span class="o">.</span><span class="na">size</span><span class="o">()];</span>
+          <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+          <span class="k">try</span><span class="o">{</span>
+              <span class="k">for</span> <span class="o">(</span><span class="nc">Field</span> <span class="n">field</span> <span class="o">:</span> <span class="n">declaredFields</span><span class="o">)</span> <span class="o">{</span>
+                  <span class="k">if</span><span class="o">(</span><span class="nc">Modifier</span><span class="o">.</span><span class="na">isStatic</span><span class="o">(</span><span class="n">field</span><span class="o">.</span><span class="na">getModifiers</span><span class="o">())){</span>
+                      <span class="k">continue</span><span class="o">;</span>
+                  <span class="o">}</span>
+                  <span class="nc">String</span> <span class="n">fieldName</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span>
+                  <span class="nc">Method</span> <span class="n">method</span> <span class="o">=</span> <span class="n">csClass</span><span class="o">.</span><span class="na">getMethod</span><span class="o">(</span><span class="s">"get"</span> <span class="o">+</span> <span class="nc">StringUtils</span><span class="o">.</span><span class="na">upperCase</span><span class="o">(</span><span class="n">fieldName</span><span class="o">.</span><span class="na">substring</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">1</span><span class="o">))</span> <span class="o">+</span> <span class="n">fieldName</span><span class="o">.</span><span class="na">substring</span><span class="o">(</span><span class="mi">1</span><span class="o">));</span>
+                  <span class="nc">Object</span> <span class="n">value</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="na">invoke</span><span class="o">(</span><span class="n">obj</span><span class="o">);</span>
+                  <span class="n">values</span><span class="o">[</span><span class="n">index</span><span class="o">]=</span><span class="n">value</span><span class="o">;</span>
+                  <span class="n">index</span><span class="o">++;</span>
+              <span class="o">}</span>
+          <span class="o">}</span><span class="k">catch</span> <span class="o">(</span><span class="nc">Exception</span> <span class="n">e</span><span class="o">){</span>
+              <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+          <span class="o">}</span>
+    
+          <span class="k">return</span> <span class="n">values</span><span class="o">;</span>
+      <span class="o">}</span>
+  <span class="o">}</span>
+    
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h1 id="总结和问题">总结和问题.</h1>
+<ul>
+  <li>
+    <p>写入hive时并行度为1,不能设置,导致写入速度很慢,公司部分日志数据量过大,导致消息积压不能消费完成
+ (1.11.x版本存在这个问题,据论坛显示,1.12后续版本将解决此问题),所以目前还是使用写入hdfs-dwd层的方式运行中</p>
+  </li>
+  <li>
+    <p>因为flink转为临时表是map类型字段转换的不是对应hive Map,是Any,导致一开始写入失败,解决方案:手动指定临时表各个字段数据类型.ObjectUtils类做此操作</p>
+  </li>
+</ul>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/flink/FlinkStreamingWriteHiveTable/';
+              this.page.identifier = '/flink/FlinkStreamingWriteHiveTable/';
+              this.page.title = 'Flink Streaming Write Hive Table';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

@@ -59,11 +59,12 @@ markdown: kramdown
 kramdown:
     input: GFM
 highlighter: rouge
-paginate: 8
+paginate: 10
 lsi: false
 quiet: false
 excerpt_separator: "\n\n"
-permalink: /:year/:month/:day/:title/
+# permalink: /:year/:month/:day/:title/
+permalink: /:categories/:title/
 gems:
     - jekyll-github-metadata
     - rouge
@@ -71,7 +72,7 @@ gems:
     - jekyll-paginate
     - jekyll-sitemap
     - jekyll-feed
-    - jemoji
+    # - jemoji
 #     - jekyll-mentions
 collections:
     wiki:
@@ -94,7 +95,7 @@ lazy_load_disqus : true
 
 simple_jekyll_search:
     # 是否支持全文搜索
-    fulltext: false
+    fulltext: true
     # 最多显示多少条搜索结果
     limit: 10
 

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Flink Write Data to Clickhouse 遇到的一些问题. &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="Flink Write Data to Clickhouse 遇到的一些问题.">
+      
+    <meta name="keywords" content="Flink Clickhouse Problems">
+    <meta name="og:keywords" content="Flink Clickhouse Problems">
+      
+    <meta name="description" content="简介由于公司业务和框架因素,目前将Clickhouse作为数仓唯一的存储选择.现将一些个人在使用Flink写数据到Clickhouse遇到的一些问题做一些笔记.">
+    <meta name="og:description" content="简介由于公司业务和框架因素,目前将Clickhouse作为数仓唯一的存储选择.现将一些个人在使用Flink写数据到Clickhouse遇到的一些问题做一些笔记.">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2021-11-29">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="Flink Write Dat">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">Flink Write Data to Clickhouse 遇到的一些问题.</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2021/11/29
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Flink" title="Flink">Flink</a>
+          </span>
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Clickhouse" title="Clickhouse">Clickhouse</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h1 id="简介">简介</h1>
+<p>由于公司业务和框架因素,目前将Clickhouse作为数仓唯一的存储选择.
+现将一些个人在使用Flink写数据到Clickhouse遇到的一些问题做一些笔记.</p>
+
+<h2 id="clickhouse简介">Clickhouse简介:</h2>
+<p>clickhouse是列式分布式存储系统,ClickHouse是一个用于联机分析(OLAP)的列式数据库管理系统(DBMS)。
+<a href="https://clickhouse.com/docs/zh/">官网简介</a></p>
+
+<h2 id="问题一-如果保证-flink-sink-to-clickhouse-有效一次">问题一: 如果保证 Flink Sink to Clickhouse 有效一次</h2>
+<p>这个问题是刚到公司,分配给我的. 这里说一下我简单的思路和方案.
+截至目前(2021年11月29日),前几天看到网上阿里已经实现了基于自身Clickhouse的有效一次性入库方案(类似于StreamSinkFile的二次提交)
+但是需要结合clickhouse的源码修改才能完成</p>
+
+<p><a href="https://mp.weixin.qq.com/s/8H2bxYUBmPzHl3Ae6WVWJg">阿里巴巴相关文档</a></p>
+
+<p>目前官方版本Clickhouse不具备事务.</p>
+
+<h3 id="解决思路">解决思路</h3>
+<ol>
+  <li>将Clickhouse的表引擎改为:  ReplacingMergeTree (目前是MergeTree)
+    <ul>
+      <li>优点: 满足幂等性,多次写入后数据最终能保证正确性.</li>
+      <li>缺点: 当表数据很多时,ReplacingMergeTree对CPU和内存消耗很高.不适用于目前业务中.(目前业务将ods层数据都存到CH中,且是单节点.)</li>
+    </ul>
+  </li>
+  <li>将kf_partition,kf_offset写入ch的表中,使topic和表一一对应.offset由kafka维护,不一致时,删除ch中多余数据.
+    <ul>
+      <li>优点: 能基本保证数据正确性.</li>
+      <li>缺点: 不能使用Flink的自动重启机制,需要每次重启时,比对CH与Kafka的对应分区offset.</li>
+      <li>缺点: 当CH负载过于高时,重启任务删除数据时,不能正常删除掉.数据准确性受限于CH负载.</li>
+    </ul>
+  </li>
+  <li>当任务重启时,使用kafka中的offset点直接启动任务,下一个小时通过hive或者具备事务性或幂等性的存储结构回插到CH(CH删除当前小时数据或分钟)
+    <ul>
+      <li>优点: 能保证数据准确性</li>
+      <li>缺点: 资源消耗更多(需要额外的事务性分布式存储系统或集群资源消耗,目前公司不希望使用更多资源,就是”优化”.)</li>
+      <li>缺点: 当前重启小时CH中数据不够准确,需要下一个小时数据回插后数据才具备准确性.</li>
+    </ul>
+  </li>
+</ol>
+
+<p>最终使用了方案2.不要问为啥(成本控制?)</p>
+
+<h2 id="问题二-clickhouse删除数据时提示-空间不足">问题二: Clickhouse删除数据时提示 空间不足</h2>
+<ol>
+  <li>问题场景:</li>
+</ol>
+
+<p>因为问题一解决方案2是基于保持clickhouse中数据的分区和offset与kafka的分区和offset一致,
+当任务重启(失败重启或手动重启)时,回去校验offset一致情况 .
+如果有不一致情况会将clickhouse中多余的数据删除其实保持一致.
+同时:
+users.xml 设置了同步修改数据属性.(因为是单节点所以设置1.多节点和副本情况设置2)</p>
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nt">&lt;mutations_sync&gt;</span>1<span class="nt">&lt;/mutations_sync&gt;</span> 
+</code></pre></div></div>
+<p>导致了任务重启时删除多个按分区删除语句时提示空间不足:
+日志如下:</p>
+<pre><code class="language-log">dealCkAndKfOffsetNoEqual count=[8211] ;exec-sql=[alter table  db01.test_table  delete where toDate(`logdate`)='2021-11-30' and kf_partition=6 and kf_partition&gt;=14152053083 and kf_offset&lt;=14152061943]
+ru.yandex.clickhouse.except.ClickHouseException: ClickHouse exception, code: 341, host: 172.34.6.84, port: 8123; Code: 341, e.displayText() = DB::Exception: Exception hap
+pened during execution of mutation 'mutation_8222580.txt' with part '20210819_662942_690500_6_8222579' reason: 'Code: 243, e.displayText() = DB::Exception: Cannot reserve
+ 54.68 GiB, not enough space (version 21.8.11.4 (official build))'. This error maybe retryable or not. In case of unretryable error, mutation can be killed with KILL MUTA
+TION query (version 21.8.11.4 (official build))
+
+        at ru.yandex.clickhouse.except.ClickHouseExceptionSpecifier.specify(ClickHouseExceptionSpecifier.java:58)
+        at ru.yandex.clickhouse.except.ClickHouseExceptionSpecifier.specify(ClickHouseExceptionSpecifier.java:28)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.checkForErrorAndThrow(ClickHouseStatementImpl.java:876)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.getInputStream(ClickHouseStatementImpl.java:616)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.executeQuery(ClickHouseStatementImpl.java:117)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.executeQuery(ClickHouseStatementImpl.java:100)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.executeQuery(ClickHouseStatementImpl.java:95)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.executeQuery(ClickHouseStatementImpl.java:90)
+        at ru.yandex.clickhouse.ClickHouseStatementImpl.execute(ClickHouseStatementImpl.java:226)
+        at flink_demo.utils.ClickhouseUtils.execSql(ClickhouseUtils.java:44)
+        at flink_demo.utils.ClickhouseUtils.execSql(ClickhouseUtils.java:32)
+        at flink_demo.utils.FlinkUtils.dealCkAndKfOffsetNoEqual(FlinkUtils.java:373)
+        at flink_demo.FlinkWriteLogOdsCKQueue.main(FlinkWriteLogOdsCKQueue.java:52)
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.lang.reflect.Method.invoke(Method.java:498)
+        at org.apache.flink.client.program.PackagedProgram.callMainMethod(PackagedProgram.java:355)
+        at org.apache.flink.client.program.PackagedProgram.invokeInteractiveModeForExecution(PackagedProgram.java:222)
+        at org.apache.flink.client.ClientUtils.executeProgram(ClientUtils.java:114)
+        at org.apache.flink.client.cli.CliFrontend.executeProgram(CliFrontend.java:812)
+        at org.apache.flink.client.cli.CliFrontend.run(CliFrontend.java:246)
+        at org.apache.flink.client.cli.CliFrontend.parseAndRun(CliFrontend.java:1054)
+        at org.apache.flink.client.cli.CliFrontend.lambda$main$10(CliFrontend.java:1132)
+        at java.security.AccessController.doPrivileged(Native Method)
+        at javax.security.auth.Subject.doAs(Subject.java:422)
+        at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1730)
+        at org.apache.flink.runtime.security.contexts.HadoopSecurityContext.runSecured(HadoopSecurityContext.java:41)
+        at org.apache.flink.client.cli.CliFrontend.main(CliFrontend.java:1132)
+Caused by: java.lang.Throwable: Code: 341, e.displayText() = DB::Exception: Exception happened during execution of mutation 'mutation_8222580.txt' with part '20210819_662
+942_690500_6_8222579' reason: 'Code: 243, e.displayText() = DB::Exception: Cannot reserve 54.68 GiB, not enough space (version 21.8.11.4 (official build))'. This error ma
+ybe retryable or not. In case of unretryable error, mutation can be killed with KILL MUTATION query (version 21.8.11.4 (official build))
+
+                at ru.yandex.clickhouse.except.ClickHouseExceptionSpecifier.specify(ClickHouseExceptionSpecifier.java:53)
+        ... 28 more
+ru.yandex.clickhouse.except.ClickHouseException: ClickHouse exception, code: 341, host: 172.34.6.84, port: 8123; Code: 341, e.displayText() = DB::Exception: Exception hap
+pened during execution of mutation 'mutation_8222580.txt' with part '20210819_662942_690500_6_8222579' reason: 'Code: 243, e.displayText() = DB::Exception: Cannot reserve
+ 54.68 GiB, not enough space (version 21.8.11.4 (official build))'. This error maybe retryable or not. In case of unretryable error, mutation can be killed with KILL MUTA
+TION query (version 21.8.11.4 (official build))
+</code></pre>
+
+<p>在执行时CH内存使用较高,如图
+<img src="https://i.loli.net/2021/11/30/mnYWsLOuB35Adrj.png" alt="内存使用图" />
+同时参考了文章: <a href="https://cloud.tencent.com/developer/article/1704570">https://cloud.tencent.com/developer/article/1704570</a></p>
+
+<p>发现执行sql报错提示空间不足,是由因为对指定分区执行了 DELETE WHERE 条件删除，不在删除分区的分区文件，这些分区文件进入了 clone 流程,所以造成提示空间不足</p>
+
+<p>如有其他关键问题.后期再继续更新.</p>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/';
+              this.page.identifier = '/flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/';
+              this.page.title = 'Flink Write Data to Clickhouse 遇到的一些问题.';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

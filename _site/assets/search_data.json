@@ -1,0 +1,590 @@
+{
+  
+  "flink-kafka-flink-kafka-e4-bd-bf-e7-94-a8-e4-b8-ad-e9-81-87-e5-88-b0-e7-9a-84-e4-b8-80-e4-ba-9b-e9-97-ae-e9-a2-98": {
+    "title": "Flink消费Kafka时遇到的一些问题汇总",
+    "url": " /flink/kafka/Flink-kafka%E4%BD%BF%E7%94%A8%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/",
+    "category": "Flink"
+  },
+  
+  "flink-clickhouse-flinkwritetoclickhouse-e9-81-87-e5-88-b0-e7-9a-84-e4-b8-80-e4-ba-9b-e9-97-ae-e9-a2-98": {
+    "title": "Flink Write Data to Clickhouse 遇到的一些问题.",
+    "url": " /flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/",
+    "category": "Flink"
+  },
+  
+  "flume-flume-e4-bc-98-e5-8c-96": {
+    "title": "Flume 优化",
+    "url": " /flume/flume-%E4%BC%98%E5%8C%96/",
+    "category": "Flume"
+  },
+  
+  "macos-macos-e4-b8-ad-e9-81-87-e5-88-b0-e7-9a-84-e4-b8-80-e4-ba-9b-e9-97-ae-e9-a2-98": {
+    "title": "macos中遇到的一些问题",
+    "url": " /macos/macos%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/",
+    "category": "MacOS"
+  },
+  
+  "flink-complie-flink1-13-2-e6-89-8b-e5-8a-a8-e7-bc-96-e8-af-91": {
+    "title": "Flink1.13.2手动编译",
+    "url": " /flink/complie/Flink1.13.2%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91/",
+    "category": "Flink"
+  },
+  
+  "python-python-e7-bc-96-e8-af-91-e6-89-93-e5-8c-85-e4-b8-ba-e5-b9-b6-e7-94-9f-e6-88-90deb-e5-b8-a6-e6-a1-8c-e9-9d-a2-e5-9b-be-e6-a0-87": {
+    "title": "Python编译打包为并生成deb(带桌面图标)",
+    "url": " /python/Python%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E4%B8%BA%E5%B9%B6%E7%94%9F%E6%88%90deb(%E5%B8%A6%E6%A1%8C%E9%9D%A2%E5%9B%BE%E6%A0%87)/",
+    "category": "Python"
+  },
+  
+  "flink-elasticsearch-flink-sink-elasticsearch-e9-83-a8-e5-88-86-e5-ad-97-e6-ae-b5-e8-bf-bd-e5-8a-a0-e6-95-b0-e6-8d-ae": {
+    "title": "Flink-Sink-ElasticSearch部分字段追加数据",
+    "url": " /flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE/",
+    "category": "Flink"
+  },
+  
+  "kafka-e8-ae-b0-e4-b8-80-e6-ac-a1kafka-manager-jmx-e5-bc-82-e5-b8-b8-e5-a4-84-e7-90-86": {
+    "title": "记一次Kafka-Manager JMX异常处理",
+    "url": " /kafka/%E8%AE%B0%E4%B8%80%E6%AC%A1Kafka-Manager-JMX%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/",
+    "category": "Kafka"
+  },
+  
+  "mysql-elasticsearch-e5-88-a9-e7-94-a8logstash-e8-bf-81-e7-a7-bbmysql-e6-95-b0-e6-8d-ae-e8-87-b3elasticsearch": {
+    "title": "利用logstash迁移MySQL数据至Elasticsearch",
+    "url": " /mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch/",
+    "category": "MySql"
+  },
+  
+  "zookeeper-kafka-kafka-zookeeper-e5-8d-95-e8-8a-82-e7-82-b9-e5-8d-87-e7-ba-a7-e4-b8-ba-e9-9b-86-e7-be-a4": {
+    "title": "Zookeeper_Kafka单节点模式升级为集群模式",
+    "url": " /zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4/",
+    "category": "Zookeeper"
+  },
+  
+  "flink-java-flink-jvm-fullgc-e9-97-ae-e9-a2-98-e6-9f-a5-e6-89-be-e5-92-8c-e6-80-bb-e7-bb-93": {
+    "title": "记一次线上Flink-JVM-FullGC问题总结",
+    "url": " /flink/java/Flink-JVM-FullGC%E9%97%AE%E9%A2%98%E6%9F%A5%E6%89%BE%E5%92%8C%E6%80%BB%E7%BB%93/",
+    "category": "Flink"
+  },
+  
+  "flink-flink-checkpoint-aws-s3": {
+    "title": "Flink Checkpoint AWS S3中",
+    "url": " /flink/Flink-Checkpoint-AWS-S3/",
+    "category": "Flink"
+  },
+  
+  "linux-shell-linux-e4-b8-ad-e4-b8-80-e4-ba-9b-e5-b0-8f-e7-9f-a5-e8-af-86-e7-82-b9-e4-b8-8d-e5-ae-9a-e6-97-b6-e6-9b-b4-e6-96-b0": {
+    "title": "Linux中的一些不注意的小知识点,不定时更新",
+    "url": " /linux/shell/linux%E4%B8%AD%E4%B8%80%E4%BA%9B%E5%B0%8F%E7%9F%A5%E8%AF%86%E7%82%B9-%E4%B8%8D%E5%AE%9A%E6%97%B6%E6%9B%B4%E6%96%B0/",
+    "category": "Linux"
+  },
+  
+  "flink-flinkstreamingwritehivetable": {
+    "title": "Flink Streaming Write Hive Table",
+    "url": " /flink/FlinkStreamingWriteHiveTable/",
+    "category": "Flink"
+  },
+  
+  "flink-flinkstreamingwritehdfs": {
+    "title": "Flink Streaming Write HDFS(parquet)",
+    "url": " /flink/FlinkStreamingWriteHdfs/",
+    "category": "Flink"
+  },
+  
+  "flink-flinksql-flink-sql-e8-b0-83-e7-a0-94-e5-ae-9e-e8-b7-b5-e6-80-bb-e7-bb-93": {
+    "title": "Flink SQL 调研实践总结",
+    "url": " /flink/flinksql/Flink-SQL-%E8%B0%83%E7%A0%94%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/",
+    "category": "Flink"
+  },
+  
+  "flink-flink-e6-8f-90-e4-ba-a4-e4-bb-bb-e5-8a-a1-e9-97-ae-e9-a2-98-e5-8f-8a-e6-80-bb-e7-bb-93": {
+    "title": "Flink 提交任务及问题排查",
+    "url": " /flink/Flink-%E6%8F%90%E4%BA%A4%E4%BB%BB%E5%8A%A1%E9%97%AE%E9%A2%98%E5%8F%8A%E6%80%BB%E7%BB%93/",
+    "category": "Flink"
+  },
+  
+  "tomcat-java-tomcat-e9-83-a8-e7-bd-b2-e7-9b-b8-e5-85-b3-e9-97-ae-e9-a2-98": {
+    "title": "很久不用Tomcat，使用Tomcat的小结",
+    "url": " /tomcat/java/Tomcat%E9%83%A8%E7%BD%B2%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/",
+    "category": "Tomcat"
+  },
+  
+  "hadoop-hive-hive-udf-e5-a4-84-e7-90-86-e9-9d-9e-e6-b3-95-e5-ad-97-e6-ae-b5": {
+    "title": "hive 自定义函数处理非法字符",
+    "url": " /hadoop/hive/hive-udf-%E5%A4%84%E7%90%86%E9%9D%9E%E6%B3%95%E5%AD%97%E6%AE%B5/",
+    "category": "Hadoop"
+  },
+  
+  "docker-kubernetes-kubernetes-e6-b5-85-e5-85-a5": {
+    "title": "kubernetes浅入(一)",
+    "url": " /docker/kubernetes/kubernetes%E6%B5%85%E5%85%A5/",
+    "category": "Docker"
+  },
+  
+  "flume-flume-e6-90-ad-e5-bb-ba-e5-92-8c-e4-bd-bf-e7-94-a8": {
+    "title": "flume的搭建和简单使用",
+    "url": " /flume/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/",
+    "category": "Flume"
+  },
+  
+  "hadoop-zookeeper-hadoop-ha-e9-ab-98-e5-8f-af-e7-94-a8-e9-9b-86-e7-be-a4-e6-90-ad-e5-bb-ba": {
+    "title": "hadoop-HA(高可用)集群搭建",
+    "url": " /hadoop/zookeeper/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/",
+    "category": "Hadoop"
+  },
+  
+  "blog-e5-8d-9a-e5-ae-a2-e5-9b-be-e5-ba-8a-e4-b8-8a-e4-bc-a0-e5-b7-a5-e5-85-b7-e6-8e-a8-e8-8d-90": {
+    "title": "博客图床上传工具推荐",
+    "url": " /blog/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E5%BA%8A%E4%B8%8A%E4%BC%A0%E5%B7%A5%E5%85%B7%E6%8E%A8%E8%8D%90/",
+    "category": "Blog"
+  },
+  
+  "hadoop-zookeeper-zookeeper-e9-9b-86-e7-be-a4-e6-90-ad-e5-bb-ba": {
+    "title": "zookeeper集群搭建",
+    "url": " /hadoop/zookeeper/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/",
+    "category": "Hadoop"
+  },
+  
+  "linux-macos-e8-a3-85-e8-99-9a-e6-8b-9f-e6-9c-banat-e7-bd-91-e7-bb-9c-e4-ba-92ping-e9-97-ae-e9-a2-98": {
+    "title": "macos装虚拟机NAT网络互ping问题",
+    "url": " /linux/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98/",
+    "category": "Linux"
+  },
+  
+  "hadoop-hadoop-e7-8e-af-e5-a2-83-e6-90-ad-e5-bb-ba-e5-ae-8c-e5-85-a8-e5-88-86-e5-b8-83-e5-bc-8f-e4-b8-80": {
+    "title": "hadoop完全分布式环境搭建",
+    "url": " /hadoop/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80/",
+    "category": "Hadoop"
+  },
+  
+  "blog-e6-9c-ac-e5-9c-b0jekyll-server-e5-90-af-e5-8a-a8-e8-af-81-e4-b9-a6-e9-94-99-e8-af-af-e9-97-ae-e9-a2-98": {
+    "title": "本地jekyll-server启动证书错误问题",
+    "url": " /blog/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/",
+    "category": "Blog"
+  },
+  
+  "linux-linux-e4-b8-ad-e6-81-a2-e5-a4-8d-e5-88-a0-e9-99-a4-e7-9a-84-e6-96-87-e4-bb-b6": {
+    "title": "linux下恢复删除的文件",
+    "url": " /linux/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6/",
+    "category": "linux"
+  },
+  
+  "docker-docker-e5-ad-a6-e4-b9-a0-e7-ac-94-e8-ae-b0-e4-ba-8c-dockerfile": {
+    "title": "docker学习笔记(二)Dockerfile",
+    "url": " /docker/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C-Dockerfile/",
+    "category": "docker"
+  },
+  
+  "docker-docker-e5-ad-a6-e4-b9-a0-e7-ac-94-e8-ae-b0-e4-b8-80": {
+    "title": "docker学习笔记(一)",
+    "url": " /docker/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/",
+    "category": "docker"
+  },
+  
+  "blog-buildblog-github-jekyll": {
+    "title": "github.io+jekyll搭建博客",
+    "url": " /blog/buildBlog-github-jekyll/",
+    "category": "Blog"
+  },
+  
+
+  
+  
+  "404-html": {
+    "title": "页面没有找到",
+    "url": "/404.html"
+  },
+  
+  
+  
+  "about": {
+    "title": "About ME",
+    "url": "/about/"
+  },
+  
+  
+  
+  "categories": {
+    "title": "Categories",
+    "url": "/categories/"
+  },
+  
+  
+  
+  "clock": {
+    "title": "clock",
+    "url": "/clock/"
+  },
+  
+  
+  
+  
+  
+  "links": {
+    "title": "Links",
+    "url": "/links/"
+  },
+  
+  
+  
+  "open-source": {
+    "title": "Open Source Projects",
+    "url": "/open-source/"
+  },
+  
+  
+  
+  
+  
+  "wiki": {
+    "title": "Wiki",
+    "url": "/wiki/"
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  "blog-buildblog-github-jekyll": {
+    "title": "github.io+jekyll搭建博客",
+    "url": "/blog/buildBlog-github-jekyll/",
+    "category": "[&quot;Blog&quot;]"
+  },
+  
+  "docker-docker-e5-ad-a6-e4-b9-a0-e7-ac-94-e8-ae-b0-e4-b8-80": {
+    "title": "docker学习笔记(一)",
+    "url": "/docker/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0(%E4%B8%80)/",
+    "category": "[&quot;docker&quot;]"
+  },
+  
+  "docker-docker-e5-ad-a6-e4-b9-a0-e7-ac-94-e8-ae-b0-e4-ba-8c-dockerfile": {
+    "title": "docker学习笔记(二)Dockerfile",
+    "url": "/docker/docker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%E4%BA%8C-Dockerfile/",
+    "category": "[&quot;docker&quot;]"
+  },
+  
+  "linux-linux-e4-b8-ad-e6-81-a2-e5-a4-8d-e5-88-a0-e9-99-a4-e7-9a-84-e6-96-87-e4-bb-b6": {
+    "title": "linux下恢复删除的文件",
+    "url": "/linux/linux%E4%B8%AD%E6%81%A2%E5%A4%8D%E5%88%A0%E9%99%A4%E7%9A%84%E6%96%87%E4%BB%B6/",
+    "category": "[&quot;linux&quot;]"
+  },
+  
+  "blog-e6-9c-ac-e5-9c-b0jekyll-server-e5-90-af-e5-8a-a8-e8-af-81-e4-b9-a6-e9-94-99-e8-af-af-e9-97-ae-e9-a2-98": {
+    "title": "本地jekyll-server启动证书错误问题",
+    "url": "/blog/%E6%9C%AC%E5%9C%B0jekyll-server%E5%90%AF%E5%8A%A8%E8%AF%81%E4%B9%A6%E9%94%99%E8%AF%AF%E9%97%AE%E9%A2%98/",
+    "category": "[&quot;Blog&quot;]"
+  },
+  
+  "hadoop-hadoop-e7-8e-af-e5-a2-83-e6-90-ad-e5-bb-ba-e5-ae-8c-e5-85-a8-e5-88-86-e5-b8-83-e5-bc-8f-e4-b8-80": {
+    "title": "hadoop完全分布式环境搭建",
+    "url": "/hadoop/hadoop%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F)%E4%B8%80/",
+    "category": "[&quot;Hadoop&quot;]"
+  },
+  
+  "linux-macos-e8-a3-85-e8-99-9a-e6-8b-9f-e6-9c-banat-e7-bd-91-e7-bb-9c-e4-ba-92ping-e9-97-ae-e9-a2-98": {
+    "title": "macos装虚拟机NAT网络互ping问题",
+    "url": "/linux/macos%E8%A3%85%E8%99%9A%E6%8B%9F%E6%9C%BANAT%E7%BD%91%E7%BB%9C%E4%BA%92ping%E9%97%AE%E9%A2%98/",
+    "category": "[&quot;Linux&quot;]"
+  },
+  
+  "hadoop-zookeeper-zookeeper-e9-9b-86-e7-be-a4-e6-90-ad-e5-bb-ba": {
+    "title": "zookeeper集群搭建",
+    "url": "/hadoop/zookeeper/zookeeper%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/",
+    "category": "[&quot;Hadoop&quot;, &quot;Zookeeper&quot;]"
+  },
+  
+  "blog-e5-8d-9a-e5-ae-a2-e5-9b-be-e5-ba-8a-e4-b8-8a-e4-bc-a0-e5-b7-a5-e5-85-b7-e6-8e-a8-e8-8d-90": {
+    "title": "博客图床上传工具推荐",
+    "url": "/blog/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E5%BA%8A%E4%B8%8A%E4%BC%A0%E5%B7%A5%E5%85%B7%E6%8E%A8%E8%8D%90/",
+    "category": "[&quot;Blog&quot;]"
+  },
+  
+  "hadoop-zookeeper-hadoop-ha-e9-ab-98-e5-8f-af-e7-94-a8-e9-9b-86-e7-be-a4-e6-90-ad-e5-bb-ba": {
+    "title": "hadoop-HA(高可用)集群搭建",
+    "url": "/hadoop/zookeeper/hadoop-HA(%E9%AB%98%E5%8F%AF%E7%94%A8)%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/",
+    "category": "[&quot;Hadoop&quot;, &quot;Zookeeper&quot;]"
+  },
+  
+  "flume-flume-e6-90-ad-e5-bb-ba-e5-92-8c-e4-bd-bf-e7-94-a8": {
+    "title": "flume的搭建和简单使用",
+    "url": "/flume/flume%E6%90%AD%E5%BB%BA%E5%92%8C%E4%BD%BF%E7%94%A8/",
+    "category": "[&quot;Flume&quot;]"
+  },
+  
+  "docker-kubernetes-kubernetes-e6-b5-85-e5-85-a5": {
+    "title": "kubernetes浅入(一)",
+    "url": "/docker/kubernetes/kubernetes%E6%B5%85%E5%85%A5/",
+    "category": "[&quot;Docker&quot;, &quot;Kubernetes&quot;]"
+  },
+  
+  "hadoop-hive-hive-udf-e5-a4-84-e7-90-86-e9-9d-9e-e6-b3-95-e5-ad-97-e6-ae-b5": {
+    "title": "hive 自定义函数处理非法字符",
+    "url": "/hadoop/hive/hive-udf-%E5%A4%84%E7%90%86%E9%9D%9E%E6%B3%95%E5%AD%97%E6%AE%B5/",
+    "category": "[&quot;Hadoop&quot;, &quot;Hive&quot;]"
+  },
+  
+  "tomcat-java-tomcat-e9-83-a8-e7-bd-b2-e7-9b-b8-e5-85-b3-e9-97-ae-e9-a2-98": {
+    "title": "很久不用Tomcat，使用Tomcat的小结",
+    "url": "/tomcat/java/Tomcat%E9%83%A8%E7%BD%B2%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/",
+    "category": "[&quot;Tomcat&quot;, &quot;Java&quot;]"
+  },
+  
+  "flink-flink-e6-8f-90-e4-ba-a4-e4-bb-bb-e5-8a-a1-e9-97-ae-e9-a2-98-e5-8f-8a-e6-80-bb-e7-bb-93": {
+    "title": "Flink 提交任务及问题排查",
+    "url": "/flink/Flink-%E6%8F%90%E4%BA%A4%E4%BB%BB%E5%8A%A1%E9%97%AE%E9%A2%98%E5%8F%8A%E6%80%BB%E7%BB%93/",
+    "category": "[&quot;Flink&quot;]"
+  },
+  
+  "flink-flinksql-flink-sql-e8-b0-83-e7-a0-94-e5-ae-9e-e8-b7-b5-e6-80-bb-e7-bb-93": {
+    "title": "Flink SQL 调研实践总结",
+    "url": "/flink/flinksql/Flink-SQL-%E8%B0%83%E7%A0%94%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/",
+    "category": "[&quot;Flink&quot;, &quot;FlinkSQL&quot;]"
+  },
+  
+  "flink-flinkstreamingwritehdfs": {
+    "title": "Flink Streaming Write HDFS(parquet)",
+    "url": "/flink/FlinkStreamingWriteHdfs/",
+    "category": "[&quot;Flink&quot;]"
+  },
+  
+  "flink-flinkstreamingwritehivetable": {
+    "title": "Flink Streaming Write Hive Table",
+    "url": "/flink/FlinkStreamingWriteHiveTable/",
+    "category": "[&quot;Flink&quot;]"
+  },
+  
+  "linux-shell-linux-e4-b8-ad-e4-b8-80-e4-ba-9b-e5-b0-8f-e7-9f-a5-e8-af-86-e7-82-b9-e4-b8-8d-e5-ae-9a-e6-97-b6-e6-9b-b4-e6-96-b0": {
+    "title": "Linux中的一些不注意的小知识点,不定时更新",
+    "url": "/linux/shell/linux%E4%B8%AD%E4%B8%80%E4%BA%9B%E5%B0%8F%E7%9F%A5%E8%AF%86%E7%82%B9-%E4%B8%8D%E5%AE%9A%E6%97%B6%E6%9B%B4%E6%96%B0/",
+    "category": "[&quot;Linux&quot;, &quot;Shell&quot;]"
+  },
+  
+  "flink-flink-checkpoint-aws-s3": {
+    "title": "Flink Checkpoint AWS S3中",
+    "url": "/flink/Flink-Checkpoint-AWS-S3/",
+    "category": "[&quot;Flink&quot;]"
+  },
+  
+  "flink-java-flink-jvm-fullgc-e9-97-ae-e9-a2-98-e6-9f-a5-e6-89-be-e5-92-8c-e6-80-bb-e7-bb-93": {
+    "title": "记一次线上Flink-JVM-FullGC问题总结",
+    "url": "/flink/java/Flink-JVM-FullGC%E9%97%AE%E9%A2%98%E6%9F%A5%E6%89%BE%E5%92%8C%E6%80%BB%E7%BB%93/",
+    "category": "[&quot;Flink&quot;, &quot;Java&quot;]"
+  },
+  
+  "zookeeper-kafka-kafka-zookeeper-e5-8d-95-e8-8a-82-e7-82-b9-e5-8d-87-e7-ba-a7-e4-b8-ba-e9-9b-86-e7-be-a4": {
+    "title": "Zookeeper_Kafka单节点模式升级为集群模式",
+    "url": "/zookeeper/kafka/Kafka_Zookeeper%E5%8D%95%E8%8A%82%E7%82%B9%E5%8D%87%E7%BA%A7%E4%B8%BA%E9%9B%86%E7%BE%A4/",
+    "category": "[&quot;Zookeeper&quot;, &quot;Kafka&quot;]"
+  },
+  
+  "mysql-elasticsearch-e5-88-a9-e7-94-a8logstash-e8-bf-81-e7-a7-bbmysql-e6-95-b0-e6-8d-ae-e8-87-b3elasticsearch": {
+    "title": "利用logstash迁移MySQL数据至Elasticsearch",
+    "url": "/mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch/",
+    "category": "[&quot;MySql&quot;, &quot;Elasticsearch&quot;]"
+  },
+  
+  "kafka-e8-ae-b0-e4-b8-80-e6-ac-a1kafka-manager-jmx-e5-bc-82-e5-b8-b8-e5-a4-84-e7-90-86": {
+    "title": "记一次Kafka-Manager JMX异常处理",
+    "url": "/kafka/%E8%AE%B0%E4%B8%80%E6%AC%A1Kafka-Manager-JMX%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/",
+    "category": "[&quot;Kafka&quot;]"
+  },
+  
+  "flink-elasticsearch-flink-sink-elasticsearch-e9-83-a8-e5-88-86-e5-ad-97-e6-ae-b5-e8-bf-bd-e5-8a-a0-e6-95-b0-e6-8d-ae": {
+    "title": "Flink-Sink-ElasticSearch部分字段追加数据",
+    "url": "/flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE/",
+    "category": "[&quot;Flink&quot;, &quot;ElasticSearch&quot;]"
+  },
+  
+  "python-python-e7-bc-96-e8-af-91-e6-89-93-e5-8c-85-e4-b8-ba-e5-b9-b6-e7-94-9f-e6-88-90deb-e5-b8-a6-e6-a1-8c-e9-9d-a2-e5-9b-be-e6-a0-87": {
+    "title": "Python编译打包为并生成deb(带桌面图标)",
+    "url": "/python/Python%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E4%B8%BA%E5%B9%B6%E7%94%9F%E6%88%90deb(%E5%B8%A6%E6%A1%8C%E9%9D%A2%E5%9B%BE%E6%A0%87)/",
+    "category": "[&quot;Python&quot;]"
+  },
+  
+  "flink-complie-flink1-13-2-e6-89-8b-e5-8a-a8-e7-bc-96-e8-af-91": {
+    "title": "Flink1.13.2手动编译",
+    "url": "/flink/complie/Flink1.13.2%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91/",
+    "category": "[&quot;Flink&quot;, &quot;Complie&quot;]"
+  },
+  
+  "macos-macos-e4-b8-ad-e9-81-87-e5-88-b0-e7-9a-84-e4-b8-80-e4-ba-9b-e9-97-ae-e9-a2-98": {
+    "title": "macos中遇到的一些问题",
+    "url": "/macos/macos%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/",
+    "category": "[&quot;MacOS&quot;]"
+  },
+  
+  "flume-flume-e4-bc-98-e5-8c-96": {
+    "title": "Flume 优化",
+    "url": "/flume/flume-%E4%BC%98%E5%8C%96/",
+    "category": "[&quot;Flume&quot;]"
+  },
+  
+  "flink-clickhouse-flinkwritetoclickhouse-e9-81-87-e5-88-b0-e7-9a-84-e4-b8-80-e4-ba-9b-e9-97-ae-e9-a2-98": {
+    "title": "Flink Write Data to Clickhouse 遇到的一些问题.",
+    "url": "/flink/clickhouse/FlinkWriteToClickhouse%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/",
+    "category": "[&quot;Flink&quot;, &quot;Clickhouse&quot;]"
+  },
+  
+  "flink-kafka-flink-kafka-e4-bd-bf-e7-94-a8-e4-b8-ad-e9-81-87-e5-88-b0-e7-9a-84-e4-b8-80-e4-ba-9b-e9-97-ae-e9-a2-98": {
+    "title": "Flink消费Kafka时遇到的一些问题汇总",
+    "url": "/flink/kafka/Flink-kafka%E4%BD%BF%E7%94%A8%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/",
+    "category": "[&quot;Flink&quot;, &quot;Kafka&quot;]"
+  },
+  
+  "wiki-android-studio": {
+    "title": "Android Studio",
+    "url": "/wiki/android-studio/",
+    "category": "[&quot;Android&quot;]"
+  },
+  
+  "wiki-axure": {
+    "title": "Axure",
+    "url": "/wiki/axure/",
+    "category": "[&quot;tools&quot;]"
+  },
+  
+  "wiki-badminton": {
+    "title": "Badminton",
+    "url": "/wiki/badminton/",
+    "category": "[&quot;Hobbies&quot;]"
+  },
+  
+  "wiki-chinese-copywriting-guidelines": {
+    "title": "中文文案排版指北（简体中文版）",
+    "url": "/wiki/chinese-copywriting-guidelines/",
+    "category": "[&quot;Copywriting&quot;]"
+  },
+  
+  "wiki-eclipse": {
+    "title": "Eclipse",
+    "url": "/wiki/eclipse/",
+    "category": "[&quot;Eclipse&quot;]"
+  },
+  
+  "wiki-emacs": {
+    "title": "Emacs",
+    "url": "/wiki/emacs/",
+    "category": "[&quot;Emacs&quot;]"
+  },
+  
+  "wiki-git": {
+    "title": "Git",
+    "url": "/wiki/git/",
+    "category": "[&quot;Git&quot;]"
+  },
+  
+  "wiki-good-soft": {
+    "title": "善用佳软",
+    "url": "/wiki/good-soft/",
+    "category": "[&quot;Recommends&quot;]"
+  },
+  
+  "wiki-ida-pro": {
+    "title": "IDA Pro",
+    "url": "/wiki/ida-pro/",
+    "category": "[&quot;Debug&quot;]"
+  },
+  
+  "wiki-linux": {
+    "title": "Linux/Unix",
+    "url": "/wiki/linux/",
+    "category": "[&quot;Linux&quot;]"
+  },
+  
+  "wiki-mac": {
+    "title": "Mac OS X",
+    "url": "/wiki/mac/",
+    "category": "[&quot;Mac&quot;]"
+  },
+  
+  "wiki-markdown": {
+    "title": "Markdown",
+    "url": "/wiki/markdown/",
+    "category": "[&quot;Markdown&quot;]"
+  },
+  
+  "wiki-mpv": {
+    "title": "MPV",
+    "url": "/wiki/mpv/",
+    "category": "[&quot;Tools&quot;]"
+  },
+  
+  "wiki-ollydbg": {
+    "title": "OllyDbg",
+    "url": "/wiki/ollydbg/",
+    "category": "[&quot;debug&quot;]"
+  },
+  
+  "wiki-onenote": {
+    "title": "OneNote",
+    "url": "/wiki/onenote/",
+    "category": "[&quot;Tools&quot;]"
+  },
+  
+  "wiki-php": {
+    "title": "PHP",
+    "url": "/wiki/php/",
+    "category": "[&quot;php&quot;]"
+  },
+  
+  "wiki-python": {
+    "title": "Python",
+    "url": "/wiki/python/",
+    "category": "[&quot;Python&quot;]"
+  },
+  
+  "wiki-qt-creator": {
+    "title": "Qt Creator",
+    "url": "/wiki/qt-creator/",
+    "category": "[&quot;Qt&quot;]"
+  },
+  
+  "wiki-source-insight": {
+    "title": "Source Insight",
+    "url": "/wiki/source-insight/",
+    "category": "[&quot;Tools&quot;]"
+  },
+  
+  "wiki-swimming": {
+    "title": "Swimming",
+    "url": "/wiki/swimming/",
+    "category": "[&quot;Hobbies&quot;]"
+  },
+  
+  "wiki-template": {
+    "title": "Wiki Template",
+    "url": "/wiki/template/",
+    "category": "[&quot;cate1&quot;, &quot;cate2&quot;]"
+  },
+  
+  "wiki-vim": {
+    "title": "Vim",
+    "url": "/wiki/vim/",
+    "category": "[&quot;Vim&quot;]"
+  },
+  
+  "wiki-visual-studio-code": {
+    "title": "Visual Studio Code",
+    "url": "/wiki/visual-studio-code/",
+    "category": "[&quot;Tools&quot;]"
+  },
+  
+  "wiki-visual-studio": {
+    "title": "Visual Studio",
+    "url": "/wiki/visual-studio/",
+    "category": "[&quot;Tools&quot;]"
+  }
+  
+}

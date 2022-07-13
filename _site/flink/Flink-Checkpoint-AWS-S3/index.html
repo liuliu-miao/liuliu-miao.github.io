@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Flink Checkpoint AWS S3中 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/flink/Flink-Checkpoint-AWS-S3/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="Flink Checkpoint AWS S3中">
+      
+    <meta name="keywords" content="flink checkpoint aws s3">
+    <meta name="og:keywords" content="flink checkpoint aws s3">
+      
+    <meta name="description" content="背景公司目前flink集群采用standlone模式，目前一个jobmanager，一个taskmanager，checkpoint目前只在taskmanager本机文件系统中，后期考虑到数据量上涨，将扩展机器集群模式或flink on yarn。需要将checkpoint 存储到分布式文件系统，由于集群在国外，选择了aws s3.简单使用，已做备注。">
+    <meta name="og:description" content="背景公司目前flink集群采用standlone模式，目前一个jobmanager，一个taskmanager，checkpoint目前只在taskmanager本机文件系统中，后期考虑到数据量上涨，将扩展机器集群模式或flink on yarn。需要将checkpoint 存储到分布式文件系统，由于集群在国外，选择了aws s3.简单使用，已做备注。">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/flink/Flink-Checkpoint-AWS-S3/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2021-06-27">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="Flink Checkpoin">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">Flink Checkpoint AWS S3中</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2021/06/27
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Flink" title="Flink">Flink</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h1 id="背景">背景</h1>
+<p>公司目前flink集群采用standlone模式，目前一个jobmanager，一个taskmanager，checkpoint目前只在taskmanager本机文件系统中，后期考虑到数据量上涨，将扩展机器集群模式或flink on yarn。
+需要将checkpoint 存储到分布式文件系统，由于集群在国外，选择了aws s3.
+简单使用，已做备注。</p>
+
+<h1 id="步骤">步骤</h1>
+<p>以下操作均在Flink客户端家目录下操作</p>
+<h2 id="1拷贝插件jar包到插件目录">1.拷贝插件jar包到插件目录</h2>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir </span>plugins/s3-fs-presto/
+<span class="nb">cp </span>opt/flink-s3-fs-presto-1.10.1.jar  plugins/s3-fs-presto/
+<span class="c">#如果使用hadoop文件系统与s3交互,则使用flink-s3-fs-hadoop-1.10.1.jar包，对应 plugins目录s3-fs-hadoop</span>
+</code></pre></div></div>
+<h2 id="2修改confflink-confymal">2.修改conf/flink-conf.ymal</h2>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">s3.access-key</span><span class="pi">:</span> <span class="s">xxxxxxxx</span>
+<span class="s">s3.secret-key</span><span class="pi">:</span> <span class="s">xxxxxx</span>
+<span class="s">s3.ssl.enabled</span><span class="pi">:</span> <span class="no">false</span>
+<span class="s">s3.path.style.access</span><span class="pi">:</span> <span class="no">true</span>
+<span class="s">s3.endpoint</span><span class="pi">:</span> <span class="s">s3.us-xxx-1.amazonaws.com</span>
+
+<span class="c1">#state.backend: filesystem</span>
+<span class="s">state.backend</span><span class="pi">:</span> <span class="s">rocksdb</span>
+
+<span class="c1"># Directory for checkpoints filesystem, when using any of the default bundled</span>
+<span class="c1"># state backends.</span>
+<span class="c1">#</span>
+<span class="s">state.checkpoints.dir</span><span class="pi">:</span> <span class="s">s3://flink-rt/flink/checkpoints/</span>
+<span class="c1">#state.checkpoints.dir: file:///home/ec2-user/flink/checkpointDir/flink-checkpoints</span>
+
+<span class="c1"># Default target directory for savepoints, optional.</span>
+<span class="c1">#</span>
+<span class="s">state.savepoints.dir</span><span class="pi">:</span> <span class="s">s3://flink-rt/flink/savepoints/</span>
+<span class="c1">#state.savepoints.dir: file:///home/ec2-user/flink/checkpointDir/flink-savepoints</span>
+<span class="s">state.backend.incremental</span><span class="pi">:</span> <span class="no">true</span>
+
+</code></pre></div></div>
+
+<p><a href="https://ci.apache.org/projects/flink/flink-docs-master/zh/docs/deployment/filesystems/s3/">Flink官网文档</a></p>
+<h2 id="3重启flink集群">3.重启Flink集群</h2>
+<p><strong>注意：修改完配置记得同步配置到各个节点</strong></p>
+<ul>
+  <li>如果是flink集群模式要重启集群</li>
+  <li>如果是flink on yarn(no session mode)重启任务即可。</li>
+  <li>如果是flink on yarn（yarn session mode）需要重启Flink-jobmanager集群任务</li>
+</ul>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/flink/Flink-Checkpoint-AWS-S3/';
+              this.page.identifier = '/flink/Flink-Checkpoint-AWS-S3/';
+              this.page.title = 'Flink Checkpoint AWS S3中';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

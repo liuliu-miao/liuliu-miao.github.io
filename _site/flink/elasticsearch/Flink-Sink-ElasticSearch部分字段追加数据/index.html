@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Flink-Sink-ElasticSearch部分字段追加数据 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="Flink-Sink-ElasticSearch部分字段追加数据">
+      
+    <meta name="keywords" content="Flink ElasticSearch add field data">
+    <meta name="og:keywords" content="Flink ElasticSearch add field data">
+      
+    <meta name="description" content="Flink Flink-Sink-ElasticSearch部分字段追加数据">
+    <meta name="og:description" content="Flink Flink-Sink-ElasticSearch部分字段追加数据">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2021-08-13">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="Flink-Sink-Elas">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">Flink-Sink-ElasticSearch部分字段追加数据</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2021/08/13
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Flink" title="Flink">Flink</a>
+          </span>
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#ElasticSearch" title="ElasticSearch">ElasticSearch</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h1 id="flink-flink-sink-elasticsearch部分字段追加数据">Flink Flink-Sink-ElasticSearch部分字段追加数据</h1>
+
+<h2 id="背景需求">背景需求</h2>
+<p>因flink消费kafka，其中数据需要进行补维操作，正常补维的数据都保存了最新属性数据到mysql。当任务正常流通时，从mysql拿取属性数据进行维度补充没有问题。
+现有需求：当数据重放时：需要拿到对应时间状态的维度数据。</p>
+
+<h2 id="解决方案">解决方案</h2>
+
+<h3 id="方案一">方案一：</h3>
+<p>flink 双流join 关联用户ID，或其他关键值进行双流join完成。
+<a href="https://ci.apache.org/projects/flink/flink-docs-master/docs/dev/datastream/operators/joining/#interval-join">https://ci.apache.org/projects/flink/flink-docs-master/docs/dev/datastream/operators/joining/#interval-join</a></p>
+
+<p>方案一缺点：</p>
+<ol>
+  <li>存在重放数据中没有属性数据时，关联不上的问题。当然这个也可以依赖外部储存解决</li>
+  <li>增加程序的关联复杂度。</li>
+</ol>
+
+<p>优点：</p>
+<ol>
+  <li>利用flink join机制 ，降低对外部存储系统依赖</li>
+  <li>高效。可以解决大部分的关联数据，但是有部分可能还是关联不上。</li>
+</ol>
+
+<h3 id="方案二">方案二:</h3>
+<p>通过保存历史版本数据，当回放数据时，判断当前数据与最新本的版本号是否一致。
+不一致时，使用相对应的版本的属性数据。
+优点：</p>
+<ol>
+  <li>不存在数据丢失。</li>
+  <li>相对程序来说简单一点</li>
+</ol>
+
+<p>缺点：</p>
+<ol>
+  <li>严重依赖外部存储。特别是数据量巨大的情况。</li>
+</ol>
+
+<h2 id="最终选择">最终选择</h2>
+<p>综合考虑下来，选择了方案二
+因公司相关程序都是跑在云（Flink on Yarn-EMR)上，没有自己的分布式存储系统。
+本来想使用HBase,但是hbase强依赖hdfs，公司没有自建的HDFS集群，放弃。
+选择使用ES。</p>
+
+<p>说了这么多，好像都跟ES没有啥关系。。。。</p>
+
+<p>选择ES来存储属性维度版本数据。
+版本号就是属性数据中的timestamp字段（时间戳字段）
+分别两个索性
+1：存储版本的索性  user_versions
+2：存储对应版本的数据索引 user_property_index</p>
+
+<p>其中索引user_versions专门用来存储用户数据的版本信息
+eg:
+user_versions
+id=pid_uid
+source=timestamps:[1628823667951]</p>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"_index"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"user_versions"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"_type"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"_doc"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"_id"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"1_100007140"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"_score"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"_source"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+          </span><span class="nl">"timestamps"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+            </span><span class="mi">1628823667951</span><span class="p">,</span><span class="w">
+            </span><span class="mi">1628823667952</span><span class="p">,</span><span class="w">
+            </span><span class="mi">1628823668001</span><span class="p">,</span><span class="w">
+            </span><span class="mi">1628823855026</span><span class="p">,</span><span class="w">
+            </span><span class="mi">1628823856738</span><span class="p">,</span><span class="w">
+            </span><span class="mi">1628823873136</span><span class="p">,</span><span class="w">
+            </span><span class="mi">1628823958514</span><span class="p">,</span><span class="w">
+            </span><span class="mi">1628824061838</span><span class="w">
+          </span><span class="p">]</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+      </span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+<p>user_property_index
+id=pid_uid_timestamp
+eg:其余字段省略了。只列出关键数据</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GET user_property_index/_doc/1_100007140_1628824061838
+</code></pre></div></div>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"_index"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"user_property_index"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"_type"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"_doc"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"_id"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"1_100007140_1628824061838"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"_version"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"_seq_no"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="mi">3360</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"_primary_term"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"found"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"_source"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+  </span><span class="nl">"data"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"""{
+        "</span><span class="err">pid</span><span class="s2">": "</span><span class="mi">1</span><span class="s2">",
+        "</span><span class="err">uid</span><span class="s2">": "</span><span class="mi">100007140</span><span class="s2">",
+        "</span><span class="err">timestamp</span><span class="s2">": "</span><span class="mi">1628824061838</span><span class="s2">",
+        "</span><span class="err">md</span><span class="mi">5</span><span class="s2">": "</span><span class="err">f</span><span class="mi">83874</span><span class="err">b</span><span class="mi">7742</span><span class="err">c</span><span class="mi">78</span><span class="err">bd</span><span class="mi">916</span><span class="err">cc</span><span class="mi">430</span><span class="err">c</span><span class="mi">44</span><span class="err">df</span><span class="mi">527</span><span class="s2">"
+    }"""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"update_at"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="mi">1628841996</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"id"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"1_100007140"</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>当存储用户信息时，选择数据追加方式，
+ES中有关于数据追加方式的介绍
+<a href="https://www.huaweicloud.com/articles/da7557ae10f7f6153d23b000ec2d4015.html">华为云文档</a>
+简陋的<a href="https://www.elastic.co/guide/cn/elasticsearch/php/current/_updating_documents.html">官网文档</a>（应该是我找的方式不对）</p>
+
+<p>在flink中使用</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">private</span> <span class="kd">static</span> <span class="nc">ElasticsearchSink</span><span class="o">&lt;</span><span class="nc">JSONObject</span><span class="o">&gt;</span> <span class="nf">genESSink</span><span class="o">(</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">HttpHost</span><span class="o">&gt;</span> <span class="n">httpHosts</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">ElasticsearchSink</span><span class="o">.</span><span class="na">Builder</span> <span class="n">esBuilder</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ElasticsearchSink</span><span class="o">.</span><span class="na">Builder</span><span class="o">(</span><span class="n">httpHosts</span><span class="o">,</span> <span class="k">new</span> <span class="nc">ElasticsearchSinkFunction</span><span class="o">&lt;</span><span class="nc">JSONObject</span><span class="o">&gt;()</span> <span class="o">{</span>
+
+            <span class="kd">public</span> <span class="nc">UpdateRequest</span> <span class="nf">createUserPropertySnapshotRequest</span><span class="o">(</span><span class="nc">JSONObject</span> <span class="n">element</span><span class="o">)</span> <span class="o">{</span>
+                <span class="nc">String</span> <span class="n">pid</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"pid"</span><span class="o">);</span>
+                <span class="nc">String</span> <span class="n">uid</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"uid"</span><span class="o">);</span>
+                <span class="nc">Long</span> <span class="n">timestamp</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="na">getLong</span><span class="o">(</span><span class="s">"timestamp"</span><span class="o">);</span>
+
+                <span class="c1">//保存property 信息</span>
+                <span class="nc">String</span> <span class="n">propertyId</span> <span class="o">=</span> <span class="n">pid</span> <span class="o">+</span> <span class="s">"_"</span> <span class="o">+</span> <span class="n">uid</span> <span class="o">+</span> <span class="s">"_"</span> <span class="o">+</span> <span class="n">timestamp</span><span class="o">;</span>
+                <span class="nc">UpdateRequest</span> <span class="n">updateReq</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">UpdateRequest</span><span class="o">(</span><span class="nc">ESClient</span><span class="o">.</span><span class="na">userPropertyIndex</span><span class="o">,</span> <span class="n">propertyId</span><span class="o">);</span>
+                <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Object</span><span class="o">&gt;</span> <span class="n">sourceMap</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">HashMap</span><span class="o">&lt;&gt;();</span>
+                <span class="n">sourceMap</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"id"</span><span class="o">,</span> <span class="n">pid</span> <span class="o">+</span> <span class="s">"_"</span> <span class="o">+</span> <span class="n">uid</span><span class="o">);</span>
+                <span class="n">sourceMap</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"data"</span><span class="o">,</span> <span class="n">element</span><span class="o">.</span><span class="na">toJSONString</span><span class="o">());</span>
+                <span class="n">sourceMap</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"update_at"</span><span class="o">,</span> <span class="nc">System</span><span class="o">.</span><span class="na">currentTimeMillis</span><span class="o">()</span> <span class="o">/</span> <span class="mi">1000</span><span class="o">);</span>
+
+                <span class="nc">IndexRequest</span> <span class="n">indexReq</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexRequest</span><span class="o">(</span><span class="nc">ESClient</span><span class="o">.</span><span class="na">userPropertyIndex</span><span class="o">);</span>
+                <span class="n">indexReq</span><span class="o">.</span><span class="na">id</span><span class="o">(</span><span class="n">propertyId</span><span class="o">);</span>
+                <span class="n">indexReq</span><span class="o">.</span><span class="na">source</span><span class="o">(</span><span class="n">sourceMap</span><span class="o">);</span>
+                <span class="n">indexReq</span><span class="o">.</span><span class="na">timeout</span><span class="o">(</span><span class="nc">TimeValue</span><span class="o">.</span><span class="na">timeValueSeconds</span><span class="o">(</span><span class="mi">60</span><span class="o">));</span>
+
+                <span class="n">updateReq</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">sourceMap</span><span class="o">)</span>
+                        <span class="o">.</span><span class="na">upsert</span><span class="o">(</span><span class="n">indexReq</span><span class="o">)</span>
+                        <span class="o">.</span><span class="na">timeout</span><span class="o">(</span><span class="nc">TimeValue</span><span class="o">.</span><span class="na">timeValueSeconds</span><span class="o">(</span><span class="mi">60</span><span class="o">));</span>
+                <span class="k">return</span> <span class="n">updateReq</span><span class="o">;</span>
+            <span class="o">}</span>
+
+            <span class="nd">@Override</span>
+            <span class="kd">public</span> <span class="kt">void</span> <span class="nf">process</span><span class="o">(</span><span class="nc">JSONObject</span> <span class="n">element</span><span class="o">,</span> <span class="nc">RuntimeContext</span> <span class="n">ctx</span><span class="o">,</span> <span class="nc">RequestIndexer</span> <span class="n">indexer</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">indexer</span><span class="o">.</span><span class="na">add</span><span class="o">(</span>
+                        <span class="n">createUserPropertySnapshotRequest</span><span class="o">(</span><span class="n">element</span><span class="o">),</span>
+                        <span class="n">createPropertyVersionRequest</span><span class="o">(</span><span class="n">element</span><span class="o">));</span>
+            <span class="o">}</span>
+
+            <span class="kd">private</span> <span class="nc">UpdateRequest</span> <span class="nf">createPropertyVersionRequest</span><span class="o">(</span><span class="nc">JSONObject</span> <span class="n">element</span><span class="o">)</span> <span class="o">{</span>
+                <span class="nc">String</span> <span class="n">pid</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"pid"</span><span class="o">);</span>
+                <span class="nc">String</span> <span class="n">uid</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"uid"</span><span class="o">);</span>
+                <span class="nc">Long</span> <span class="n">timestamp</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="na">getLong</span><span class="o">(</span><span class="s">"timestamp"</span><span class="o">);</span>
+
+                <span class="nc">String</span> <span class="n">versionId</span> <span class="o">=</span> <span class="n">pid</span> <span class="o">+</span> <span class="s">"_"</span> <span class="o">+</span> <span class="n">uid</span><span class="o">;</span>
+                <span class="c1">//保存版本信息</span>
+                <span class="nc">UpdateRequest</span> <span class="n">updateReq</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">UpdateRequest</span><span class="o">(</span><span class="nc">ESClient</span><span class="o">.</span><span class="na">versionIndex</span><span class="o">,</span> <span class="n">versionId</span><span class="o">);</span>
+                <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Object</span><span class="o">&gt;</span> <span class="n">params</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">HashMap</span><span class="o">&lt;&gt;();</span>
+                <span class="n">params</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"new_timestamp"</span><span class="o">,</span> <span class="n">timestamp</span><span class="o">);</span>
+                <span class="nc">String</span> <span class="n">idOrCode</span> <span class="o">=</span> <span class="s">"ctx._source.timestamps.add(params.new_timestamp)"</span><span class="o">;</span>
+                <span class="nc">Script</span> <span class="n">script</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Script</span><span class="o">(</span><span class="nc">ScriptType</span><span class="o">.</span><span class="na">INLINE</span><span class="o">,</span> <span class="nc">Script</span><span class="o">.</span><span class="na">DEFAULT_SCRIPT_LANG</span><span class="o">,</span> <span class="n">idOrCode</span><span class="o">,</span> <span class="n">params</span><span class="o">);</span>
+                <span class="n">updateReq</span><span class="o">.</span><span class="na">script</span><span class="o">(</span><span class="n">script</span><span class="o">);</span>
+
+                <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Object</span><span class="o">&gt;</span> <span class="n">sourceMap</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">HashMap</span><span class="o">&lt;&gt;();</span>
+                <span class="n">sourceMap</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"timestamps"</span><span class="o">,</span> <span class="k">new</span> <span class="nc">Long</span><span class="o">[]{</span><span class="n">timestamp</span><span class="o">});</span>
+                <span class="nc">IndexRequest</span> <span class="n">indexReq</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexRequest</span><span class="o">(</span><span class="nc">ESClient</span><span class="o">.</span><span class="na">versionIndex</span><span class="o">);</span>
+                <span class="n">indexReq</span><span class="o">.</span><span class="na">id</span><span class="o">(</span><span class="n">versionId</span><span class="o">);</span>
+                <span class="n">indexReq</span><span class="o">.</span><span class="na">source</span><span class="o">(</span><span class="n">sourceMap</span><span class="o">);</span>
+                <span class="n">indexReq</span><span class="o">.</span><span class="na">timeout</span><span class="o">(</span><span class="nc">TimeValue</span><span class="o">.</span><span class="na">timeValueSeconds</span><span class="o">(</span><span class="mi">60</span><span class="o">));</span>
+                <span class="n">updateReq</span><span class="o">.</span><span class="na">upsert</span><span class="o">(</span><span class="n">indexReq</span><span class="o">)</span>
+                        <span class="o">.</span><span class="na">timeout</span><span class="o">(</span><span class="nc">TimeValue</span><span class="o">.</span><span class="na">timeValueSeconds</span><span class="o">(</span><span class="mi">60</span><span class="o">));</span>
+
+                <span class="k">return</span> <span class="n">updateReq</span><span class="o">;</span>
+            <span class="o">}</span>
+        <span class="o">});</span>
+
+        <span class="n">esBuilder</span><span class="o">.</span><span class="na">setBulkFlushMaxActions</span><span class="o">(</span><span class="mi">3</span><span class="o">);</span>
+      
+        <span class="k">return</span> <span class="n">esBuilder</span><span class="o">.</span><span class="na">build</span><span class="o">();</span>
+    <span class="o">}</span>
+
+    <span class="cm">/**
+     * 获取离时间参数版本最近的一个版本
+     *
+     * @param pid              product_id
+     * @param uid              userId
+     * @param versionTimestamp 时间参数版本号
+     * @return user_property dataJson
+     */</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getUserVersionProperty</span><span class="o">(</span><span class="nc">String</span> <span class="n">pid</span><span class="o">,</span> <span class="nc">String</span> <span class="n">uid</span><span class="o">,</span> <span class="nc">Long</span> <span class="n">versionTimestamp</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">String</span> <span class="n">versionId</span> <span class="o">=</span> <span class="n">pid</span> <span class="o">+</span> <span class="s">"_"</span> <span class="o">+</span> <span class="n">uid</span><span class="o">;</span>
+        <span class="k">try</span> <span class="o">(</span><span class="nc">RestHighLevelClient</span> <span class="n">client</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">RestHighLevelClient</span><span class="o">(</span><span class="n">clientBuilder</span><span class="o">))</span> <span class="o">{</span>
+            <span class="c1">//获取最近版本</span>
+            <span class="nc">GetRequest</span> <span class="n">getRequest</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">GetRequest</span><span class="o">(</span><span class="n">versionIndex</span><span class="o">,</span> <span class="n">versionId</span><span class="o">);</span>
+            <span class="nc">GetResponse</span> <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">getRequest</span><span class="o">,</span> <span class="nc">RequestOptions</span><span class="o">.</span><span class="na">DEFAULT</span><span class="o">);</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">resp</span><span class="o">.</span><span class="na">isExists</span><span class="o">())</span> <span class="o">{</span>
+                <span class="nc">Object</span> <span class="n">timestamps</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="na">getSource</span><span class="o">().</span><span class="na">get</span><span class="o">(</span><span class="s">"timestamps"</span><span class="o">);</span>
+                <span class="nc">ArrayList</span><span class="o">&lt;</span><span class="nc">Long</span><span class="o">&gt;</span> <span class="n">versionList</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ArrayList</span><span class="o">&lt;&gt;();</span>
+                <span class="k">if</span> <span class="o">(</span><span class="n">timestamps</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">timestamps</span> <span class="k">instanceof</span> <span class="nc">ArrayList</span><span class="o">)</span> <span class="o">{</span>
+                    <span class="n">versionList</span> <span class="o">=</span> <span class="o">(</span><span class="nc">ArrayList</span><span class="o">&lt;</span><span class="nc">Long</span><span class="o">&gt;)</span> <span class="n">timestamps</span><span class="o">;</span>
+                <span class="o">}</span>
+                <span class="kt">long</span> <span class="n">sub</span> <span class="o">=</span> <span class="n">versionTimestamp</span><span class="o">;</span>
+                <span class="kt">long</span> <span class="n">resVersion</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1L</span><span class="o">;</span>
+                <span class="nc">HashSet</span><span class="o">&lt;</span><span class="nc">Long</span><span class="o">&gt;</span> <span class="n">versionSet</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">HashSet</span><span class="o">&lt;&gt;();</span>
+                <span class="n">versionSet</span><span class="o">.</span><span class="na">addAll</span><span class="o">(</span><span class="n">versionList</span><span class="o">);</span>
+                <span class="k">for</span> <span class="o">(</span><span class="nc">Long</span> <span class="n">version</span> <span class="o">:</span> <span class="n">versionSet</span><span class="o">)</span> <span class="o">{</span>
+                    <span class="kt">long</span> <span class="n">tempSub</span> <span class="o">=</span> <span class="n">versionTimestamp</span> <span class="o">-</span> <span class="n">version</span><span class="o">;</span><span class="c1">//</span>
+                    <span class="k">if</span> <span class="o">(</span><span class="n">tempSub</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">tempSub</span> <span class="o">&lt;</span> <span class="n">sub</span><span class="o">)</span> <span class="o">{</span><span class="c1">//找到差值最小前一个版本</span>
+                        <span class="n">sub</span> <span class="o">=</span> <span class="n">tempSub</span><span class="o">;</span>
+                        <span class="n">resVersion</span> <span class="o">=</span> <span class="n">version</span><span class="o">;</span>
+                    <span class="o">}</span>
+                <span class="o">}</span>
+                <span class="k">if</span> <span class="o">(</span><span class="n">resVersion</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1L</span><span class="o">)</span> <span class="o">{</span>
+                    <span class="nc">GetRequest</span> <span class="n">proGet</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">GetRequest</span><span class="o">(</span><span class="n">userPropertyIndex</span><span class="o">,</span> <span class="n">pid</span> <span class="o">+</span> <span class="s">"_"</span> <span class="o">+</span> <span class="n">uid</span> <span class="o">+</span> <span class="s">"_"</span> <span class="o">+</span> <span class="n">resVersion</span><span class="o">);</span>
+                    <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">proGet</span><span class="o">,</span> <span class="nc">RequestOptions</span><span class="o">.</span><span class="na">DEFAULT</span><span class="o">);</span>
+                    <span class="k">if</span> <span class="o">(</span><span class="n">resp</span><span class="o">.</span><span class="na">isExists</span><span class="o">())</span> <span class="o">{</span>
+                        <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Object</span><span class="o">&gt;</span> <span class="n">source</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="na">getSource</span><span class="o">();</span>
+                        <span class="k">if</span> <span class="o">(</span><span class="n">source</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">source</span><span class="o">.</span><span class="na">isEmpty</span><span class="o">())</span> <span class="o">{</span>
+                            <span class="k">return</span> <span class="n">source</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"data"</span><span class="o">)</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="kc">null</span> <span class="o">:</span> <span class="n">source</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"data"</span><span class="o">).</span><span class="na">toString</span><span class="o">();</span>
+                        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+                            <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+                        <span class="o">}</span>
+                    <span class="o">}</span>
+                <span class="o">}</span>
+            <span class="o">}</span>
+        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">log</span><span class="o">.</span><span class="na">error</span><span class="o">(</span><span class="s">"getUserVersionProperty exception : "</span><span class="o">,</span> <span class="n">e</span><span class="o">.</span><span class="na">getMessage</span><span class="o">(),</span> <span class="n">e</span><span class="o">);</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+    <span class="o">}</span>
+</code></pre></div></div>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE/';
+              this.page.identifier = '/flink/elasticsearch/Flink-Sink-ElasticSearch%E9%83%A8%E5%88%86%E5%AD%97%E6%AE%B5%E8%BF%BD%E5%8A%A0%E6%95%B0%E6%8D%AE/';
+              this.page.title = 'Flink-Sink-ElasticSearch部分字段追加数据';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

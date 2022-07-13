@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>利用logstash迁移MySQL数据至Elasticsearch &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="利用logstash迁移MySQL数据至Elasticsearch">
+      
+    <meta name="keywords" content="MySql Elasticsearch MySQL ES">
+    <meta name="og:keywords" content="MySql Elasticsearch MySQL ES">
+      
+    <meta name="description" content="利用logstash迁移MySQL数据至Elasticsearch背景公司某个表A，目前时mysql单库单表，对接Flink，主要用于读取和写入操作，后期考虑到量大后，对读写性能要求一定抗压，现将mysql迁移至Elasticsearch.MySql Version: 5.6Elasticsearch Version： 7.9.3">
+    <meta name="og:description" content="利用logstash迁移MySQL数据至Elasticsearch背景公司某个表A，目前时mysql单库单表，对接Flink，主要用于读取和写入操作，后期考虑到量大后，对读写性能要求一定抗压，现将mysql迁移至Elasticsearch.MySql Version: 5.6Elasticsearch Version： 7.9.3">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2021-07-06">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="利用logstash迁移MyS">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">利用logstash迁移MySQL数据至Elasticsearch</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2021/07/06
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#MySql" title="MySql">MySql</a>
+          </span>
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Elasticsearch" title="Elasticsearch">Elasticsearch</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h1 id="利用logstash迁移mysql数据至elasticsearch">利用logstash迁移MySQL数据至Elasticsearch</h1>
+<h2 id="背景">背景</h2>
+<p>公司某个表A，目前时mysql单库单表，对接Flink，主要用于读取和写入操作，后期考虑到量大后，对读写性能要求一定抗压，现将mysql迁移至Elasticsearch.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>MySql Version: 5.6
+Elasticsearch Version： 7.9.3
+</code></pre></div></div>
+
+<h2 id="安装logstash">安装logstash</h2>
+<p>下载对应Elasticsearch版本的logstash</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">cd</span> ~/ <span class="o">&amp;&amp;</span> <span class="nb">mkdir</span> ~/opt <span class="o">&amp;&amp;</span> <span class="nb">cd </span>opt/
+wget https://artifacts.elastic.co/downloads/logstash/logstash-7.9.3.tar.gz
+
+<span class="nb">tar</span> <span class="nt">-zxvf</span> logstash-7.9.3.tar.gz
+
+<span class="nb">cd </span>logstash-7.9.3 <span class="o">&amp;&amp;</span> <span class="nb">mkdir </span>mysql 
+
+wget https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar <span class="nt">-o</span> mysql/mysql-connector-java-5.1.49.jar
+
+<span class="nb">cp </span>config/logstash-sample.conf mysql/logstash-mysql-es.conf
+
+
+bin/logstash-plugin <span class="nb">install </span>logstash-input-jdbc
+bin/logstash-plugin <span class="nb">install </span>logstash-output-elasticsearch
+
+vim mysql/logstash-mysql-es.conf
+
+</code></pre></div></div>
+<h2 id="配置-logstash-mysql-esconf">配置 logstash-mysql-es.conf</h2>
+
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">input {</span>
+    <span class="s">jdbc {</span>
+        <span class="s"># 设置 MySql/MariaDB 数据库url以及数据库名称</span>
+        <span class="s">jdbc_connection_string =&gt; "jdbc:mysql://10.0.xx.xx:3306/dimension?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true"</span>
+        <span class="s"># 用户名和密码</span>
+        <span class="s">jdbc_user =&gt; "xxxxx"</span>
+        <span class="s">jdbc_password =&gt; "xxxxx"</span>
+        <span class="s"># 数据库驱动所在位置，可以是绝对路径或者相对路径</span>
+        <span class="s">jdbc_driver_library =&gt; "/home/elex/opt/logstash-7.9.3/mysql/mysql-connector-java-5.1.49.jar"</span>
+        <span class="s"># 驱动类名</span>
+        <span class="s">jdbc_driver_class =&gt; "com.mysql.jdbc.Driver"</span>
+        <span class="s"># 开启分页</span>
+        <span class="s">jdbc_paging_enabled =&gt; "true"</span>
+        <span class="s"># 分页每页数量，可以自定义</span>
+        <span class="s">jdbc_page_size =&gt; "500000"</span>
+        <span class="s"># 执行的sql文件路径</span>
+        <span class="s">#statement_filepath =&gt; "/usr/local/logstash-7.9.3/sync/foodie-items.sql"</span>
+        <span class="s">statement =&gt; "SELECT id,data,update_at,xxx,xxx FROM user"</span>
+        <span class="s"># 设置定时任务间隔  含义：分、时、天、月、年，全部为*默认含义为每分钟跑一次任务,配合statement中的语句可以做增量同步。</span>
+        <span class="s">#schedule =&gt; "* * * * *"</span>
+        <span class="s"># 是否开启记录上次追踪的结果，也就是上次更新的时间，这个会记录到 last_run_metadata_path 的文件</span>
+        <span class="s">use_column_value =&gt; </span><span class="no">true</span>
+        <span class="s"># 记录上一次追踪的结果值</span>
+        <span class="s">last_run_metadata_path =&gt; "/home/elex/opt/logstash-7.9.3/mysql/track_time"</span>
+        <span class="s"># 如果 use_column_value 为true， 配置本参数，追踪的 column 名，可以是自增id或者时间</span>
+        <span class="s">tracking_column =&gt; "update_at"</span>
+        <span class="s"># tracking_column 对应字段的类型</span>
+        <span class="s">tracking_column_type =&gt; "numeric"</span>
+        <span class="s"># 是否清除 last_run_metadata_path 的记录，true则每次都从头开始查询所有的数据库记录</span>
+        <span class="s">clean_run =&gt; </span><span class="no">false</span>
+        <span class="s"># 数据库字段名称大写转小写</span>
+        <span class="s">lowercase_column_names =&gt; </span><span class="no">false</span>
+    <span class="s">}</span>
+<span class="err">}</span>
+<span class="s">filter {</span>
+    
+  <span class="s">mutate {</span>
+       <span class="s">remove_field =&gt; ["@timestamp"]</span>
+  <span class="s">}</span>
+    <span class="s">mutate {</span>
+       <span class="s">remove_field =&gt; ["@version"]</span>
+  <span class="s">}</span>
+<span class="err">}</span>
+
+
+<span class="s">output {</span>
+    <span class="s">elasticsearch {</span>
+        <span class="s">hosts =&gt; ["10.0.xx.xx:9200"]</span>
+        <span class="s"># 索引名字，必须小写</span>
+        <span class="s">index =&gt; "dimension-user"</span>
+        <span class="s">document_id =&gt; "%{id}"</span>
+        <span class="s">action =&gt; "index"</span>
+
+    <span class="s">}</span>
+<span class="err">}</span>
+
+</code></pre></div></div>
+<h2 id="执行迁移">执行迁移</h2>
+<p>执行过程中需要不要终止任务
+也可放到后台运行</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./bin/logstash <span class="nt">-f</span> mysql/logstash-mysql-es.conf
+<span class="c"># 或者</span>
+<span class="nb">nohup</span> ./bin/logstash <span class="nt">-f</span> mysql/logstash-mysql-es.conf <span class="o">&gt;</span> log.out 2&gt;&amp;1 &amp; 
+</code></pre></div></div>
+
+<h2 id="总结">总结</h2>
+<ol>
+  <li>在迁移过程中，发现利用logstash迁移时，读取数据库时是全表扫描，对mysql压力极大。这个是问题。</li>
+  <li>ES7版本和6版本有很多不同，需要注意配置的使用。</li>
+</ol>
+
+<p>1的解决方案： 可以通过手动程序，读取mysql数据，导入ES。
+由于目前mysql数据量在百万，还能接受。所以就没有写程序。
+如有遇到千万或上亿级数据时，最好不要使用logstash同步数据，或者测试通过在使用。</p>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch/';
+              this.page.identifier = '/mysql/elasticsearch/%E5%88%A9%E7%94%A8logstash%E8%BF%81%E7%A7%BBMySQL%E6%95%B0%E6%8D%AE%E8%87%B3Elasticsearch/';
+              this.page.title = '利用logstash迁移MySQL数据至Elasticsearch';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

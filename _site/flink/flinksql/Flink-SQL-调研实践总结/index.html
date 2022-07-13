@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Flink SQL 调研实践总结 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/flink/flinksql/Flink-SQL-%E8%B0%83%E7%A0%94%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="Flink SQL 调研实践总结">
+      
+    <meta name="keywords" content="Flink, FlinkSQL">
+    <meta name="og:keywords" content="Flink, FlinkSQL">
+      
+    <meta name="description" content="Flink SQL 调研实践总结">
+    <meta name="og:description" content="Flink SQL 调研实践总结">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/flink/flinksql/Flink-SQL-%E8%B0%83%E7%A0%94%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2020-05-12">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="Flink SQL 调研实践总">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">Flink SQL 调研实践总结</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2020/05/12
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Flink" title="Flink">Flink</a>
+          </span>
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#FlinkSQL" title="FlinkSQL">FlinkSQL</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h2 id="flink-sql-调研实践总结">Flink SQL 调研实践总结</h2>
+
+<p>使用Flink 版本为:1.10.0
+此版本中Flink SQL 对DDL语句支持直接创建Table方式使用.</p>
+
+<p>注意: 基本使用能够,如果想利用Table方式对Hbase进行类似table查询读取操作失败,所以如果想使用这种方式的话,建议等到后续版本升级可能会支持.</p>
+
+<h3 id="本次调研实践的各个软件版本说明">本次调研实践的各个软件版本说明</h3>
+
+<p>Flink:1.10.0</p>
+
+<p>Kafka:2.2.0</p>
+
+<p>ES:7.2</p>
+
+<p>HBase:2.1.0</p>
+
+<p>Hadoop:3.0.0</p>
+
+<p>JDK:1.8.0</p>
+
+<table>
+  <tbody>
+    <tr>
+      <td>scala:2.11.12</td>
+      <td>pom中打包使用的是 2.12</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="使用情景">使用情景:</h3>
+
+<p>source: kafka</p>
+
+<p>sink: elesticsearch7, hbase</p>
+
+<ul>
+  <li>
+    <p>业务需求:</p>
+
+    <p>利用 FlinkSQL 将 kafka中用户日志数据和hbase中数据数据关联查询.得到结果集.然后再存入hbase和es中.</p>
+  </li>
+</ul>
+
+<h4 id="具体代码实现">具体代码实现</h4>
+
+<p>逻辑说明: source接入Kafka,中间经过统计,最后将数据写入到es中.</p>
+
+<p>直接贴代码吧.</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">import</span> <span class="nn">org.apache.flink.api.common.restartstrategy.RestartStrategies</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.api.scala._</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.runtime.state.filesystem.FsStateBackend</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.streaming.api.CheckpointingMode</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.streaming.api.scala.StreamExecutionEnvironment</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.table.api.EnvironmentSettings</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.table.api.scala.</span><span class="o">{</span><span class="nc">StreamTableEnvironment</span><span class="o">,</span> <span class="k">_</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.types.Row</span>
+
+<span class="cm">/**
+ * 此程序没有做到实时更新当前小时.待优化.(此为FlinkSql的特性所致.虽然没有实时写入到结果集.但是中间计算是实时计算着走的.到窗口结束时会将结果直接写入到结果集中)
+ */</span>
+<span class="k">object</span> <span class="nc">FlinkSqlMidKafkaSinkES</span> <span class="k">extends</span> <span class="nc">ConfigBase</span> <span class="o">{</span>
+
+  <span class="k">var</span> <span class="n">sourSql</span> <span class="k">=</span>
+    <span class="s">"""
+      |create table shafa_mid_log_json (
+      | ext String,
+      | os String,
+      | agent_id String,
+      | openid String,
+      | ctx String,
+      | ip String,
+      | network String,
+      | uid String,
+      | admin_id String,
+      | host String,
+      | referral_id String,
+      | theme String,
+      | tag String,
+      | page String,
+      | track String,
+      | channel_id String,
+      | map_json String,
+      | vt String,
+      | ua String,
+      | domain String,
+      | reqtime BIGINT,
+      | ts AS TO_TIMESTAMP(FROM_UNIXTIME(reqtime/1000,'yyyy-MM-dd HH:mm:ss')), -- flink 官方版本暂不支持 传入 bigint的类型.阿里云文档中可以.
+      | proctime as PROCTIME(),   -- 通过计算列产生一个处理时间列
+      | WATERMARK FOR ts as ts - INTERVAL '5' SECOND  -- 在et上定义watermark，et成为事件时间列
+      | )
+      | WITH (
+      |'connector.type' = 'kafka',
+      |'connector.version' = 'universal',
+      |'connector.topic' = 'mid_shafa_json_log',
+      |'connector.startup-mode' = 'latest-offset',
+      |'connector.properties.group.id' = 'flink_sql_consume_mid_json',
+      |'connector.properties.zookeeper.connect' = '%s',
+      |'connector.properties.bootstrap.servers' = '%s',
+      |'format.type' = 'json',
+      |'update-mode'='append'
+      | )"""</span><span class="o">.</span><span class="py">stripMargin</span>
+
+  <span class="k">var</span> <span class="n">sinkSql</span> <span class="k">=</span>
+    <span class="n">s</span><span class="s">"""CREATE TABLE sink_es_shafa_pv_uv (
+       |ts  STRING,
+       |channel_id String,
+       |pv BIGINT,
+       |uv BIGINT
+       |) WITH (
+       |'connector.type' = 'elasticsearch',
+       |'connector.version' = '7',
+       |'connector.hosts' = '%s',
+       |'connector.index' = 'shafa_pv_uv_dh',
+       |'connector.document-type' = 'shafa_pv_uv',
+       |'connector.bulk-flush.max-actions' = '1',
+       |'format.type' = 'json',
+       |'update-mode' = 'upsert'
+       |)"""</span><span class="o">.</span><span class="py">stripMargin</span>
+
+  <span class="k">def</span> <span class="nf">main</span><span class="o">(</span><span class="n">args</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="nv">paramTool</span> <span class="k">=</span> <span class="nf">getProperties</span><span class="o">(</span><span class="n">args</span><span class="o">)</span>
+    <span class="k">val</span> <span class="nv">zookeeperQuorum</span> <span class="k">=</span> <span class="nv">paramTool</span><span class="o">.</span><span class="py">get</span><span class="o">(</span><span class="s">"zookeeper.quorum"</span><span class="o">)</span>
+    <span class="k">val</span> <span class="nv">esHttpHost</span> <span class="k">=</span> <span class="nv">paramTool</span><span class="o">.</span><span class="py">get</span><span class="o">(</span><span class="s">"es.http.host"</span><span class="o">)</span>
+    <span class="k">val</span> <span class="nv">brokerServers</span> <span class="k">=</span> <span class="nv">paramTool</span><span class="o">.</span><span class="py">get</span><span class="o">(</span><span class="s">"kafka.bootstrap.servers"</span><span class="o">)</span>
+    <span class="k">val</span> <span class="nv">env</span><span class="k">:</span> <span class="kt">StreamExecutionEnvironment</span> <span class="o">=</span> <span class="nv">StreamExecutionEnvironment</span><span class="o">.</span><span class="py">getExecutionEnvironment</span>
+
+    <span class="c1">//启用并设置checkpoint相关属性</span>
+    <span class="nv">env</span><span class="o">.</span><span class="py">enableCheckpointing</span><span class="o">(</span><span class="mi">1000</span><span class="o">,</span> <span class="nv">CheckpointingMode</span><span class="o">.</span><span class="py">EXACTLY_ONCE</span><span class="o">)</span>
+    <span class="nv">env</span><span class="o">.</span><span class="py">getCheckpointConfig</span><span class="o">.</span><span class="py">setMaxConcurrentCheckpoints</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+    <span class="nv">env</span><span class="o">.</span><span class="py">getCheckpointConfig</span><span class="o">.</span><span class="py">setMinPauseBetweenCheckpoints</span><span class="o">(</span><span class="mi">500</span><span class="o">)</span>
+    <span class="nv">env</span><span class="o">.</span><span class="py">getCheckpointConfig</span><span class="o">.</span><span class="py">setCheckpointTimeout</span><span class="o">(</span><span class="mi">60000</span><span class="o">)</span>
+    <span class="c1">//2049 9870</span>
+    <span class="c1">//    env.setStateBackend(new FsStateBackend("hdfs://hd-master-101:9000/flink/checkpoints/shafa_pv_uv/"));</span>
+    <span class="nv">env</span><span class="o">.</span><span class="py">setStateBackend</span><span class="o">(</span><span class="k">new</span> <span class="nc">FsStateBackend</span><span class="o">(</span><span class="s">"hdfs:///flink/checkpoints/shafa_pv_uv/"</span><span class="o">));</span>
+    <span class="nv">env</span><span class="o">.</span><span class="py">getCheckpointConfig</span><span class="o">.</span><span class="py">enableExternalizedCheckpoints</span><span class="o">(</span><span class="nv">ExternalizedCheckpointCleanup</span><span class="o">.</span><span class="py">RETAIN_ON_CANCELLATION</span><span class="o">)</span>
+    <span class="c1">//重启策略</span>
+    <span class="nv">env</span><span class="o">.</span><span class="py">setRestartStrategy</span><span class="o">(</span><span class="nv">RestartStrategies</span><span class="o">.</span><span class="py">noRestart</span><span class="o">())</span>
+
+
+    <span class="k">val</span> <span class="nv">settings</span> <span class="k">=</span> <span class="nv">EnvironmentSettings</span><span class="o">.</span><span class="py">newInstance</span><span class="o">()</span>
+      <span class="o">.</span><span class="py">useBlinkPlanner</span><span class="o">()</span>
+      <span class="o">.</span><span class="py">inStreamingMode</span><span class="o">()</span>
+      <span class="o">.</span><span class="py">build</span><span class="o">()</span>
+    <span class="nv">env</span><span class="o">.</span><span class="py">setParallelism</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+
+    <span class="k">val</span> <span class="nv">tEnv</span> <span class="k">=</span> <span class="nv">StreamTableEnvironment</span><span class="o">.</span><span class="py">create</span><span class="o">(</span><span class="n">env</span><span class="o">,</span> <span class="n">settings</span><span class="o">)</span>
+    <span class="c1">//origin_cps_shafa_logs</span>
+    <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlUpdate</span><span class="o">(</span><span class="nv">sourSql</span><span class="o">.</span><span class="py">format</span><span class="o">(</span><span class="n">zookeeperQuorum</span><span class="o">,</span> <span class="n">brokerServers</span><span class="o">))</span>
+    <span class="c1">//    tEnv.sqlUpdate(sourConsumeSql)</span>
+    <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlUpdate</span><span class="o">(</span><span class="nv">sinkSql</span><span class="o">.</span><span class="py">format</span><span class="o">(</span><span class="n">esHttpHost</span><span class="o">))</span>
+    <span class="c1">//    tEnv.sqlQuery("""select channel_id,uid,ts,proctime from shafa_mid_log_json """).toAppendStream[Row].print()</span>
+    <span class="c1">//统计一分钟内的数据</span>
+    <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlQuery</span><span class="o">(</span>
+      <span class="s">"""
+        |
+        |select
+        | DATE_FORMAT(TUMBLE_START(ts, interval '10' minute),'yyyyMMddHHmm') as ts,
+        | 'all' as channel_id,
+        | count(uid) as pv,
+        | count(distinct uid) as pv
+        | from shafa_mid_log_json
+        | group by tumble(ts,interval '10' minute )
+        |"""</span><span class="o">.</span><span class="py">stripMargin</span><span class="o">)</span>
+      <span class="o">.</span><span class="py">toAppendStream</span><span class="o">[</span><span class="kt">Row</span><span class="o">].</span><span class="py">print</span><span class="o">()</span>
+
+    <span class="c1">//    //5分钟</span>
+    <span class="c1">//    tEnv.sqlUpdate(</span>
+    <span class="c1">//      """</span>
+    <span class="c1">//        |insert into sink_es_shafa_pv_uv</span>
+    <span class="c1">//        |select</span>
+    <span class="c1">//        | DATE_FORMAT(TUMBLE_END(ts, interval '5' minute),'yyyyMMddHHmm') as ts,</span>
+    <span class="c1">//        | 'all' as channel_id,</span>
+    <span class="c1">//        | count(uid) as pv,</span>
+    <span class="c1">//        | count(distinct uid) as pv</span>
+    <span class="c1">//        | from shafa_mid_log_json</span>
+    <span class="c1">//        | group by tumble(ts,interval '5' minute )</span>
+    <span class="c1">//        |""".stripMargin)</span>
+
+    <span class="c1">//统计一个小时内pv,uv</span>
+    <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlUpdate</span><span class="o">(</span>
+      <span class="s">"""
+        |insert into sink_es_shafa_pv_uv
+        | select
+        | DATE_FORMAT(TUMBLE_START(ts, interval '1' hour),'yyyyMMddHH') as ts,
+        | channel_id,
+        | count(uid) as pv,
+        | count(distinct uid) as pv
+        | from shafa_mid_log_json
+        | group by tumble(ts,interval '1' hour ) , channel_id
+        |"""</span><span class="o">.</span><span class="py">stripMargin</span><span class="o">)</span>
+
+    <span class="c1">//统计当前小时总的pv,uv</span>
+    <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlUpdate</span><span class="o">(</span>
+      <span class="s">"""
+        |insert into sink_es_shafa_pv_uv
+        | select
+        | DATE_FORMAT(TUMBLE_START(ts, interval '1' hour),'yyyyMMddHH') as ts,
+        | 'hour' as channel_id,
+        | count(uid) as pv,
+        | count(distinct uid) as pv
+        | from shafa_mid_log_json
+        | group by tumble(ts,interval '1' hour )
+        |"""</span><span class="o">.</span><span class="py">stripMargin</span><span class="o">)</span>
+
+    <span class="c1">//统计当天每个渠道总的pv,uv</span>
+    <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlUpdate</span><span class="o">(</span>
+      <span class="s">"""
+        |insert into sink_es_shafa_pv_uv
+        | select
+        | DATE_FORMAT(TUMBLE_START(ts, interval '1' day),'yyyyMMdd') as ts,
+        | channel_id,
+        | count(uid) as pv,
+        | count(distinct uid) as pv
+        | from shafa_mid_log_json
+        | group by tumble(ts,interval '1' day ),channel_id
+        |"""</span><span class="o">.</span><span class="py">stripMargin</span><span class="o">)</span>
+
+    <span class="c1">//统计当天总的pv,uv</span>
+    <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlUpdate</span><span class="o">(</span>
+      <span class="s">"""
+        |insert into sink_es_shafa_pv_uv
+        | select
+        | DATE_FORMAT(TUMBLE_START(ts, interval '1' day),'yyyyMMdd') as ts,
+        | 'day' as channel_id,
+        | count(uid) as pv,
+        | count(distinct uid) as pv
+        | from shafa_mid_log_json
+        | group by tumble(ts,interval '1' day )
+        |"""</span><span class="o">.</span><span class="py">stripMargin</span><span class="o">)</span>
+
+    <span class="nv">env</span><span class="o">.</span><span class="py">execute</span><span class="o">(</span><span class="s">"stat_shafa_pv_uv_es"</span><span class="o">)</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+
+</code></pre></div></div>
+
+<h3 id="总结">总结:</h3>
+<ol>
+  <li>kafka接入时利用了计算列
+    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>     <span class="o">|</span> <span class="n">reqtime</span> <span class="nc">BIGINT</span><span class="o">,</span>
+     <span class="o">|</span> <span class="n">ts</span> <span class="nc">AS</span> <span class="nc">TO_TIMESTAMP</span><span class="o">(</span><span class="nc">FROM_UNIXTIME</span><span class="o">(</span><span class="n">reqtime</span><span class="o">/</span><span class="mi">1000</span><span class="o">,</span><span class="ss">'yyyy</span><span class="o">-</span><span class="nc">MM</span><span class="o">-</span><span class="n">dd</span> <span class="nc">HH</span><span class="k">:</span><span class="kt">mm:ss'</span><span class="o">))</span> 
+</code></pre></div>    </div>
+    <p>flink sql1.10.0 中TO_TIMESTAMP函数还不支持时间戳(整型数据),支持符合时间格式的字符串形式.但是阿里云文档的支持.</p>
+  </li>
+  <li>
+    <p>写入结果集需等到窗口结束时一次性写入.</p>
+  </li>
+  <li>目前table 对hbase只能做写入操作.对读取操作不友好,测试发现暂时无法正常使用.不建议使用table方式读取Hbase,但是可以做写入.Flink SQL后续版本可能会升级.</li>
+</ol>
+
+<p>具体代码测试读取Hbase:</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">import</span> <span class="nn">org.apache.flink.streaming.api.scala.</span><span class="o">{</span><span class="nc">StreamExecutionEnvironment</span><span class="o">,</span> <span class="k">_</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.table.api.EnvironmentSettings</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.table.api.scala.</span><span class="o">{</span><span class="nc">StreamTableEnvironment</span><span class="o">,</span> <span class="k">_</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">org.apache.flink.types.Row</span>
+<span class="cm">/**
+ * hbase join flink sql table test
+ */</span>
+<span class="k">object</span> <span class="nc">HbaseJoinFlinkTableV2</span> <span class="k">extends</span> <span class="nc">ConfigBase</span> <span class="o">{</span>
+  <span class="k">var</span> <span class="n">sourceSql</span> <span class="k">=</span>
+    <span class="s">"""
+      |create table cps_hive_to_hbase (
+      | id VARCHAR,
+      | cf1 ROW(
+      | user_id VARCHAR,
+      | channel_id VARCHAR,
+      | open_id VARCHAR,
+      | book_id VARCHAR,
+      | book_sex VARCHAR,
+      | book_category_id VARCHAR,
+      | read_chapter_num VARCHAR,
+      | all_read_chapter_num VARCHAR,
+      | utime VARCHAR,
+      | rgdt VARCHAR,
+      | sex VARCHAR,
+      | subscribe_time VARCHAR,
+      | vip_endtime VARCHAR,
+      | update_user_time VARCHAR,
+      | is_pay VARCHAR,
+      | cz_money VARCHAR,
+      | cz_count VARCHAR,
+      | all_xf_free_kandian VARCHAR,
+      | all_xf_money VARCHAR,
+      | all_remain_money VARCHAR,
+      | all_remain_free_money VARCHAR
+      | )
+      |
+      | )
+      | WITH (
+      |'connector.type' = 'hbase',
+      |'connector.version' = '1.4.3',
+      |'connector.table-name' = 'cps_hive_to_hbase',
+      |'connector.zookeeper.znode.parent' = '/hbase',
+      |'connector.zookeeper.quorum' = '%s',
+      |'connector.write.buffer-flush.max-size' = '10mb',
+      |'connector.write.buffer-flush.max-rows' = '1000',
+      |'connector.write.buffer-flush.interval' = '2s'
+      | )"""</span><span class="o">.</span><span class="py">stripMargin</span>
+
+  <span class="c1">//</span>
+  <span class="k">def</span> <span class="nf">main</span><span class="o">(</span><span class="n">args</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="nv">paramTool</span> <span class="k">=</span> <span class="nf">getProperties</span><span class="o">(</span><span class="n">args</span><span class="o">)</span>
+    <span class="k">val</span> <span class="nv">zookeeper</span> <span class="k">=</span> <span class="nv">paramTool</span><span class="o">.</span><span class="py">get</span><span class="o">(</span><span class="s">"zookeeper.quorum"</span><span class="o">)</span>
+    <span class="k">val</span> <span class="nv">env</span> <span class="k">=</span> <span class="nv">StreamExecutionEnvironment</span><span class="o">.</span><span class="py">getExecutionEnvironment</span>
+    <span class="k">val</span> <span class="nv">settings</span> <span class="k">=</span> <span class="nv">EnvironmentSettings</span><span class="o">.</span><span class="py">newInstance</span><span class="o">()</span>
+      <span class="o">.</span><span class="py">useBlinkPlanner</span><span class="o">()</span>
+      <span class="o">.</span><span class="py">inStreamingMode</span><span class="o">()</span>
+      <span class="o">.</span><span class="py">build</span><span class="o">()</span>
+    <span class="c1">//    env.setParallelism(1)</span>
+    <span class="k">val</span> <span class="nv">tEnv</span> <span class="k">=</span> <span class="nv">StreamTableEnvironment</span><span class="o">.</span><span class="py">create</span><span class="o">(</span><span class="n">env</span><span class="o">,</span> <span class="n">settings</span><span class="o">)</span>
+    <span class="n">sourceSql</span> <span class="k">=</span> <span class="nv">String</span><span class="o">.</span><span class="py">format</span><span class="o">(</span><span class="n">sourceSql</span><span class="o">,</span> <span class="n">zookeeper</span><span class="o">)</span>
+
+    <span class="nf">println</span><span class="o">(</span><span class="n">sourceSql</span><span class="o">)</span>
+    <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlUpdate</span><span class="o">(</span><span class="n">sourceSql</span><span class="o">)</span>
+
+    <span class="k">val</span> <span class="nv">query</span> <span class="k">=</span> <span class="nv">tEnv</span><span class="o">.</span><span class="py">sqlQuery</span><span class="o">(</span><span class="s">"select * from  cps_hive_to_hbase limit 10 "</span><span class="o">).</span><span class="py">toAppendStream</span><span class="o">[</span><span class="kt">Row</span><span class="o">].</span><span class="py">print</span><span class="o">()</span>
+
+    <span class="nv">env</span><span class="o">.</span><span class="py">execute</span><span class="o">(</span><span class="s">"test hbase"</span><span class="o">)</span>
+
+  <span class="o">}</span>
+<span class="o">}</span>
+
+</code></pre></div></div>
+<p>会抛出异常:</p>
+<pre><code class="language-log">Exception in thread "main" java.lang.RuntimeException: java.util.concurrent.ExecutionException: akka.pattern.AskTimeoutException: Ask timed out on [Actor[akka://flink/user/dispatcher#-523925282]] after [10000 ms]. Message of type [org.apache.flink.runtime.rpc.messages.LocalFencedMessage]. A typical reason for `AskTimeoutException` is that the recipient actor didn't send a reply.
+
+
+</code></pre>
+<p>查看官方论坛<a href="https://issues.apache.org/jira/browse/FLINK-11143">issues</a>中有人提及,未找到解决方案.</p>
+
+<h3 id="附录一-代码">附录一 代码</h3>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">import</span> <span class="nn">org.apache.flink.api.java.utils.ParameterTool</span>
+
+<span class="k">class</span> <span class="nc">ConfigBase</span> <span class="o">{</span>
+
+  <span class="k">def</span> <span class="nf">getProperties</span><span class="o">(</span><span class="n">args</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span><span class="k">:</span> <span class="kt">ParameterTool</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="nv">ParameterTool</span><span class="o">.</span><span class="py">fromPropertiesFile</span><span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="py">getClass</span><span class="o">.</span><span class="py">getClassLoader</span><span class="o">.</span><span class="py">getResourceAsStream</span><span class="o">(</span><span class="s">"application.yml"</span><span class="o">))</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+
+</code></pre></div></div>
+<h3 id="附录二-pomxml">附录二 POM.xml</h3>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;project</span> <span class="na">xmlns=</span><span class="s">"http://maven.apache.org/POM/4.0.0"</span>
+         <span class="na">xmlns:xsi=</span><span class="s">"http://www.w3.org/2001/XMLSchema-instance"</span>
+         <span class="na">xsi:schemaLocation=</span><span class="s">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;parent&gt;</span>
+        <span class="nt">&lt;artifactId&gt;</span>dz-rt<span class="nt">&lt;/artifactId&gt;</span>
+        <span class="nt">&lt;groupId&gt;</span>com.dz.rt<span class="nt">&lt;/groupId&gt;</span>
+        <span class="nt">&lt;version&gt;</span>1.0.0<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/parent&gt;</span>
+    <span class="nt">&lt;modelVersion&gt;</span>4.0.0<span class="nt">&lt;/modelVersion&gt;</span>
+
+    <span class="nt">&lt;artifactId&gt;</span>flink-sql<span class="nt">&lt;/artifactId&gt;</span>
+
+    <span class="nt">&lt;properties&gt;</span>
+        <span class="nt">&lt;flink.version&gt;</span>1.10.0<span class="nt">&lt;/flink.version&gt;</span>
+        <span class="nt">&lt;scala.library.verison&gt;</span>2.12<span class="nt">&lt;/scala.library.verison&gt;</span>
+        <span class="nt">&lt;scala.version&gt;</span>2.12.11<span class="nt">&lt;/scala.version&gt;</span>
+    <span class="nt">&lt;/properties&gt;</span>
+
+    <span class="nt">&lt;dependencies&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.scala-lang<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>scala-library<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${scala.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-core<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-scala_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+            <span class="c">&lt;!--            &lt;scope&gt;provided&lt;/scope&gt;--&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-streaming-scala_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+            <span class="c">&lt;!--            &lt;scope&gt;provided&lt;/scope&gt;--&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-connector-elasticsearch7_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-table-api-java-bridge_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-table-api-scala-bridge_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-table-planner_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-table-planner-blink_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-streaming-scala_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-clients_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-table-common<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+            <span class="c">&lt;!--            &lt;scope&gt;provided&lt;/scope&gt;--&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-table<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+            <span class="nt">&lt;type&gt;</span>pom<span class="nt">&lt;/type&gt;</span>
+            <span class="c">&lt;!--            &lt;scope&gt;provided&lt;/scope&gt;--&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-connector-kafka_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>com.alibaba<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>fastjson<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>1.2.68<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-scala_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-json<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-csv<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="c">&lt;!-- https://mvnrepository.com/artifact/org.apache.flink/flink-hbase --&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.flink<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>flink-hbase_${scala.library.verison}<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${flink.version}<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+        <span class="c">&lt;!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-common --&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.hadoop<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>hadoop-common<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>3.0.0<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="c">&lt;!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client --&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.hadoop<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>hadoop-client<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>3.0.0<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+        <span class="c">&lt;!-- https://mvnrepository.com/artifact/org.apache.hbase/hbase-client --&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.hbase<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>hbase-client<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>2.1.0<span class="nt">&lt;/version&gt;</span>
+<span class="c">&lt;!--            &lt;version&gt;1.4.3&lt;/version&gt;--&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+    <span class="nt">&lt;/dependencies&gt;</span>
+
+    <span class="nt">&lt;build&gt;</span>
+        <span class="nt">&lt;resources&gt;</span>
+            <span class="nt">&lt;resource&gt;</span>
+                <span class="nt">&lt;directory&gt;</span>${basedir}/src/main/scala/<span class="nt">&lt;/directory&gt;</span>
+                <span class="nt">&lt;targetPath&gt;</span>target/classes/<span class="nt">&lt;/targetPath&gt;</span>
+                <span class="nt">&lt;includes&gt;</span>
+                    <span class="nt">&lt;include&gt;</span>*.*<span class="nt">&lt;/include&gt;</span>
+                <span class="nt">&lt;/includes&gt;</span>
+            <span class="nt">&lt;/resource&gt;</span>
+            <span class="nt">&lt;resource&gt;</span>
+                <span class="nt">&lt;directory&gt;</span>${basedir}/src/main/resources/<span class="nt">&lt;/directory&gt;</span>
+                <span class="nt">&lt;includes&gt;</span>
+                    <span class="nt">&lt;include&gt;</span>*.*<span class="nt">&lt;/include&gt;</span>
+                <span class="nt">&lt;/includes&gt;</span>
+            <span class="nt">&lt;/resource&gt;</span>
+        <span class="nt">&lt;/resources&gt;</span>
+        <span class="nt">&lt;plugins&gt;</span>
+            <span class="c">&lt;!-- Scala Compiler --&gt;</span>
+            <span class="nt">&lt;plugin&gt;</span>
+                <span class="nt">&lt;groupId&gt;</span>net.alchim31.maven<span class="nt">&lt;/groupId&gt;</span>
+                <span class="nt">&lt;artifactId&gt;</span>scala-maven-plugin<span class="nt">&lt;/artifactId&gt;</span>
+                <span class="nt">&lt;version&gt;</span>3.2.2<span class="nt">&lt;/version&gt;</span>
+                <span class="nt">&lt;executions&gt;</span>
+                    <span class="nt">&lt;execution&gt;</span>
+                        <span class="nt">&lt;goals&gt;</span>
+                            <span class="nt">&lt;goal&gt;</span>compile<span class="nt">&lt;/goal&gt;</span>
+                            <span class="nt">&lt;goal&gt;</span>testCompile<span class="nt">&lt;/goal&gt;</span>
+                        <span class="nt">&lt;/goals&gt;</span>
+                    <span class="nt">&lt;/execution&gt;</span>
+                <span class="nt">&lt;/executions&gt;</span>
+                <span class="nt">&lt;configuration&gt;</span>
+                    <span class="nt">&lt;args&gt;</span>
+                        <span class="nt">&lt;arg&gt;</span>-nobootcp<span class="nt">&lt;/arg&gt;</span>
+                    <span class="nt">&lt;/args&gt;</span>
+                <span class="nt">&lt;/configuration&gt;</span>
+            <span class="nt">&lt;/plugin&gt;</span>
+
+            <span class="c">&lt;!-- 编译插件 --&gt;</span>
+            <span class="nt">&lt;plugin&gt;</span>
+                <span class="nt">&lt;groupId&gt;</span>org.apache.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+                <span class="nt">&lt;artifactId&gt;</span>maven-compiler-plugin<span class="nt">&lt;/artifactId&gt;</span>
+                <span class="nt">&lt;version&gt;</span>3.7.0<span class="nt">&lt;/version&gt;</span>
+                <span class="nt">&lt;configuration&gt;</span>
+                    <span class="nt">&lt;source&gt;</span>1.8<span class="nt">&lt;/source&gt;</span>
+                    <span class="nt">&lt;target&gt;</span>1.8<span class="nt">&lt;/target&gt;</span>
+                <span class="nt">&lt;/configuration&gt;</span>
+            <span class="nt">&lt;/plugin&gt;</span>
+
+            <span class="nt">&lt;plugin&gt;</span>
+                <span class="nt">&lt;groupId&gt;</span>org.apache.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+                <span class="nt">&lt;artifactId&gt;</span>maven-dependency-plugin<span class="nt">&lt;/artifactId&gt;</span>
+                <span class="nt">&lt;executions&gt;</span>
+                    <span class="nt">&lt;execution&gt;</span>
+                        <span class="nt">&lt;id&gt;</span>copy-dependencies<span class="nt">&lt;/id&gt;</span>
+                        <span class="nt">&lt;phase&gt;</span>prepare-package<span class="nt">&lt;/phase&gt;</span>
+                        <span class="nt">&lt;goals&gt;</span>
+                            <span class="nt">&lt;goal&gt;</span>copy-dependencies<span class="nt">&lt;/goal&gt;</span>
+                        <span class="nt">&lt;/goals&gt;</span>
+                        <span class="nt">&lt;configuration&gt;</span>
+                            <span class="nt">&lt;outputDirectory&gt;</span>${project.build.directory}/lib<span class="nt">&lt;/outputDirectory&gt;</span>
+                            <span class="nt">&lt;overWriteReleases&gt;</span>false<span class="nt">&lt;/overWriteReleases&gt;</span>
+                            <span class="nt">&lt;overWriteSnapshots&gt;</span>false<span class="nt">&lt;/overWriteSnapshots&gt;</span>
+                            <span class="nt">&lt;overWriteIfNewer&gt;</span>true<span class="nt">&lt;/overWriteIfNewer&gt;</span>
+                        <span class="nt">&lt;/configuration&gt;</span>
+                    <span class="nt">&lt;/execution&gt;</span>
+                <span class="nt">&lt;/executions&gt;</span>
+            <span class="nt">&lt;/plugin&gt;</span>
+
+
+        <span class="nt">&lt;/plugins&gt;</span>
+    <span class="nt">&lt;/build&gt;</span>
+<span class="nt">&lt;/project&gt;</span>
+</code></pre></div></div>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/flink/flinksql/Flink-SQL-%E8%B0%83%E7%A0%94%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/';
+              this.page.identifier = '/flink/flinksql/Flink-SQL-%E8%B0%83%E7%A0%94%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/';
+              this.page.title = 'Flink SQL 调研实践总结';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Flume 优化 &mdash; code busy</title>
+    <link rel="stylesheet" href="/assets/vendor/primer-css/css/primer.css">
+    <link rel="stylesheet" href="/assets/vendor/primer-markdown/dist/user-content.min.css">
+    <link rel="stylesheet" href="/assets/vendor/octicons/octicons/octicons.css">
+    <link rel="stylesheet" href="/assets/css/components/collection.css">
+    <link rel="stylesheet" href="/assets/css/components/repo-card.css">
+    <link rel="stylesheet" href="/assets/css/sections/repo-list.css">
+    <link rel="stylesheet" href="/assets/css/sections/mini-repo-list.css">
+    <link rel="stylesheet" href="/assets/css/components/boxed-group.css">
+    <link rel="stylesheet" href="/assets/css/globals/common.css">
+    <link rel="stylesheet" href="/assets/vendor/share.js/dist/css/share.min.css">
+    <link rel="stylesheet" href="/assets/css/globals/responsive.css">
+    <link rel="stylesheet" href="/assets/css/posts/index.css">
+    <!-- Latest compiled and minified CSS -->
+    
+
+    
+    <link rel="canonical" href="http://localhost:8000/flume/flume-%E4%BC%98%E5%8C%96/">
+    <link rel="alternate" type="application/atom+xml" title="code busy" href="/feed.xml">
+    <link rel="shortcut icon" href="https://stone-upyun.b0.aicdn.com/blog20180510143638.png">
+    
+    <meta property="og:title" content="Flume 优化">
+      
+    <meta name="keywords" content="Flume interceptor 优化">
+    <meta name="og:keywords" content="Flume interceptor 优化">
+      
+    <meta name="description" content="Flume优化">
+    <meta name="og:description" content="Flume优化">
+      
+    
+    
+        
+    
+    <meta property="og:url" content="http://localhost:8000/flume/flume-%E4%BC%98%E5%8C%96/">
+    <meta property="og:site_name" content="code busy">
+    <meta property="og:type" content="article">
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta property="article:published_time" content="2021-11-19">
+    
+    <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
+    <script src="/assets/js/jquery-ui.js"></script>
+    <script type="text/javascript">
+    function toggleMenu() {
+        var nav = document.getElementsByClassName("site-header-nav")[0];
+        if (nav.style.display == "inline-flex") {
+          nav.style.display = "none";
+        } else {
+          nav.style.display = "inline-flex";
+        }
+    }
+    </script>
+</head>
+<body class="" data-mz="">
+    <header class="site-header">
+        <div class="container">
+            <h1><a href="/" title="code busy"><span class="octicon octicon-mark-github"></span> code busy</a></h1>
+            <button class="collapsed mobile-visible" type="button" onclick="toggleMenu();">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <nav class="site-header-nav" role="navigation">
+                
+                <a href="/" class=" site-header-nav-item" target="" title="首页">首页</a>
+                
+                <a href="/categories/" class=" site-header-nav-item" target="" title="分类">分类</a>
+                
+                <a href="/wiki/" class=" site-header-nav-item" target="" title="维基">维基</a>
+                
+                <a href="/links/" class=" site-header-nav-item" target="" title="链接">链接</a>
+                
+                <a href="/about/" class=" site-header-nav-item" target="" title="关于">关于</a>
+                
+            </nav>
+        </div>
+    </header>
+    <!-- / header -->
+
+    <section class="collection-head small geopattern" data-pattern-id="Flume 优化">
+<div class="container">
+  <div class="columns">
+    <div class="column three-fourths">
+      <div class="collection-title">
+        <h1 class="collection-header">Flume 优化</h1>
+        <div class="collection-info">
+          
+          <span class="meta-info">
+            <span class="octicon octicon-calendar"></span> 2021/11/19
+          </span>
+          
+          
+          <span class="meta-info">
+            <span class="octicon octicon-file-directory"></span>
+            <a href="/categories/#Flume" title="Flume">Flume</a>
+          </span>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- / .banner -->
+<section class="container content">
+<div class="columns">
+  <div class="column three-fourths" >
+    <article class="article-content markdown-body">
+    <h1 id="flume优化">Flume优化</h1>
+
+<h2 id="背景和现象">背景和现象</h2>
+<ul>
+  <li>
+    <p>现象</p>
+
+    <p>因数据堆积(job停止没有自动重启)后,flink任务将数据消费完成到kafka-topic中,flume消费堆积数据到hdfs(s3)时,数据消费过慢.</p>
+  </li>
+  <li>
+    <p>原因</p>
+
+    <p>修改了kafka的压缩方式,由snappy改为了 zstd,zstd在解压时速率较慢,同时由于堆积造成flume消费kafka时,网速远没达到预期.</p>
+  </li>
+</ul>
+
+<h2 id="解决过程">解决过程</h2>
+<h3 id="升级机器配置">升级机器配置</h3>
+<p>在原有机器上调整了以下配置后,flume机器网速依然没有提升.平均值大约在42MB/s</p>
+
+<p>原机器 配置: 4C 16GB</p>
+<div class="language-conf highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># source
+</span><span class="n">a1</span>.<span class="n">sources</span>.<span class="n">r1</span>.<span class="n">batchSize</span> = <span class="m">40000</span> <span class="c"># 原有值 10000
+</span><span class="n">a1</span>.<span class="n">sources</span>.<span class="n">r1</span>.<span class="n">batchDurationMillis</span> = <span class="m">500</span> <span class="c"># 原有值 1000
+</span>
+<span class="c"># sink
+</span><span class="n">a1</span>.<span class="n">sinks</span>.<span class="n">k1</span>.<span class="n">hdfs</span>.<span class="n">batchSize</span> = <span class="m">5000</span> <span class="c"># 原有1000
+</span></code></pre></div></div>
+<p>升级了新机器</p>
+
+<p>32C 64GB后调整了批次大小和间隔时间,依然没有对消费能力有较大提升,最终平均网速也只在50MB/s左右,没有达到预想中的提升.</p>
+
+<h3 id="修改自定义拦截器">修改自定义拦截器</h3>
+
+<p>通过火焰图发现了拦截效果过慢,大约占用了40-45%的效率时间.</p>
+
+<p>火焰图使用参考其官网: <a href="https://github.com/jvm-profiling-tools/async-profiler">火焰图github官网</a></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ps <span class="nt">-ef</span> |grep flume
+<span class="c">#拿到进程id -&gt; pid</span>
+
+/profiler.sh <span class="nt">-d</span> 30 <span class="nt">-f</span> pid_xxx.html pid
+
+</code></pre></div></div>
+<p>优化前火焰图: 
+<img src="https://i.loli.net/2021/11/29/azbCdjQGpK8OEsn.png" alt="" /></p>
+
+<p>通过查看自定义拦截器代码</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Event</span> <span class="nf">intercept</span><span class="o">(</span><span class="nc">Event</span> <span class="n">event</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">String</span><span class="o">&gt;</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="na">getHeaders</span><span class="o">();</span>
+        <span class="nc">String</span> <span class="n">log</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">String</span><span class="o">(</span><span class="n">event</span><span class="o">.</span><span class="na">getBody</span><span class="o">(),</span> <span class="nc">StandardCharsets</span><span class="o">.</span><span class="na">UTF_8</span><span class="o">);</span>
+        <span class="nc">JSONObject</span><span class="o">.</span><span class="na">parseObject</span><span class="o">(</span><span class="n">log</span><span class="o">);</span>
+        <span class="nc">JSONObject</span> <span class="n">jsonObject</span> <span class="o">=</span> <span class="no">JSON</span><span class="o">.</span><span class="na">parseObject</span><span class="o">(</span><span class="n">log</span><span class="o">);</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">jsonObject</span><span class="o">.</span><span class="na">containsKey</span><span class="o">(</span><span class="s">"key"</span><span class="o">))</span> <span class="o">{</span>
+            <span class="n">headers</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"timestamp"</span><span class="o">,</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"timestamp"</span><span class="o">));</span>
+            <span class="n">headers</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"xxx"</span><span class="o">,</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"xxx"</span><span class="o">));</span>
+            <span class="n">headers</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"yyy"</span><span class="o">,</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"yyy"</span><span class="o">));</span>
+            <span class="k">return</span> <span class="n">event</span><span class="o">;</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">Event</span><span class="o">&gt;</span> <span class="nf">intercept</span><span class="o">(</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Event</span><span class="o">&gt;</span> <span class="n">events</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">List</span><span class="o">&lt;</span><span class="nc">Event</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="k">for</span> <span class="o">(</span><span class="nc">Event</span> <span class="n">event</span> <span class="o">:</span> <span class="n">events</span><span class="o">)</span> <span class="o">{</span>
+            <span class="nc">Event</span> <span class="n">intercept</span> <span class="o">=</span> <span class="n">intercept</span><span class="o">(</span><span class="n">event</span><span class="o">);</span>
+            <span class="k">if</span><span class="o">(</span><span class="n">intercept</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">){</span>
+                <span class="n">list</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">intercept</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">list</span><span class="o">;</span>
+    <span class="o">}</span>
+</code></pre></div></div>
+<p>优化后的拦截器代码:使用多多线程解析 List<Event> events,同时去除了重复的JSONObject.parseObject(log);</Event></p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Event</span> <span class="nf">intercept</span><span class="o">(</span><span class="nc">Event</span> <span class="n">event</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">String</span><span class="o">&gt;</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="na">getHeaders</span><span class="o">();</span>
+        <span class="nc">JSONObject</span> <span class="n">jsonObject</span> <span class="o">=</span> <span class="no">JSON</span><span class="o">.</span><span class="na">parseObject</span><span class="o">(</span><span class="k">new</span> <span class="nc">String</span><span class="o">(</span><span class="n">event</span><span class="o">.</span><span class="na">getBody</span><span class="o">(),</span> <span class="nc">StandardCharsets</span><span class="o">.</span><span class="na">UTF_8</span><span class="o">));</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">jsonObject</span><span class="o">.</span><span class="na">containsKey</span><span class="o">(</span><span class="s">"key"</span><span class="o">))</span> <span class="o">{</span>
+            <span class="n">headers</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"timestamp"</span><span class="o">,</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"timestamp"</span><span class="o">));</span>
+            <span class="n">headers</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"xxx"</span><span class="o">,</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"xxx"</span><span class="o">));</span>
+            <span class="n">headers</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"yyy"</span><span class="o">,</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"yyy"</span><span class="o">));</span>
+            <span class="k">return</span> <span class="n">event</span><span class="o">;</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+        <span class="o">}</span>
+
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">Event</span><span class="o">&gt;</span> <span class="nf">intercept</span><span class="o">(</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Event</span><span class="o">&gt;</span> <span class="n">events</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">List</span><span class="o">&lt;</span><span class="nc">Event</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="n">events</span><span class="o">.</span><span class="na">stream</span><span class="o">()</span>
+                <span class="o">.</span><span class="na">parallel</span><span class="o">()</span>
+                <span class="o">.</span><span class="na">map</span><span class="o">(</span><span class="n">event</span> <span class="o">-&gt;</span> <span class="n">intercept</span><span class="o">(</span><span class="n">event</span><span class="o">))</span>
+                <span class="o">.</span><span class="na">filter</span><span class="o">(</span><span class="n">e</span> <span class="o">-&gt;</span> <span class="n">e</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">).</span><span class="na">collect</span><span class="o">(</span><span class="nc">Collectors</span><span class="o">.</span><span class="na">toList</span><span class="o">());</span>
+        <span class="k">return</span> <span class="n">list</span><span class="o">;</span>
+    <span class="o">}</span>
+</code></pre></div></div>
+<ul>
+  <li>小结:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>这里总结以下:  events.stream<span class="o">()</span>.parallel<span class="o">()</span> 并行执行,当events 个数多的时候效果更好.
+同时需要属性jdk8+的lamada表达式及内部原理.
+这里涉及到后期优化kafka消费者的读取批次参数了.
+这对拦截器的效率提升巨大.
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<p>来看一下优化拦截器后的火焰图:
+<img src="https://i.loli.net/2021/11/29/8ohcMwQ7tWx6kIr.png" alt="" /></p>
+
+<h3 id="修改kafka读取批次和channel大小及sink的批次大小">修改kafka读取批次和channel大小及sink的批次大小.</h3>
+<p>在高配机器上上传修改后拦截器jar后,不修改kafka消费参数时,提升效果来到了72MB/s,但是还是没有达到预期100MB+的理想情况.</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">a1.sources.r1.batchSize = </span><span class="m">40000</span>
+<span class="s">a1.sources.r1.batchDurationMillis = </span><span class="m">500</span>
+<span class="s">a1.sources.r1.kafka.consumer.max.poll.records = </span><span class="m">40000</span> <span class="c1">#这个和a1.sources.r1.batchSize很关键</span>
+</code></pre></div></div>
+<p>kafka.consumer.max.poll.records: 消费者批次拉取数据大小
+a1.sources.r1.batchSize : flume的source批次写入channel时的大小.</p>
+
+<p>修改上了上述参数后,重启flume,flume消费机器网速来到120MB/s达到了理想情况.</p>
+
+<h2 id="优化总结">优化总结</h2>
+<ol>
+  <li>在flume拦截使用多线程时,首先需要批次数据更多更有利,同时和cpu个数和频率也有关一定关系.</li>
+  <li>flume-source:kafka-consumer批次拉取也很关键.如果设置大小.对1也有影响.</li>
+</ol>
+
+    
+
+    </article>
+    <div class="share">
+      <div class="share-component"></div>
+    </div>
+    <div class="comment">
+      
+  
+      
+        
+        <!-- Disqus Protection, see https://github.com/mzlogin/mzlogin.github.io/issues/2 -->
+        
+        
+          <div id="disqus_thread"></div>
+          <script>
+            var disqus_config = function () {
+              this.page.url = 'http://localhost:8000/flume/flume-%E4%BC%98%E5%8C%96/';
+              this.page.identifier = '/flume/flume-%E4%BC%98%E5%8C%96/';
+              this.page.title = 'Flume 优化';
+            };
+            (function() { // DON'T EDIT BELOW THIS LINE
+              var d = document, s = d.createElement('script');
+
+              s.type = 'text/javascript';
+              s.async = true;
+              var shortname = 'disqus_7JU2Q6xla4';
+
+              s.src = 'https://www-codebusy-cc.disqus.com/embed.js';
+
+              s.setAttribute('data-timestamp', +new Date());
+              (d.head || d.body).appendChild(s);
+            })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+      
+    
+
+
+    </div>
+  </div>
+  <div class="column one-fourth">
+    
+<h3>Search</h3>
+<div id="site_search">
+    <input type="text" id="search_box" placeholder="Search">
+    <button class="btn btn-default" id="site_search_do"><span class="octicon octicon-search"></span></button>
+</div>
+
+<ul id="search_results"></ul>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/modules/sidebar-search.css">
+<script src="/assets/js/lunr.min.js"></script>
+<script src="/assets/js/search.js"></script>
+
+
+    
+<h3 class="mobile-hidden">Post Directory</h3>
+<div id="post-directory-module" class="mobile-hidden">
+  <section class="post-directory">
+  <!-- Links that trigger the jumping -->
+  <!-- Added by javascript below -->
+  <dl></dl>
+  </section>
+</div>
+
+<script src="/assets/js/jquery.toc.js"></script>
+
+  </div>
+</div>
+</section>
+<!-- /section.content -->
+
+    <footer class="container">
+        <div class="site-footer" role="contentinfo">
+            <div class="copyright left mobile-block">
+                    © 2015
+                    <span title="em-miao">em-miao</span>
+                    <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+            </div>
+
+            <ul class="site-footer-links right mobile-hidden">
+                <li>
+                    <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+                </li>
+            </ul>
+            <a href="https://github.com/liuliu-miao/liuliu-miao.github.io" target="_blank" aria-label="view source code">
+                <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+            </a>
+            <ul class="site-footer-links mobile-hidden">
+                
+                <li>
+                    <a href="/" title="首页" target="">首页</a>
+                </li>
+                
+                <li>
+                    <a href="/categories/" title="分类" target="">分类</a>
+                </li>
+                
+                <li>
+                    <a href="/wiki/" title="维基" target="">维基</a>
+                </li>
+                
+                <li>
+                    <a href="/links/" title="链接" target="">链接</a>
+                </li>
+                
+                <li>
+                    <a href="/about/" title="关于" target="">关于</a>
+                </li>
+                
+                <li><a href="/feed.xml"><span class="octicon octicon-rss" style="color:orange;"></span></a></li>
+            </ul>
+
+        </div>
+    </footer>
+    <!-- / footer -->
+    <script src="/assets/vendor/share.js/dist/js/share.min.js"></script>
+    <script src="/assets/js/geopattern.js"></script>
+    <script src="/assets/js/prism.js"></script>
+    <link rel="stylesheet" href="/assets/css/globals/prism.css">
+    <script>
+      jQuery(document).ready(function($) {
+        // geopattern
+        $('.geopattern').each(function(){
+          $(this).geopattern($(this).data('pattern-id'));
+        });
+       // hljs.initHighlightingOnLoad();
+      });
+    </script>
+    
+    <div style="display:none">
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-118986826-1', 'auto');
+        ga('send', 'pageview');
+
+      </script>
+    </div>
+    
+</body>
+</html>
